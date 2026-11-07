@@ -37,7 +37,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
   }, [geo]);
   const [active, setActive] = useState<string[]>([]); const [near, setNear] = useState<string[]>([]); const last = useRef("");
   useFrame(() => { const k = tileKey(playerPos.x, playerPos.z); if (k === last.current) return; last.current = k; const [tx, tz] = k.split(",").map(Number); const a: string[] = [], n: string[] = [];
-    const R = quality === "low" ? 1 : LOAD_R; for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const kk = `${tx + dx},${tz + dz}`; if (tiles.has(kk)) { a.push(kk); if (Math.abs(dx) <= COLLIDE_R && Math.abs(dz) <= COLLIDE_R) n.push(kk); } } setActive(a); setNear(n); });
+    const R = quality === "low" ? 1 : LOAD_R; for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const kk = `${tx + dx},${tz + dz}`; if (tiles.has(kk)) { a.push(kk); if (Math.abs(dx) <= COLLIDE_R && Math.abs(dz) <= COLLIDE_R) n.push(kk); } } setActive(a); setNear(n); if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tiles", k, a.length, n.length); });
   return <group name="osm-city">
     <GroundPlane />
     {active.map(k => <Boundary key={k} name={"tile " + k}><Suspense fallback={null}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} /></Suspense></Boundary>)}
@@ -132,8 +132,9 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
     const water = t.water.filter(w => w.pts.length >= 4).map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.05, 0); return g; });
     const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
     const platforms = merge(t.platforms.map(p => ribbon(p.pts, 6, 0.9, 4)));
+    if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tile built", id, { roads: t.roads.length, bld: t.buildings.length, lots, styles: Object.keys(byStyle).length, hasRoad: !!road });
     return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms };
-  }, [t]);
+  }, [t, id]);
   const names = useMemo(() => t.roads.filter(r => r.name && r.pts.length > 1).filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6), [t]);
   const trees = useMemo(() => { const out: [number, number][] = []; for (const p of geo.parks) { const bb = bbox(p.pts); const n = Math.min(40, Math.floor(polyArea(p.pts) / 400)); let tries = 0; while (out.length < n && tries++ < n * 6) { const x = bb.x0 + Math.random() * (bb.x1 - bb.x0), z = bb.z0 + Math.random() * (bb.z1 - bb.z0); if (inPoly([x, z], p.pts)) out.push([x, z]); } } return out; }, [geo]);
   void id;

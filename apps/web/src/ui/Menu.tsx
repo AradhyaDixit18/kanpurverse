@@ -58,7 +58,7 @@ function MainMenuInner() {
           <p className="muted small">three.js · React Three Fiber · Rapier · Next.js · Node ws · Edge neural voices · Instagram @velto_studios</p>
           <button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
       </div>
-      <div className="menu-right"><div className="menu-card-art"><div className="art-badge">{t("Public preview", "पब्लिक प्रीव्यू")}</div><ul className="art-list"><li>{t("Mall Road · Moti Jheel · Naveen Market", "मॉल रोड · मोती झील · नवीन मार्केट")}</li><li>{t("Kanpuriya NPCs with voice + subtitles", "कनपुरिया NPC, आवाज़ + सबटाइटल")}</li><li>{t("8 vehicles · 7 missions · real multiplayer", "8 गाड़ियाँ · 7 मिशन · असली मल्टीप्लेयर")}</li></ul></div></div>
+      <div className="menu-right"><div className="menu-card-art"><div className="art-badge">{t("Public preview", "पब्लिक प्रीव्यू")}</div><ul className="art-list"><li>{t("Real Kanpur streets from OpenStreetMap · railway crossings · Kanpur Central", "OpenStreetMap से असली कानपुर की सड़कें · रेलवे फाटक · कानपुर सेंट्रल")}</li><li>{t("Kanpuriya NPCs with voice + subtitles", "कनपुरिया NPC, आवाज़ + सबटाइटल")}</li><li>{t("10 vehicles · 14 Kanpuriya missions · live IST clock · real multiplayer", "10 गाड़ियाँ · 14 कनपुरिया मिशन · असली कानपुर समय · असली मल्टीप्लेयर")}</li></ul></div></div>
     </div>
     <div className="menu-foot muted small">v0.2 · {t("Works best in Brave, Chrome or Safari on a laptop; phones supported.", "ब्रेव, क्रोम या सफ़ारी में सबसे अच्छा; फ़ोन भी चलेगा।")}</div>
   </div>;
