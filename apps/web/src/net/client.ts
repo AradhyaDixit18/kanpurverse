@@ -14,27 +14,47 @@ export const correction: { p: [number, number, number] | null; at: number } = { 
 
 class NetClient {
   ws?: WebSocket; seq = 0; room = "kanpur-1"; private pingTimer?: ReturnType<typeof setInterval>; private retry = 0; private wantOpen = false; private lastStateSend = 0;
+  private watchdog?: ReturnType<typeof setInterval>; private reconnectTimer?: ReturnType<typeof setTimeout>;
+  /** QA/diagnostics: connection state without exposing the socket. */
+  status() { return { wantOpen: this.wantOpen, readyState: this.ws?.readyState ?? -1, retry: this.retry, room: this.room }; }
   connect(room = "kanpur-1") {
-    this.room = room; this.wantOpen = true; this.open();
+    this.room = room; this.wantOpen = true; this.retry = 0; this.open();
+    // Watchdog: a background tab can lose a socket (and a throttled reconnect timer) without any event we can act on.
+    // Every 5 s, and whenever the tab becomes visible again, reopen if we want a connection and have none.
+    clearInterval(this.watchdog);
+    this.watchdog = setInterval(() => this.ensure(), 5000);
+    if (typeof document !== "undefined" && !this.visBound) { this.visBound = true; document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") this.ensure(); }); }
+  }
+  private visBound = false;
+  private ensure() {
+    if (!this.wantOpen) return;
+    const rs = this.ws?.readyState;
+    if (rs === WebSocket.OPEN || rs === WebSocket.CONNECTING) return;
+    clearTimeout(this.reconnectTimer); this.open();
   }
   private open() {
     const st = useStore.getState();
     st.set({ loadStage: "connecting" });
-    try { this.ws = new WebSocket(WS_URL); } catch { st.set({ screen: "error", errorText: `Could not open a connection to ${WS_URL}` }); return; }
-    this.ws.onopen = () => {
+    let ws: WebSocket;
+    try { ws = new WebSocket(WS_URL); } catch { st.set({ screen: "error", errorText: `Could not open a connection to ${WS_URL}` }); return; }
+    this.ws = ws;
+    ws.onopen = () => {
+      if (this.ws !== ws) return ws.close();
       this.retry = 0; useStore.getState().set({ loadStage: "auth" });
-      this.send({ t: "hello", v: PROTOCOL_VERSION, token: st.token, guestName: st.name || undefined, appearance: st.appearance, lang: st.settings.lang });
-      this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), 3000);
+      const cur = useStore.getState();
+      this.send({ t: "hello", v: PROTOCOL_VERSION, token: cur.token, guestName: cur.name || undefined, appearance: cur.appearance, lang: cur.settings.lang });
+      clearInterval(this.pingTimer); this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), 3000);
     };
-    this.ws.onmessage = (ev) => { try { this.handle(JSON.parse(ev.data) as S2C); } catch (e) { console.warn("bad server message", e); } };
-    this.ws.onclose = (ev) => {
+    ws.onmessage = (ev) => { if (this.ws !== ws) return; try { this.handle(JSON.parse(ev.data) as S2C); } catch (e) { console.warn("bad server message", e); } };
+    ws.onclose = (ev) => {
+      if (this.ws !== ws) return; // a superseded socket must never change the client's state
       clearInterval(this.pingTimer); useStore.getState().set({ connected: false });
       if (ev.code === 4003 || ev.code === 4005 || ev.code === 4006) { useStore.getState().set({ screen: "error", errorText: ev.reason === "replaced" ? "You signed in from another tab." : "You were removed from the server." }); this.wantOpen = false; return; }
-      if (this.wantOpen) { if (this.retry >= 6 && useStore.getState().screen === "loading") { useStore.getState().set({ screen: "error", errorText: "The game server did not answer. It may be asleep or offline." }); this.wantOpen = false; return; } const delay = Math.min(8000, 500 * 2 ** this.retry++); useStore.getState().toast(`Reconnecting in ${Math.round(delay / 1000)}s…`, "error"); setTimeout(() => this.wantOpen && this.open(), delay); }
+      if (this.wantOpen) { if (this.retry >= 6 && useStore.getState().screen === "loading") { useStore.getState().set({ screen: "error", errorText: "The game server did not answer. It may be asleep or offline." }); this.wantOpen = false; return; } const delay = Math.min(8000, 500 * 2 ** this.retry++); clearTimeout(this.reconnectTimer); useStore.getState().toast(`Reconnecting in ${Math.round(delay / 1000)}s…`, "error"); this.reconnectTimer = setTimeout(() => this.wantOpen && this.open(), delay); }
     };
     this.ws.onerror = () => { /* onclose follows */ };
   }
-  disconnect() { this.wantOpen = false; this.ws?.close(); }
+  disconnect() { this.wantOpen = false; clearInterval(this.watchdog); clearTimeout(this.reconnectTimer); this.ws?.close(); }
   send(m: C2S) { if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m)); }
   sendState(p: [number, number, number], ry: number, anim: AnimState) {
     const now = performance.now(); if (now - this.lastStateSend < 50) return; this.lastStateSend = now;
