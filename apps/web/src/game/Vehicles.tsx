@@ -39,7 +39,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       steer.current = THREE.MathUtils.lerp(steer.current, st, 1 - Math.exp(-dt * 10));
       const grip = Math.min(1, Math.abs(speed.current) / 5); yaw.current -= steer.current * spec.turn * dt * grip * Math.sign(speed.current || 1) * (1 - Math.min(0.45, Math.abs(speed.current) / spec.max * 0.45));
       const vx = Math.sin(yaw.current) * speed.current, vz = Math.cos(yaw.current) * speed.current;
-      rb.setLinvel({ x: vx, y: rb.linvel().y, z: vz }, true); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current); rb.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+      const vyNow = rb.linvel().y; rb.setLinvel({ x: vx, y: Math.max(-25, Math.min(vyNow, 1.5)), z: vz }, true); // never launch upward: clamp vertical velocity q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current); rb.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
       const p = rb.translation(); net.sendVehicle(snap.id, [p.x, p.y, p.z], [q.x, q.y, q.z, q.w], speed.current);
       sfx.engine(true, Math.abs(speed.current)); vehicleTelemetry.speed = Math.abs(speed.current); vehicleTelemetry.kind = snap.kind;
       if ((input.horn || once("KeyH")) && performance.now() - lastHorn.current > 600) { lastHorn.current = performance.now(); sfx.horn(); }
@@ -49,7 +49,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
     } else {
       const buf = vehicleBuf.get(snap.id); const tgt = buf?.length ? buf[buf.length - 1] : { p: snap.p, q: snap.q, v: snap.v };
       const cur = rb.translation(); const t = 1 - Math.exp(-dt * 10);
-      const nx = THREE.MathUtils.lerp(cur.x, tgt.p[0], t), ny = THREE.MathUtils.lerp(cur.y, tgt.p[1], t), nz = THREE.MathUtils.lerp(cur.z, tgt.p[2], t);
+      const nx = THREE.MathUtils.lerp(cur.x, tgt.p[0], t), ny = Math.max(spec.size[1] / 2 + 0.05, THREE.MathUtils.lerp(cur.y, tgt.p[1], t)), nz = THREE.MathUtils.lerp(cur.z, tgt.p[2], t);
       rb.setNextKinematicTranslation({ x: nx, y: ny, z: nz });
       const cq = rb.rotation(); const tq = new THREE.Quaternion(tgt.q[0], tgt.q[1], tgt.q[2], tgt.q[3]); const nq = new THREE.Quaternion(cq.x, cq.y, cq.z, cq.w).slerp(tq, t); rb.setNextKinematicRotation({ x: nq.x, y: nq.y, z: nq.z, w: nq.w });
       if (vis.current) { vis.current.position.set(nx, ny, nz); vis.current.quaternion.copy(nq); }
@@ -60,7 +60,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
   const driverName = useStore(s => snap.driver ? s.players[snap.driver]?.name : undefined);
   return (
     <>
-      <RigidBody ref={body} key={isDriver ? "dyn" : "kin"} type={isDriver ? "dynamic" : "kinematicPosition"} colliders={false} position={snap.p} quaternion={snap.q} mass={900} linearDamping={0.6} angularDamping={5} enabledRotations={[false, true, false]} ccd>
+      <RigidBody ref={body} key={isDriver ? "dyn" : "kin"} type={isDriver ? "dynamic" : "kinematicPosition"} colliders={false} position={[snap.p[0], Math.max(snap.p[1], spec.size[1] / 2 + 0.05), snap.p[2]]} quaternion={snap.q} mass={900} linearDamping={0.6} angularDamping={5} enabledRotations={[false, true, false]} ccd>
         <CuboidCollider args={[spec.size[0] / 2, spec.size[1] / 2, spec.size[2] / 2]} />
       </RigidBody>
       <group ref={vis} position={snap.p}><VehicleMesh kind={snap.kind} color={color} state={state} />{driverName && <NameTag text={driverName} y={spec.size[1] + 0.7} />}</group>

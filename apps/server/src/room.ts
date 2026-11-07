@@ -2,7 +2,7 @@
 import type { WebSocket } from "ws";
 import {
   type S2C, type PlayerSnapshot, type VehicleSnapshot, type PlayerProfile, type AnimState, type Vec3, type Appearance, type Language,
-  MAX_PLAYER_SPEED, MAX_VEHICLE_SPEED, VEHICLE_SPAWNS, MISSIONS, SPAWN_POINT, WORLD_SIZE, TICK_RATE,
+  MAX_PLAYER_SPEED, MAX_VEHICLE_SPEED, VEHICLE_SPAWNS, VEHICLE_HEIGHT, MISSIONS, SPAWN_POINT, WORLD_SIZE, TICK_RATE,
   maskProfanity, stripPII, hasBlockedWord, levelFromXp,
 } from "@kanpurverse/shared";
 import type { Storage, PlayerDoc } from "./storage";
@@ -35,7 +35,7 @@ export class Room {
   private tick?: NodeJS.Timeout; private createdAt = Date.now();
   constructor(public name: string, private storage: Storage, private maxPlayers: number) {
     for (const v of VEHICLE_SPAWNS) {
-      const q = yawToQuat(v.ry); const p: Vec3 = [v.p[0], 0.6, v.p[1]];
+      const q = yawToQuat(v.ry); const p: Vec3 = [v.p[0], VEHICLE_HEIGHT[v.kind] / 2 + 0.05, v.p[1]];
       this.vehicles.set(v.id, { id: v.id, kind: v.kind, p, q, v: 0, lastAt: 0, home: p, homeRy: v.ry });
     }
     this.tick = setInterval(() => this.broadcastSnapshot(), 1000 / TICK_RATE);

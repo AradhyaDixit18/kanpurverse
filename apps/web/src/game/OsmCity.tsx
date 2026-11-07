@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
 import { getGeo, loadGeo, type GeoData } from "./roads";
+import { clearZones } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 import { playerPos } from "./refs";
 import { Crossing, OsmTrain } from "./RailwayOsm";
@@ -121,6 +122,7 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
           if (osmBoxes.some(o => Math.abs(o.x - cx) < (o.w + width) / 2 + 1 && Math.abs(o.z - cz) < (o.d + depth) / 2 + 1)) continue;
           if (t.roads.some(o => o !== r && o.pts.some((q, k) => k + 1 < o.pts.length && distToSeg([cx, cz], q, o.pts[k + 1]) < o.w / 2 + 6))) continue;
           if (t.parks.some(p => inPoly([cx, cz], p.pts)) || t.water.some(w => inPoly([cx, cz], w.pts))) continue;
+          if (clearZones().some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2)) continue;
           const yaw = Math.atan2(dx, dz); const h = (r.cls === "residential" || r.cls === "living_street") ? 6.4 + Math.floor(hash(cx * 3 + cz) * 3) * 3.2 : 9.6 + Math.floor(hash(cx + cz * 3) * 3) * 3.2;
           const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof);
           if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(poly, 3.4); shops.push(sg.walls); sg.roof.dispose(); }

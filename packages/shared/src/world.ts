@@ -104,6 +104,8 @@ export const NPCS: NpcDef[] = [
   { id: "ped_rekha", name: "Rekha", nameHi: "रेखा", role: "pedestrian", voice: "female_young", path: [[400, 1760], [450, 1762], [450, 1780], [400, 1778]], speed: 1.1, appearanceSeed: 10 },
 ];
 
+/** Body height per kind (metres); the physics body centre sits at height/2 above the road. */
+export const VEHICLE_HEIGHT: Record<"hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto", number> = { hatchback: 1.45, sedan: 1.4, suv: 1.85, bike: 1.1, scooter: 1.1, auto: 1.75 };
 export interface VehicleSpawn { id: string; kind: "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto"; p: [number, number]; ry: number; color: number }
 export const VEHICLE_SPAWNS: VehicleSpawn[] = [
   { id: "v_auto_1", kind: "auto", p: [506, -320], ry: Math.PI / 2, color: 0x2e8b57 },
