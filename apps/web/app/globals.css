@@ -134,3 +134,8 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .hud.photo > * { pointer-events: none; } .photo-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(11,11,13,.6); padding: .4em 1em; border-radius: 999px; font-size: .85em; }
 .prow.active { border: 1px solid #ffd23f; } .hud-stats { top: 52px; } .hud-mission { top: 52px; } .hud-vehicle { top: 50px; }
 @media (max-width: 760px) { .hud-compass { top: 62px; width: 60vw; height: 28px; } .hud-stats { top: 96px; } .hud-mission { top: 96px; } }
+
+.l-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin: 2rem 0; }
+.l-gallery figure { margin: 0; background: var(--panel); border: 1px solid #2f3038; border-radius: 16px; overflow: hidden; }
+.l-gallery img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.l-gallery figcaption { padding: 0.6rem 0.9rem; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }

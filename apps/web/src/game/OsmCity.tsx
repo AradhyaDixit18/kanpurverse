@@ -32,7 +32,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     const m = new Map<string, { roads: GeoData["roads"]; buildings: GeoData["buildings"]; rails: GeoData["rails"]; water: GeoData["water"]; parks: GeoData["parks"]; platforms: GeoData["platforms"]; cx: number; cz: number }>();
     const get = (p: [number, number]) => { const k = tileKey(p[0], p[1]); let t = m.get(k); if (!t) { t = { roads: [], buildings: [], rails: [], water: [], parks: [], platforms: [], cx: (Math.floor(p[0] / TILE) + 0.5) * TILE, cz: (Math.floor(p[1] / TILE) + 0.5) * TILE }; m.set(k, t); } return t; };
     const mid = (pts: [number, number][]) => pts[Math.floor(pts.length / 2)];
-    extraClear = geo.stations.filter(st => /^Kanpur/.test(st.name ?? "")).map(st => ({ x: st.p[0], z: st.p[1], r: st.name === "Kanpur Central" ? 58 : 36 }));
+    extraClear = geo.stations.filter(st => /^Kanpur/.test(st.name ?? "")).map(st => ({ x: st.p[0], z: st.p[1], r: st.name === "Kanpur Central" ? 95 : 40 }));
     for (const r of geo.roads) get(mid(r.pts)).roads.push(r); for (const b of geo.buildings) get(mid(b.pts)).buildings.push(b); for (const r of geo.rails) get(mid(r.pts)).rails.push(r);
     for (const w of geo.water) if (Math.abs(w.pts[0][0]) < 6000) get(mid(w.pts)).water.push(w); for (const p of geo.parks) get(mid(p.pts)).parks.push(p); for (const p of geo.platforms) get(mid(p.pts)).platforms.push(p);
     return m;
