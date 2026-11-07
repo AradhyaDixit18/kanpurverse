@@ -1,0 +1,17 @@
+# fly.io: `fly launch --copy-config --dockerfile deployment/Dockerfile.server` (free allowance applies; requires a card on file — needs approval)
+app = "kanpurverse-server"
+primary_region = "bom"
+[build]
+  dockerfile = "deployment/Dockerfile.server"
+[env]
+  PORT = "8787"
+  MONGODB_DB = "kanpurverse"
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = false
+  min_machines_running = 1
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"

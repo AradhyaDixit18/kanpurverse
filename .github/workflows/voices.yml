@@ -1,0 +1,26 @@
+name: Generate NPC voices (Edge TTS)
+# Manual trigger. Renders every dialogue line with Microsoft Edge neural TTS (free) and commits the mp3s
+# to apps/web/public/audio/dialogues so Vercel serves them. Existing files are skipped (delete to regenerate).
+on:
+  workflow_dispatch:
+    inputs:
+      langs:
+        description: "Languages (space separated)"
+        default: "kanpuriya hindi english"
+jobs:
+  voices:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install edge-tts==7.0.2
+      - run: python3 scripts/generate_voices.py ${{ inputs.langs }}
+      - name: Commit audio
+        run: |
+          git config user.name "kanpurverse-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/public/audio
+          git diff --cached --quiet || git commit -m "voices: generate Edge TTS dialogue audio (${{ inputs.langs }})"
+          git push

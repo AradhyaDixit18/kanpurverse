@@ -1,0 +1,56 @@
+{
+  "lang": "english",
+  "lines": [
+    { "id": "guide_babloo.greet_1", "npc": "guide_babloo", "category": "greeting", "text": "Come in, come in! Welcome to Kanpur. I'm Babloo, think of me as your guide here.", "voice": "english_male", "emotion": "warm", "next": "guide_babloo.tut_1" },
+    { "id": "guide_babloo.greet_2", "npc": "guide_babloo", "category": "greeting", "text": "Back again? Good. Let's go see the city.", "voice": "english_male", "emotion": "happy" },
+    { "id": "guide_babloo.tut_1", "npc": "guide_babloo", "category": "tutorial", "text": "Simple: W A S D to move, Shift to run, Space to jump. Walk up to anyone and press E to talk.", "voice": "english_male", "emotion": "neutral", "next": "guide_babloo.offer_1" },
+    { "id": "guide_babloo.offer_1", "npc": "guide_babloo", "category": "mission_offer", "text": "First job is a small one. Munna's chai stall, Phool Bagh, then Sunset Point. Deal?", "voice": "english_male", "emotion": "warm", "mission": "tut_walk" },
+    { "id": "guide_babloo.offer_2", "npc": "guide_babloo", "category": "mission_offer", "text": "Ever walked the Moti Jheel loop? No? Do it today, and bring a friend.", "voice": "english_male", "emotion": "happy", "mission": "jheel_walk" },
+    { "id": "guide_babloo.done_1", "npc": "guide_babloo", "category": "mission_done", "text": "Brilliant! Here's your reward. You're half Kanpuriya already.", "voice": "english_male", "emotion": "excited" },
+    { "id": "guide_babloo.dir_1", "npc": "guide_babloo", "category": "direction", "text": "Mall Road runs east, you can't miss it. The lake is west, the station is south.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "guide_babloo.bye_1", "npc": "guide_babloo", "category": "farewell", "text": "Alright, go explore. Babloo's right here if you need anything.", "voice": "english_male", "emotion": "warm" },
+
+    { "id": "chai_munna.greet_1", "npc": "chai_munna", "category": "cafe", "text": "Come, sir! Strong ginger chai? Today's special.", "voice": "english_male", "emotion": "warm" },
+    { "id": "chai_munna.greet_2", "npc": "chai_munna", "category": "cafe", "text": "Sit, sit, the table's free. Bun-maska with the chai today.", "voice": "english_male", "emotion": "happy" },
+    { "id": "chai_munna.offer_1", "npc": "chai_munna", "category": "mission_offer", "text": "Chai alone is no fun. Call a friend, sit together for a minute. Chai's on me.", "voice": "english_male", "emotion": "warm", "mission": "cafe_date" },
+    { "id": "chai_munna.done_1", "npc": "chai_munna", "category": "mission_done", "text": "See? That's Kanpur. Chai and a good chat.", "voice": "english_male", "emotion": "happy" },
+    { "id": "chai_munna.idle_1", "npc": "chai_munna", "category": "idle", "text": "Hot chai! Ten for regular, twenty for special.", "voice": "english_male", "emotion": "neutral" },
+
+    { "id": "auto_raju.greet_1", "npc": "auto_raju", "category": "auto", "text": "Where to, boss? Hop in. No meter, we go by heart.", "voice": "english_male", "emotion": "sly" },
+    { "id": "auto_raju.greet_2", "npc": "auto_raju", "category": "auto", "text": "Need the auto? Keys are over there. One rule: don't crash it.", "voice": "english_male", "emotion": "happy" },
+    { "id": "auto_raju.offer_1", "npc": "auto_raju", "category": "mission_offer", "text": "Mall Road loop, five checkpoints. Finish in time and it's six hundred coins. Got the nerve?", "voice": "english_male", "emotion": "excited", "mission": "race_mall" },
+    { "id": "auto_raju.offer_2", "npc": "auto_raju", "category": "mission_offer", "text": "A passenger's waiting at Cafe Chowk, needs the station. Take them? Quick, the train won't wait.", "voice": "english_male", "emotion": "neutral", "mission": "taxi_station" },
+    { "id": "auto_raju.done_1", "npc": "auto_raju", "category": "mission_done", "text": "Now that's driving! Here, your cut.", "voice": "english_male", "emotion": "excited" },
+    { "id": "auto_raju.idle_1", "npc": "auto_raju", "category": "idle", "text": "Central, Central, Central! One more passenger!", "voice": "english_male", "emotion": "neutral" },
+
+    { "id": "shop_gupta.greet_1", "npc": "shop_gupta", "category": "shop", "text": "Welcome! Naveen Market has everything. Kurta, shades, gamcha. Fair prices.", "voice": "english_male", "emotion": "warm" },
+    { "id": "shop_gupta.greet_2", "npc": "shop_gupta", "category": "shop", "text": "Have a look. Buy if you like it, or just stay for chai.", "voice": "english_male", "emotion": "happy" },
+    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "Do me a favour? A box of laddus to V Square, still warm. Take a vehicle, two and a half minutes.", "voice": "english_male", "emotion": "neutral", "mission": "delivery_sweets" },
+    { "id": "shop_gupta.done_1", "npc": "shop_gupta", "category": "mission_done", "text": "Delivered? Well done. Here's the money, and a laddu for you.", "voice": "english_male", "emotion": "happy" },
+    { "id": "shop_gupta.idle_1", "npc": "shop_gupta", "category": "idle", "text": "Bargain if you like, but bargain with a smile.", "voice": "english_male", "emotion": "sly" },
+
+    { "id": "police_singh.greet_1", "npc": "police_singh", "category": "police", "text": "Hey, slow down. No racing on Mall Road, understood?", "voice": "english_male", "emotion": "annoyed" },
+    { "id": "police_singh.greet_2", "npc": "police_singh", "category": "police", "text": "Everything alright? Any trouble, tell Singh Saheb.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "police_singh.idle_1", "npc": "police_singh", "category": "idle", "text": "Where's your helmet? Next time it's a fine.", "voice": "english_male", "emotion": "annoyed" },
+
+    { "id": "ped_priya.greet_1", "npc": "ped_priya", "category": "greeting", "text": "Hi! You're new here, right? Come by the lake in the evening, it's beautiful.", "voice": "english_female", "emotion": "happy" },
+    { "id": "ped_priya.offer_1", "npc": "ped_priya", "category": "mission_offer", "text": "I'm doing a photo project on the city. Get me shots of the temple, Central and the ghat? Press E at each.", "voice": "english_female", "emotion": "excited", "mission": "photo_city" },
+    { "id": "ped_priya.done_1", "npc": "ped_priya", "category": "mission_done", "text": "What a frame! Thank you so much. Here, your share.", "voice": "english_female", "emotion": "excited" },
+
+    { "id": "ped_aman.greet_1", "npc": "ped_aman", "category": "greeting", "text": "Where've you been? Come on, let's hit the mall, a new showroom just opened.", "voice": "english_male", "emotion": "happy" },
+    { "id": "ped_aman.greet_2", "npc": "ped_aman", "category": "greeting", "text": "Hey, what's the scene? All good?", "voice": "english_male", "emotion": "happy" },
+    { "id": "ped_sunita.greet_1", "npc": "ped_sunita", "category": "greeting", "text": "Careful, beta. These auto drivers drive like they own the road.", "voice": "english_female", "emotion": "annoyed" },
+    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "V Square is that way, straight ahead.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "ped_rekha.greet_1", "npc": "ped_rekha", "category": "greeting", "text": "Hello! Heading to the station? The train's late, as always.", "voice": "english_female", "emotion": "happy" },
+
+    { "id": "any.react_bump", "npc": "any", "category": "reaction", "text": "Hey, watch it!", "voice": "english_male", "emotion": "annoyed" },
+    { "id": "any.react_bump2", "npc": "any", "category": "reaction", "text": "Left your eyes at home?", "voice": "english_male", "emotion": "annoyed" },
+    { "id": "any.react_horn", "npc": "any", "category": "reaction", "text": "Why the horn? Want me to fly?", "voice": "english_male", "emotion": "annoyed" },
+    { "id": "any.react_wave", "npc": "any", "category": "reaction", "text": "Ram Ram, bhaiya!", "voice": "english_male", "emotion": "warm" },
+    { "id": "any.social_1", "npc": "any", "category": "social", "text": "Out together? Nice. Head to the lake, the evening's lovely.", "voice": "english_female", "emotion": "warm" },
+    { "id": "any.idle_weather", "npc": "any", "category": "idle", "text": "Brutal heat today. Stay in the shade.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "any.idle_cricket", "npc": "any", "category": "idle", "text": "Match at Green Park day after. Got tickets?", "voice": "english_male", "emotion": "happy" },
+    { "id": "any.bye_1", "npc": "any", "category": "farewell", "text": "Alright, see you around.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "any.bye_2", "npc": "any", "category": "farewell", "text": "Okay, take care.", "voice": "english_female", "emotion": "warm" }
+  ]
+}

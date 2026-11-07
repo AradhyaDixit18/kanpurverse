@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+dist/
+.env
+.env.*
+!.env.example
+apps/server/data/*.json
+assets/audio/dialogues/*.mp3
+*.log
+.DS_Store
+.vercel

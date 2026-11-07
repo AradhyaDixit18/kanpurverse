@@ -1,0 +1,56 @@
+{
+  "lang": "kanpuriya",
+  "lines": [
+    { "id": "guide_babloo.greet_1", "npc": "guide_babloo", "category": "greeting", "text": "अरे आओ आओ भैया! कानपुर में स्वागत है। हम हैं बबलू, यहाँ का गाइड समझ लो।", "roman": "Arre aao aao bhaiya! Kanpur mein swagat hai. Hum hain Babloo, yahan ka guide samajh lo.", "emotion": "warm", "next": "guide_babloo.tut_1" },
+    { "id": "guide_babloo.greet_2", "npc": "guide_babloo", "category": "greeting", "text": "का हो भैया, फिर आ गए? चलो, आज शहर घुमाते हैं।", "roman": "Ka ho bhaiya, phir aa gaye? Chalo, aaj sheher ghumaate hain.", "emotion": "happy" },
+    { "id": "guide_babloo.tut_1", "npc": "guide_babloo", "category": "tutorial", "text": "सीधी बात: W A S D से चलो, Shift से भागो, Space से कूदो। पास आकर E दबाओ तो हम बात करेंगे।", "roman": "Seedhi baat: W A S D se chalo, Shift se bhaago, Space se koodo. Paas aakar E dabao to hum baat karenge.", "emotion": "neutral", "next": "guide_babloo.offer_1" },
+    { "id": "guide_babloo.offer_1", "npc": "guide_babloo", "category": "mission_offer", "text": "पहला काम छोटा सा है। मुन्ना की चाय, फूल बाग़, फिर सनसेट पॉइंट। हो जाएगा? बोलो हाँ।", "roman": "Pehla kaam chhota sa hai. Munna ki chai, Phool Bagh, phir Sunset Point. Ho jayega? Bolo haan.", "emotion": "warm", "mission": "tut_walk" },
+    { "id": "guide_babloo.offer_2", "npc": "guide_babloo", "category": "mission_offer", "text": "मोती झील का चक्कर लगाए हो कभी? नहीं? तो आज लगाओ, दोस्त को भी लेते आओ।", "roman": "Moti Jheel ka chakkar lagaye ho kabhi? Nahi? To aaj lagao, dost ko bhi lete aao.", "emotion": "happy", "mission": "jheel_walk" },
+    { "id": "guide_babloo.done_1", "npc": "guide_babloo", "category": "mission_done", "text": "वाह भैया, झकास! ये लो इनाम। अब तुम भी आधे कनपुरिया हो गए।", "roman": "Wah bhaiya, jhakaas! Ye lo inaam. Ab tum bhi aadhe Kanpuriya ho gaye.", "emotion": "excited" },
+    { "id": "guide_babloo.dir_1", "npc": "guide_babloo", "category": "direction", "text": "मॉल रोड सीधे पूरब की तरफ है, मिस नहीं होगा। झील पश्चिम में, स्टेशन दक्षिण में।", "roman": "Mall Road seedhe poorab ki taraf hai, miss nahi hoga. Jheel paschim mein, station dakshin mein.", "emotion": "neutral" },
+    { "id": "guide_babloo.bye_1", "npc": "guide_babloo", "category": "farewell", "text": "ठीक है भैया, घूमो फिरो, कुछ हो तो बबलू यहीं मिलेगा।", "roman": "Theek hai bhaiya, ghoomo phiro, kuch ho to Babloo yahin milega.", "emotion": "warm" },
+
+    { "id": "chai_munna.greet_1", "npc": "chai_munna", "category": "cafe", "text": "आइए साहब, कड़क चाय चलेगी? अदरक वाली, स्पेशल।", "roman": "Aaiye sahab, kadak chai chalegi? Adrak waali, special.", "emotion": "warm" },
+    { "id": "chai_munna.greet_2", "npc": "chai_munna", "category": "cafe", "text": "बैठो बैठो, टेबल खाली है। चाय के साथ बन-मक्खन भी है आज।", "roman": "Baitho baitho, table khaali hai. Chai ke saath bun-makkhan bhi hai aaj.", "emotion": "happy" },
+    { "id": "chai_munna.offer_1", "npc": "chai_munna", "category": "mission_offer", "text": "अकेले चाय पीने का मज़ा नहीं। किसी दोस्त को बुलाओ, साथ बैठो, एक मिनट। चाय हमारी तरफ से।", "roman": "Akele chai peene ka maza nahi. Kisi dost ko bulao, saath baitho, ek minute. Chai hamari taraf se.", "emotion": "warm", "mission": "cafe_date" },
+    { "id": "chai_munna.done_1", "npc": "chai_munna", "category": "mission_done", "text": "देखा? यही तो कानपुर है। चाय पे चर्चा हो गई।", "roman": "Dekha? Yahi to Kanpur hai. Chai pe charcha ho gayi.", "emotion": "happy" },
+    { "id": "chai_munna.idle_1", "npc": "chai_munna", "category": "idle", "text": "गरम चाय, गरम चाय। दस की चाय, बीस की स्पेशल।", "roman": "Garam chai, garam chai. Das ki chai, bees ki special.", "emotion": "neutral" },
+
+    { "id": "auto_raju.greet_1", "npc": "auto_raju", "category": "auto", "text": "कहाँ जाना है भैया? बैठो, मीटर से नहीं, दिल से चलेंगे।", "roman": "Kahan jaana hai bhaiya? Baitho, meter se nahi, dil se chalenge.", "emotion": "sly" },
+    { "id": "auto_raju.greet_2", "npc": "auto_raju", "category": "auto", "text": "ऑटो चाहिए? चाबी उधर है। बस एक बात, ठोकना मत।", "roman": "Auto chahiye? Chaabi udhar hai. Bas ek baat, thokna mat.", "emotion": "happy" },
+    { "id": "auto_raju.offer_1", "npc": "auto_raju", "category": "mission_offer", "text": "मॉल रोड का लूप है, पाँच चेकपॉइंट। टाइम से पूरा करो तो छह सौ सिक्के। हिम्मत है?", "roman": "Mall Road ka loop hai, paanch checkpoint. Time se poora karo to chhe sau sikke. Himmat hai?", "emotion": "excited", "mission": "race_mall" },
+    { "id": "auto_raju.offer_2", "npc": "auto_raju", "category": "mission_offer", "text": "एक सवारी कैफ़े चौक पे खड़ी है, स्टेशन जाना है। ले जाओगे? जल्दी, ट्रेन छूट जाएगी।", "roman": "Ek sawaari Cafe Chowk pe khadi hai, station jaana hai. Le jaoge? Jaldi, train chhoot jayegi.", "emotion": "neutral", "mission": "taxi_station" },
+    { "id": "auto_raju.done_1", "npc": "auto_raju", "category": "mission_done", "text": "अरे वाह, ड्राइवर तो तगड़े हो! ये लो, कमाई का हिस्सा।", "roman": "Arre wah, driver to tagde ho! Ye lo, kamaai ka hissa.", "emotion": "excited" },
+    { "id": "auto_raju.idle_1", "npc": "auto_raju", "category": "idle", "text": "सेंट्रल सेंट्रल सेंट्रल! एक सवारी और!", "roman": "Central Central Central! Ek sawaari aur!", "emotion": "neutral" },
+
+    { "id": "shop_gupta.greet_1", "npc": "shop_gupta", "category": "shop", "text": "आइए आइए, नवीन मार्केट में सब मिलेगा। कुर्ता, चश्मा, गमछा। रेट एकदम सही।", "roman": "Aaiye aaiye, Naveen Market mein sab milega. Kurta, chashma, gamcha. Rate ekdum sahi.", "emotion": "warm" },
+    { "id": "shop_gupta.greet_2", "npc": "shop_gupta", "category": "shop", "text": "देख लो, पसंद आए तो लो, नहीं तो चाय पी के जाओ।", "roman": "Dekh lo, pasand aaye to lo, nahi to chai pee ke jao.", "emotion": "happy" },
+    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "एक काम करोगे? लड्डू का डिब्बा वी स्क्वायर पहुँचाना है, गरम-गरम। गाड़ी लेके जाओ, ढाई मिनट में।", "roman": "Ek kaam karoge? Laddu ka dibba V Square pahunchana hai, garam-garam. Gaadi leke jao, dhai minute mein.", "emotion": "neutral", "mission": "delivery_sweets" },
+    { "id": "shop_gupta.done_1", "npc": "shop_gupta", "category": "mission_done", "text": "पहुँच गया? शाबाश बेटा। ये लो मिठाई का पैसा, और एक लड्डू तुम्हारे लिए।", "roman": "Pahunch gaya? Shabash beta. Ye lo mithai ka paisa, aur ek laddu tumhare liye.", "emotion": "happy" },
+    { "id": "shop_gupta.idle_1", "npc": "shop_gupta", "category": "idle", "text": "मोलभाव करना हो तो करो, पर हँस के करो।", "roman": "Molbhaav karna ho to karo, par hans ke karo.", "emotion": "sly" },
+
+    { "id": "police_singh.greet_1", "npc": "police_singh", "category": "police", "text": "ए, आराम से चलो। मॉल रोड पे रेस नहीं, समझे?", "roman": "Ae, aaram se chalo. Mall Road pe race nahi, samjhe?", "emotion": "annoyed" },
+    { "id": "police_singh.greet_2", "npc": "police_singh", "category": "police", "text": "सब ठीक है ना? कोई परेशानी हो तो सिंह साहब को बताना।", "roman": "Sab theek hai na? Koi pareshani ho to Singh Saheb ko batana.", "emotion": "neutral" },
+    { "id": "police_singh.idle_1", "npc": "police_singh", "category": "idle", "text": "हेलमेट कहाँ है? अगली बार चालान पक्का।", "roman": "Helmet kahan hai? Agli baar chalaan pakka.", "emotion": "annoyed" },
+
+    { "id": "ped_priya.greet_1", "npc": "ped_priya", "category": "greeting", "text": "हाय! तुम नए हो ना यहाँ? झील के पास शाम में आना, बहुत सुंदर लगता है।", "roman": "Hi! Tum naye ho na yahan? Jheel ke paas shaam mein aana, bahut sundar lagta hai.", "emotion": "happy" },
+    { "id": "ped_priya.offer_1", "npc": "ped_priya", "category": "mission_offer", "text": "मेरा एक प्रोजेक्ट है, शहर की तस्वीरें। मंदिर, सेंट्रल और घाट की फ़ोटो ला दोगे? E दबाना वहाँ।", "roman": "Mera ek project hai, sheher ki tasveerein. Mandir, Central aur Ghat ki photo la doge? E dabana wahan.", "emotion": "excited", "mission": "photo_city" },
+    { "id": "ped_priya.done_1", "npc": "ped_priya", "category": "mission_done", "text": "वाह, क्या फ्रेम है! थैंक यू सो मच। ये लो, तुम्हारा हिस्सा।", "roman": "Wah, kya frame hai! Thank you so much. Ye lo, tumhara hissa.", "emotion": "excited" },
+
+    { "id": "ped_aman.greet_1", "npc": "ped_aman", "category": "greeting", "text": "भाई कहाँ था तू? चल, मॉल चलते हैं, नया शोरूम खुला है।", "roman": "Bhai kahan tha tu? Chal, mall chalte hain, naya showroom khula hai.", "emotion": "happy" },
+    { "id": "ped_aman.greet_2", "npc": "ped_aman", "category": "greeting", "text": "अरे गुरु, क्या सीन है? सब मस्त?", "roman": "Arre guru, kya scene hai? Sab mast?", "emotion": "happy" },
+    { "id": "ped_sunita.greet_1", "npc": "ped_sunita", "category": "greeting", "text": "बेटा, ज़रा बचके, सड़क पे ऑटो वाले ऐसे चलाते हैं जैसे बाप की सड़क हो।", "roman": "Beta, zara bachke, sadak pe auto waale aise chalaate hain jaise baap ki sadak ho.", "emotion": "annoyed" },
+    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "भैया ज़ेड स्क्वायर... मतलब वी स्क्वायर उधर है, सीधे जाओ।", "roman": "Bhaiya Z Square... matlab V Square udhar hai, seedhe jao.", "emotion": "neutral" },
+    { "id": "ped_rekha.greet_1", "npc": "ped_rekha", "category": "greeting", "text": "नमस्ते! स्टेशन जा रहे हो? ट्रेन लेट है वैसे, हमेशा की तरह।", "roman": "Namaste! Station ja rahe ho? Train late hai waise, hamesha ki tarah.", "emotion": "happy" },
+
+    { "id": "any.react_bump", "npc": "any", "category": "reaction", "text": "अरे देख के भैया!", "roman": "Arre dekh ke bhaiya!", "emotion": "annoyed" },
+    { "id": "any.react_bump2", "npc": "any", "category": "reaction", "text": "का हो, आँख घर पे छोड़ आए?", "roman": "Ka ho, aankh ghar pe chhod aaye?", "emotion": "annoyed" },
+    { "id": "any.react_horn", "npc": "any", "category": "reaction", "text": "हॉर्न क्यों बजा रहे हो, उड़ के चले जाएँ क्या?", "roman": "Horn kyon baja rahe ho, ud ke chale jaayen kya?", "emotion": "annoyed" },
+    { "id": "any.react_wave", "npc": "any", "category": "reaction", "text": "राम राम भैया!", "roman": "Ram Ram bhaiya!", "emotion": "warm" },
+    { "id": "any.social_1", "npc": "any", "category": "social", "text": "दोनों साथ घूम रहे हो? बढ़िया, झील की तरफ जाओ, शाम सुंदर है।", "roman": "Dono saath ghoom rahe ho? Badhiya, jheel ki taraf jao, shaam sundar hai.", "emotion": "warm" },
+    { "id": "any.idle_weather", "npc": "any", "category": "idle", "text": "आज गर्मी ज़बरदस्त है, छाँव में चलो।", "roman": "Aaj garmi zabardast hai, chhaon mein chalo.", "emotion": "neutral" },
+    { "id": "any.idle_cricket", "npc": "any", "category": "idle", "text": "ग्रीन पार्क में मैच है परसों, टिकट मिला?", "roman": "Green Park mein match hai parson, ticket mila?", "emotion": "happy" },
+    { "id": "any.bye_1", "npc": "any", "category": "farewell", "text": "चलो फिर, मिलते हैं।", "roman": "Chalo phir, milte hain.", "emotion": "neutral" },
+    { "id": "any.bye_2", "npc": "any", "category": "farewell", "text": "ठीक है भैया, संभल के।", "roman": "Theek hai bhaiya, sambhal ke.", "emotion": "warm" }
+  ]
+}
