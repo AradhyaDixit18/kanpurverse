@@ -70,12 +70,12 @@ export function generateBuildings(seed = 7): Building[] {
     // keep landmark areas clear
     const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
     if (LANDMARKS.some(l => l.kind !== "cafe" && l.kind !== "viewpoint" && Math.hypot(l.p[0] - cx, l.p[1] - cz) < l.r + 30)) continue;
-    const n = 6 + Math.floor(rnd() * 6);
+    const n = 14 + Math.floor(rnd() * 10);
     for (let k = 0; k < n; k++) {
       const w = 10 + rnd() * 14, d = 10 + rnd() * 12;
       const px = x0 + w / 2 + rnd() * Math.max(1, x1 - x0 - w), pz = z0 + d / 2 + rnd() * Math.max(1, z1 - z0 - d);
       if (Math.abs(pz - RAIL_Z) < d / 2 + 7) continue; // railway corridor
-      if (out.some(b => Math.abs(b.p[0] - px) < (b.w + w) / 2 + 2 && Math.abs(b.p[1] - pz) < (b.d + d) / 2 + 2)) continue;
+      if (out.some(b => Math.abs(b.p[0] - px) < (b.w + w) / 2 + 1.2 && Math.abs(b.p[1] - pz) < (b.d + d) / 2 + 1.2)) continue;
       const h = 6 + Math.floor(rnd() * 4) * 3.2 + (rnd() < 0.15 ? 12 : 0);
       const sg = rnd() < 0.55 ? signs[Math.floor(rnd() * signs.length)] : undefined;
       out.push({ p: [px, pz], w, d, h, style: Math.floor(rnd() * 5), sign: sg?.[0], signHi: sg?.[1] });
