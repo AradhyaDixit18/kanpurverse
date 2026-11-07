@@ -66,7 +66,8 @@ export function Player() {
     const movingVis = Math.hypot(vel.current.x, vel.current.z) > 0.4;
     if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
     if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); } }
-    if (vis.current) { vis.current.position.copy(playerPos); vis.current.rotation.y = THREE.MathUtils.lerp(vis.current.rotation.y, playerYaw.v, 0.25) + 0 ; vis.current.rotation.y = lerpAngle(vis.current.rotation.y, playerYaw.v, 0.3); }
+    if (vis.current) { vis.current.position.copy(playerPos); const prev = vis.current.rotation.y; vis.current.rotation.y = lerpAngle(prev, playerYaw.v, 1 - Math.exp(-dt * 12)); let dyaw = vis.current.rotation.y - prev; while (dyaw > Math.PI) dyaw -= 2 * Math.PI; while (dyaw < -Math.PI) dyaw += 2 * Math.PI; vis.current.rotation.z = THREE.MathUtils.lerp(vis.current.rotation.z, -dyaw * 6 * Math.min(1, Math.hypot(vel.current.x, vel.current.z) / 5), 0.2); }
+    const cam = camera as THREE.PerspectiveCamera; const wantFov = input.sprint && moving ? 68 : 60; if (Math.abs(cam.fov - wantFov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, wantFov, 1 - Math.exp(-dt * 4)); cam.updateProjectionMatrix(); }
     // emotes
     const em: [string, AnimState][] = [["Digit1", "wave"], ["Digit2", "dance"], ["Digit3", "laugh"], ["Digit4", "celebrate"], ["Digit5", "highfive"], ["Digit6", "sit"]];
     for (const [k, a] of em) if (once(k) && !paused) { anim.current = a; emoteUntil.current = now + 2500; net.send({ t: "emote", anim: a }); }

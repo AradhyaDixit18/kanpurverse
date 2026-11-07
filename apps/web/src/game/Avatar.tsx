@@ -53,6 +53,7 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
     bottom: new THREE.MeshStandardMaterial({ color: BOTTOMS[appearance.bottom], roughness: 0.9 }),
     shoe: new THREE.MeshStandardMaterial({ color: SHOES[appearance.shoes], roughness: 0.55 }),
     acc: new THREE.MeshStandardMaterial({ color: appearance.accessory === 1 ? 0x111111 : appearance.accessory === 2 ? 0xc8102e : 0xe8b04b, roughness: 0.5 }),
+    acc2: new THREE.MeshStandardMaterial({ color: [0xff8fb1, 0xffd23f, 0x3d8bff, 0x2e8b57, 0xffffff][appearance.bottom % 5], roughness: 0.9, side: THREE.DoubleSide }),
     eye: new THREE.MeshBasicMaterial({ color: 0x151515 }), white: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [appKey]);
@@ -81,6 +82,9 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
         <RoundedBox position={[0, 1.17, 0]} material={mats.top} castShadow args={[torsoW, 0.56, 0.26]} radius={0.045} smoothness={3} />
         <RoundedBox position={[0, 1.42, 0]} material={mats.top} args={[torsoW + 0.08, 0.1, 0.28]} radius={0.045} smoothness={3} />{/* shoulders */}
         {appearance.top === 5 && <RoundedBox position={[0, 0.84, 0]} material={mats.top} args={[hipW + 0.1, 0.22, 0.3]} radius={0.045} smoothness={3} />}{/* kurta hem */}
+        {female && <RoundedBox position={[0, 0.78, 0]} material={mats.top} args={[hipW + 0.14, 0.3, 0.32]} radius={0.05} />}{/* kurti flare */}
+        {female && <mesh position={[0.12, 1.25, 0.08]} rotation={[0, 0, -0.5]} material={mats.acc2}><boxGeometry args={[0.16, 0.7, 0.03]} /></mesh>}{/* dupatta */}
+        {female && <mesh position={[-0.2, 1.05, -0.12]} rotation={[0.2, 0, 0.3]} material={mats.acc2}><boxGeometry args={[0.14, 0.5, 0.03]} /></mesh>}
         {appearance.top === 6 && <RoundedBox position={[0, 1.2, 0.135]} material={mats.topDark} args={[0.16, 0.3, 0.01]} radius={0.045} smoothness={3} />}{/* jersey stripe */}
         {appearance.top === 7 && <RoundedBox position={[0, 1.2, 0.135]} material={mats.topDark} args={[0.06, 0.5, 0.01]} radius={0.045} smoothness={3} />}{/* jacket zip */}
         <mesh position={[0, 1.48, 0]} material={mats.skin}><cylinderGeometry args={[0.07, 0.08, 0.1, 10]} /></mesh>{/* neck */}
@@ -95,7 +99,10 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
           {appearance.hair === 5 && <RoundedBox position={[0, -0.04, 0.1]} material={mats.hair} args={[0.22, 0.1, 0.12]} radius={0.045} smoothness={3} />}
           {[-0.07, 0.07].map(x => <group key={x}><mesh position={[x, 0.03, 0.152]} material={mats.white}><boxGeometry args={[0.06, 0.05, 0.01]} /></mesh><mesh position={[x + 0.01, 0.03, 0.158]} material={mats.eye}><boxGeometry args={[0.03, 0.04, 0.01]} /></mesh></group>)}
           <RoundedBox position={[0, -0.02, 0.155]} material={mats.skin} args={[0.05, 0.07, 0.03]} radius={0.045} smoothness={3} />{/* nose */}
-          <mesh position={[0, -0.09, 0.152]}><boxGeometry args={[0.08, 0.015, 0.01]} /><meshBasicMaterial color="#7a3b3b" /></mesh>{/* mouth */}
+          <mesh position={[0, -0.075, 0.152]} rotation={[0, 0, Math.PI]}><torusGeometry args={[0.035, 0.008, 6, 10, Math.PI]} /><meshBasicMaterial color="#7a3b3b" /></mesh>{/* smile */}
+          {[-0.07, 0.07].map(x => <mesh key={"b" + x} position={[x, 0.085, 0.152]} rotation={[0, 0, x > 0 ? -0.15 : 0.15]} material={mats.hair}><boxGeometry args={[0.07, 0.012, 0.01]} /></mesh>)}{/* eyebrows */}
+          {female && <mesh position={[0, 0.0, 0.16]}><sphereGeometry args={[0.012]} /><meshBasicMaterial color="#c8102e" /></mesh>}{/* bindi */}
+          {female && appearance.hair !== 0 && <RoundedBox position={[0, -0.12, -0.17]} material={mats.hair} args={[0.26, 0.5, 0.1]} radius={0.04} />}{/* long hair */}
           {appearance.accessory === 1 && <mesh position={[0, 0.03, 0.165]} material={mats.acc}><boxGeometry args={[0.3, 0.075, 0.03]} /></mesh>}
           {appearance.accessory === 2 && <><mesh position={[0, 0.2, 0.02]} material={mats.acc}><boxGeometry args={[0.34, 0.08, 0.36]} /></mesh><mesh position={[0, 0.17, 0.22]} material={mats.acc}><boxGeometry args={[0.3, 0.02, 0.14]} /></mesh></>}
           {appearance.accessory === 3 && <mesh position={[0, -0.21, 0.02]} material={mats.acc}><boxGeometry args={[0.38, 0.09, 0.32]} /></mesh>}
