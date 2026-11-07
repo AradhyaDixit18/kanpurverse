@@ -75,6 +75,7 @@ export function generateBuildings(seed = 7): Building[] {
       const w = 10 + rnd() * 14, d = 10 + rnd() * 12;
       const px = x0 + w / 2 + rnd() * Math.max(1, x1 - x0 - w), pz = z0 + d / 2 + rnd() * Math.max(1, z1 - z0 - d);
       if (Math.abs(pz - RAIL_Z) < d / 2 + 7) continue; // railway corridor
+      if (clearZones().some(z => Math.hypot(z.x - px, z.z - pz) < z.r + Math.max(w, d) / 2)) continue; // spawn, NPCs, vehicles, missions, cafe
       if (out.some(b => Math.abs(b.p[0] - px) < (b.w + w) / 2 + 1.2 && Math.abs(b.p[1] - pz) < (b.d + d) / 2 + 1.2)) continue;
       const h = 6 + Math.floor(rnd() * 4) * 3.2 + (rnd() < 0.15 ? 12 : 0);
       const sg = rnd() < 0.55 ? signs[Math.floor(rnd() * signs.length)] : undefined;
@@ -122,3 +123,15 @@ export const MISSIONS: MissionDef[] = [
   { id: "taxi_station", name: "Station Drop", nameHi: "स्टेशन ड्रॉप", kind: "taxi", giver: "auto_raju", start: [40, 12], checkpoints: [[-30, 24], [0, 236]], radius: 8, timeLimitSec: 120, reward: { coins: 300, xp: 150 }, needsVehicle: true, desc: "Pick up a passenger at Cafe Chowk and drop them at Kanpur Central.", descHi: "कैफ़े चौक से सवारी लो और कानपुर सेंट्रल छोड़ो।" },
   { id: "cafe_date", name: "Chai pe Charcha", nameHi: "चाय पे चर्चा", kind: "social", giver: "chai_munna", start: [-30, 20], checkpoints: [[-30, 24]], radius: 5, reward: { coins: 150, xp: 100 }, coop: true, desc: "Sit at the cafe with a friend for 60 seconds.", descHi: "कैफ़े में किसी दोस्त के साथ 60 सेकंड बैठो।" },
 ];
+
+/** Areas that must stay free of generated buildings (gameplay spots). */
+let _clear: { x: number; z: number; r: number }[] | null = null;
+export function clearZones() {
+  if (_clear) return _clear;
+  const out: { x: number; z: number; r: number }[] = [{ x: SPAWN_POINT[0], z: SPAWN_POINT[2], r: 10 }];
+  for (const n of NPCS) for (const p of n.path) out.push({ x: p[0], z: p[1], r: 5 });
+  for (const v of VEHICLE_SPAWNS) out.push({ x: v.p[0], z: v.p[1], r: 6 });
+  for (const m of MISSIONS) { out.push({ x: m.start[0], z: m.start[1], r: 6 }); for (const c of m.checkpoints) out.push({ x: c[0], z: c[1], r: m.radius + 3 }); }
+  for (const l of LANDMARKS) if (l.kind === "cafe" || l.kind === "viewpoint" || l.kind === "garage") out.push({ x: l.p[0], z: l.p[1], r: l.r + 8 });
+  return (_clear = out);
+}

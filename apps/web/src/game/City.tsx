@@ -18,6 +18,7 @@ export function City() {
   return (
     <group>
       <Ground />
+      <BlockPaving />
       {ROADS.map((r, i) => <Road key={i} a={r.a} b={r.b} w={r.w} name={r.name} />)}
       <Buildings list={buildings} />
       {quality !== "low" && <Signs list={buildings} />}
@@ -198,4 +199,13 @@ function Water({ position, shape, size, depth = size, color }: { position: [numb
   const m = useRef<THREE.MeshStandardMaterial>(null);
   useFrame((_, dt) => { tex.offset.x += dt * 0.02; tex.offset.y += dt * 0.013; tex2.offset.x -= dt * 0.01; });
   return <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>{shape === "circle" ? <circleGeometry args={[size, 48]} /> : <planeGeometry args={[size, depth]} />}<meshStandardMaterial ref={m} color={color} roughness={0.12} metalness={0.55} normalMap={tex} normalScale={new THREE.Vector2(0.35, 0.35)} transparent opacity={0.94} /></mesh>;
+}
+
+/** Concrete/compacted-earth paving inside built blocks so the city isn't standing on a lawn. Parks and the lake keep grass. */
+function BlockPaving() {
+  const tex = useMemo(() => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d")!; x.fillStyle = "#b9ad9c"; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${90 + Math.random() * 60},${80 + Math.random() * 50},${60 + Math.random() * 40},${0.15 + Math.random() * 0.25})`; x.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 3, 1 + Math.random() * 3); } x.strokeStyle = "rgba(0,0,0,0.12)"; for (let k = 0; k < 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, 128); x.moveTo(0, k); x.lineTo(128, k); x.stroke(); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; }, []);
+  const cells = useMemo(() => { const xs = [-250, -180, -60, 60, 180, 250], zs = [-230, -120, 0, 120, 230]; const out: { x: number; z: number; w: number; d: number }[] = [];
+    for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < zs.length - 1; j++) { const x0 = xs[i] + 8, x1 = xs[i + 1] - 8, z0 = zs[j] + 7, z1 = zs[j + 1] - 7; const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+      if (LANDMARKS.some(l => (l.kind === "park" || l.kind === "lake") && Math.hypot(l.p[0] - cx, l.p[1] - cz) < l.r + 20)) continue; out.push({ x: cx, z: cz, w: x1 - x0, d: z1 - z0 }); } return out; }, []);
+  return <group>{cells.map((c, i) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(c.w / 6, c.d / 6); return <mesh key={i} position={[c.x, 0.015, c.z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[c.w, c.d]} /><meshStandardMaterial map={t} roughness={1} /></mesh>; })}</group>;
 }
