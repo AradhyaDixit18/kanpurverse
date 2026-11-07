@@ -105,6 +105,11 @@ export function Player() {
     void MISSIONS;
   }
   useEffect(() => { gl.domElement.tabIndex = 0; }, [gl]);
+  // QA hook (only when NEXT_PUBLIC_QA=1): lets automated browser tests teleport and read state. Server still validates speed, so
+  // a teleport is followed by a server snap unless the test moves gradually; tests use small hops.
+  useEffect(() => { if (process.env.NEXT_PUBLIC_QA !== "1") return; (window as unknown as { __kv?: unknown }).__kv = {
+    pos: () => [playerPos.x, playerPos.y, playerPos.z], hop: (x: number, z: number) => { const rb = body.current; if (rb) { rb.setNextKinematicTranslation({ x, y: 1.95, z }); playerPos.set(x, 1, z); } },
+    state: () => { const s = useStore.getState(); return { screen: s.screen, players: Object.keys(s.players).length, nearby: s.nearby, mission: s.mission?.def.id, coins: s.profile?.coins, inVehicle: s.inVehicle, dialogue: s.dialogue, fps: s.fps, ping: s.ping }; } }; }, []);
 
   return (
     <>
