@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Player, Room } from "../apps/server/src/room";
-import { DEFAULT_APPEARANCE, type S2C } from "../packages/shared/src/index";
+import { DEFAULT_APPEARANCE, VEHICLE_SPECS, type S2C } from "../packages/shared/src/index";
 import type { Storage } from "../apps/server/src/storage";
 import type { WebSocket } from "ws";
 const rooms: Room[] = [];
@@ -35,7 +35,7 @@ describe("vehicle authority regressions", () => {
     expect(p.p).toEqual(vehicle.p); room.exitVehicle(p);
     expect(p.vehicle).toBeUndefined(); expect(vehicle.passenger).toBeUndefined();
     expect(messages.at(-1)).toEqual({ t: "correct", p: p.p, reason: "vehicle_exit" });
-    expect(Math.hypot(p.p[0] - vehicle.p[0], p.p[2] - vehicle.p[2])).toBeGreaterThan(2);
+    expect(Math.hypot(p.p[0] - vehicle.p[0], p.p[2] - vehicle.p[2])).toBeGreaterThan(VEHICLE_SPECS[vehicle.kind].size[0] / 2 + 0.35);
   });
   it("rejected vehicle updates do not consume elapsed time needed to recover", () => {
     vi.useFakeTimers(); vi.setSystemTime(10_000);

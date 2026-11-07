@@ -3,9 +3,11 @@ import type { WebSocket } from "ws";
 import {
   type S2C, type PlayerSnapshot, type VehicleSnapshot, type PlayerProfile, type AnimState, type Vec3, type Appearance, type Language,
   MAX_PLAYER_SPEED, MAX_VEHICLE_SPEED, VEHICLE_SPAWNS, VEHICLE_HEIGHT, MISSIONS, SPAWN_POINT, WORLD_SIZE, TICK_RATE,
+  vehicleExitCandidates,
   maskProfanity, stripPII, hasBlockedWord, levelFromXp,
 } from "@kanpurverse/shared";
 import type { Storage, PlayerDoc } from "./storage";
+import { vehicleBlocksPoint, type ExitBlocker } from "./worldSafety";
 import { log } from "./log";
 
 const IST_OFFSET_MS = 5.5 * 3600 * 1000; // Kanpur is UTC+5:30, no DST
@@ -33,7 +35,7 @@ export class Room {
   players = new Map<string, Player>();
   vehicles = new Map<string, Vehicle>();
   private tick?: NodeJS.Timeout; private createdAt = Date.now();
-  constructor(public name: string, private storage: Storage, private maxPlayers: number) {
+  constructor(public name: string, private storage: Storage, private maxPlayers: number, private exitBlocked: ExitBlocker = () => false) {
     for (const v of VEHICLE_SPAWNS) {
       const q = yawToQuat(v.ry); const p: Vec3 = [v.p[0], VEHICLE_HEIGHT[v.kind] / 2 + 0.05, v.p[1]];
       this.vehicles.set(v.id, { id: v.id, kind: v.kind, p, q, v: 0, lastAt: 0, home: p, homeRy: v.ry });
@@ -62,7 +64,7 @@ export class Room {
     log.info("join", { room: this.name, id: pl.id, name: pl.name, n: this.players.size });
   }
   leave(pl: Player) {
-    if (pl.vehicle) this.exitVehicle(pl);
+    if (pl.vehicle) this.exitVehicle(pl, undefined, true);
     for (const m of pl.party) this.players.get(m)?.party.delete(pl.id);
     this.players.delete(pl.id);
     this.broadcast({ t: "player.leave", id: pl.id });
@@ -119,17 +121,28 @@ export class Room {
     if (seat === "driver" && v.driver) return pl.send({ t: "error", code: "occupied", message: "Someone's already driving" });
     if (seat === "passenger" && (v.passenger || v.kind === "bike" && v.passenger)) return pl.send({ t: "error", code: "occupied", message: "Seat taken" });
     if (pl.vehicle) return pl.send({ t: "error", code: "busy", message: "Exit your current vehicle first" });
+    if (v.v > 1) return pl.send({ t: "error", code: "vehicle_moving", message: "Wait for the vehicle to stop." });
     if (seat === "driver") { v.driver = pl.id; v.lastAt = 0; } else v.passenger = pl.id;
     pl.vehicle = id; pl.seat = seat; pl.anim = seat === "driver" ? "drive" : "sit"; pl.p = [...v.p] as Vec3;
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
   }
-  exitVehicle(pl: Player) {
+  exitVehicle(pl: Player, requested?: Vec3, disconnect = false) {
     const v = pl.vehicle ? this.vehicles.get(pl.vehicle) : undefined; if (!v) return;
+    let exit: Vec3 | undefined;
+    if (!disconnect) {
+      if (v.v > 1) return pl.send({ t: "error", code: "vehicle_moving", message: "Stop the vehicle before getting out." });
+      const candidates = vehicleExitCandidates(v.kind, v.p, v.q, pl.seat ?? "driver");
+      const options = requested ? candidates.filter(p => Math.hypot(p[0] - requested[0], p[2] - requested[2]) <= 0.5).map(() => requested) : candidates;
+      exit = options.find(p => p.every(Number.isFinite) && p[1] >= -0.2 && p[1] <= 0.45 && !this.exitBlocked(p, 0.4)
+        && ![...this.vehicles.values()].some(other => vehicleBlocksPoint(p, 0.4, other))
+        && ![...this.players.values()].some(other => other.id !== pl.id && !other.vehicle && Math.hypot(other.p[0] - p[0], other.p[2] - p[2]) < 0.8));
+      if (!exit) return pl.send({ t: "error", code: "exit_blocked", message: "No clear exit. Move the vehicle to an open space." });
+    }
     if (v.driver === pl.id) { v.driver = undefined; v.v = 0; } if (v.passenger === pl.id) v.passenger = undefined;
     pl.vehicle = undefined; pl.seat = undefined; pl.anim = "idle";
-    pl.p = [v.p[0] + 2.2 * Math.cos(quatYaw(v.q)), 1, v.p[2] - 2.2 * Math.sin(quatYaw(v.q))]; pl.lastStateAt = Date.now();
+    if (exit) { pl.p = exit; pl.lastStateAt = Date.now(); }
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
-    pl.send({ t: "correct", p: pl.p, reason: "vehicle_exit" });
+    if (!disconnect) pl.send({ t: "correct", p: pl.p, reason: "vehicle_exit" });
   }
   vehicleState(pl: Player, id: string, p: Vec3, q: [number, number, number, number], speed: number) {
     const v = this.vehicles.get(id); if (!v || v.driver !== pl.id) return;

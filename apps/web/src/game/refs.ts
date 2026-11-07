@@ -7,3 +7,5 @@ export const npcPositions = new Map<string, { x: number; z: number }>();
 
 /** Predicted transforms and collider handles, independent of delayed network snapshots. */
 export const vehicleRuntime = new Map<string, { x: number; y: number; z: number; handle: number }>();
+
+export const playerPhysicsTelemetry = { bodyY: 0, colliderY: 0, halfHeight: 0, radius: 0, grounded: false };

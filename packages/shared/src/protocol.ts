@@ -41,7 +41,7 @@ export const C2S = z.discriminatedUnion("t", [
   z.object({ t: z.literal("chat"), text: z.string().min(1).max(CHAT_MAX_LEN) }),
   z.object({ t: z.literal("emote"), anim: AnimState }),
   z.object({ t: z.literal("vehicle.enter"), id: z.string(), seat: z.enum(["driver", "passenger"]) }),
-  z.object({ t: z.literal("vehicle.exit") }),
+  z.object({ t: z.literal("vehicle.exit"), p: Vec3.optional() }),
   z.object({ t: z.literal("vehicle.state"), id: z.string(), p: Vec3, q: z.tuple([z.number(), z.number(), z.number(), z.number()]), v: z.number() }),
   z.object({ t: z.literal("mission.start"), id: z.string() }),
   z.object({ t: z.literal("mission.checkpoint"), id: z.string(), index: z.number().int(), p: Vec3 }),

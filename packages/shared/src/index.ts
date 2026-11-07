@@ -16,3 +16,5 @@ export const SHOP_ITEMS: { id: string; name: string; nameHi: string; price: numb
   { id: "acc_gamcha", name: "Gamcha", nameHi: "गमछा", price: 120, slot: "accessory", value: 3 },
   { id: "emote_dance", name: "Dance emote", nameHi: "डांस इमोट", price: 500, slot: "emote", value: 0 },
 ];
+
+export * from "./vehicles";

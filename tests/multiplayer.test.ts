@@ -81,6 +81,7 @@ describe("multiplayer", () => {
     a.send({ t: "vehicle.state", id: "v_auto_1", p: [auto.p[0] + 2, 0.6, auto.p[1]], q: [0, 0, 0, 1], v: 5 });
     const s = await b.wait(m => m.t === "snapshot" && m.vehicles.some((v: Msg) => v.id === "v_auto_1" && v.p[0] === auto.p[0] + 2));
     expect(s.players.find((p: Msg) => p.id === b.id).p[0]).toBe(auto.p[0] + 2); // passenger moves with the vehicle
+    a.send({ t: "vehicle.state", id: "v_auto_1", p: [auto.p[0] + 2, 0.6, auto.p[1]], q: [0, 0, 0, 1], v: 0 });
     a.send({ t: "vehicle.exit" }); await a.wait(m => m.t === "vehicle.update" && !m.vehicle.driver);
     a.close(); b.close();
   });

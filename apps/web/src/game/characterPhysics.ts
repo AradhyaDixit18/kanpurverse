@@ -16,3 +16,10 @@ export function moveCharacter(body: RigidBody, controller: KinematicCharacterCon
 export function turnLean(deltaYaw: number, dt: number, speed: number) {
   return Math.max(-0.18, Math.min(0.18, -deltaYaw / Math.max(dt, 1e-6) * 0.04)) * Math.min(1, speed / 5);
 }
+
+/** Rapier collider/query transforms lag setTranslation until propagated; queries must see the new pose. */
+export function placeCharacter(world: World, body: RigidBody, feet: readonly number[]) {
+  const p = { x: feet[0], y: feet[1] + CHARACTER.feetOffset, z: feet[2] };
+  body.setTranslation(p, true); body.setNextKinematicTranslation(p);
+  world.propagateModifiedBodyPositionsToColliders(); world.updateSceneQueries();
+}

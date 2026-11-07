@@ -6,6 +6,7 @@ import { CONFIG } from "./config";
 import { log } from "./log";
 import { issueToken, verifyToken, newUid } from "./auth";
 import { openStorage, type PlayerDoc, type Storage } from "./storage";
+import { loadExitBlocker, type ExitBlocker } from "./worldSafety";
 import { Room, Player } from "./room";
 
 const MSG_WINDOW_MS = 1000, MSG_MAX_PER_WINDOW = 60, MAX_MSG_BYTES = 4096;
@@ -14,11 +15,12 @@ export function originAllowed(origin: string): boolean {
   return CONFIG.allowedOrigins.some(a => a === "*" || a === origin || (a.includes("*") && new RegExp("^" + a.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[a-z0-9-]+") + "$", "i").test(origin)));
 }
 
-export async function startServer(opts: { port?: number; storage?: Storage } = {}) {
+export async function startServer(opts: { port?: number; storage?: Storage; exitBlocked?: ExitBlocker; setupRoom?: (room: Room) => void } = {}) {
   const storage = opts.storage ?? await openStorage();
+  const exitBlocked = opts.exitBlocked ?? loadExitBlocker();
   const rooms = new Map<string, Room>();
   const ipCount = new Map<string, number>();
-  const getRoom = (name: string) => { let r = rooms.get(name); if (!r) { r = new Room(name, storage, CONFIG.maxPlayersPerRoom); rooms.set(name, r); } return r; };
+  const getRoom = (name: string) => { let r = rooms.get(name); if (!r) { r = new Room(name, storage, CONFIG.maxPlayersPerRoom, exitBlocked); opts.setupRoom?.(r); rooms.set(name, r); } return r; };
 
   const http = createServer((req, res) => {
     const url = req.url ?? "/";
@@ -79,7 +81,7 @@ export async function startServer(opts: { port?: number; storage?: Storage } = {
           case "chat": return room.chat(player, m.text);
           case "emote": return room.emote(player, m.anim);
           case "vehicle.enter": return room.enterVehicle(player, m.id, m.seat);
-          case "vehicle.exit": return room.exitVehicle(player);
+          case "vehicle.exit": return room.exitVehicle(player, m.p);
           case "vehicle.state": return room.vehicleState(player, m.id, m.p, m.q, m.v);
           case "mission.start": return room.startMission(player, m.id);
           case "mission.checkpoint": return room.checkpoint(player, m.id, m.index);

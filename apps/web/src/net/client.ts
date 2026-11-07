@@ -69,7 +69,7 @@ class NetClient {
     const s = useStore.getState();
     switch (m.t) {
       case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
-      case "joined": { remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
+      case "joined": { remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
       case "snapshot": { const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
         const vehicles = { ...s.vehicles }; for (const v of m.vehicles) { vehicles[v.id] = v; if (v.driver !== s.selfId) { const b = vehicleBuf.get(v.id) ?? []; b.push({ t: now, p: v.p, q: v.q, v: v.v }); if (b.length > 6) b.shift(); vehicleBuf.set(v.id, b); } }
         // self correction: if server disagrees strongly, snap (handled in controller via players[selfId])
@@ -80,7 +80,7 @@ class NetClient {
       case "emote": if (s.players[m.id]) s.set({ players: { ...s.players, [m.id]: { ...s.players[m.id], anim: m.anim } } }); break;
       case "vehicle.update": { vehicleBuf.delete(m.vehicle.id); vehicleCorrections.delete(m.vehicle.id);
         if (m.vehicle.driver === s.selfId && s.inVehicle === m.vehicle.id) vehicleCorrections.set(m.vehicle.id, m.vehicle);
-        s.set({ vehicles: { ...s.vehicles, [m.vehicle.id]: m.vehicle } }); if (m.vehicle.driver === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "driver" }); else if (m.vehicle.passenger === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "passenger" }); else if (s.inVehicle === m.vehicle.id) s.set({ inVehicle: undefined, seat: undefined }); break; }
+        s.set({ vehicles: { ...s.vehicles, [m.vehicle.id]: m.vehicle } }); if (m.vehicle.driver === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "driver", vehicleTransition: undefined }); else if (m.vehicle.passenger === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "passenger", vehicleTransition: undefined }); else if (s.inVehicle === m.vehicle.id) s.set({ vehicleTransition: "exiting" }); break; }
       case "mission.update": { const def = MISSIONS.find(d => d.id === m.id)!;
         if (m.status === "started") { s.set({ mission: { def, index: 0, startedAt: Date.now(), status: "started" } }); s.toast(`Mission: ${def.name}`); }
         else if (m.status === "checkpoint") { s.set({ mission: s.mission && { ...s.mission, index: m.index ?? s.mission.index + 1 } }); s.toast(`Checkpoint ${m.index}/${def.checkpoints.length}`); }
@@ -89,9 +89,9 @@ class NetClient {
       case "profile": s.set({ profile: m.profile }); break;
       case "toast": s.toast(m.text, m.kind); break;
       case "social": if (m.event === "party.invite") s.set({ invites: [...s.invites, { from: m.from!, name: m.name! }] }); else if (m.event === "party.update") s.set({ party: m.party ?? [] }); else if (m.event === "friend.added") s.toast(`${m.name} added you as a friend`); break;
-      case "error": if (m.code === "rate" || m.code === "too_far" || m.code === "occupied" || m.code === "need_vehicle" || m.code === "coins" || m.code === "locked" || m.code === "busy" || m.code === "owned") s.toast(m.message, "error"); else if (m.code === "full" || m.code === "bad_name" || m.code === "banned") s.set({ screen: "error", errorText: m.message }); else console.warn("server error", m); break;
+      case "error": s.set({ vehicleTransition: undefined }); if (m.code === "exit_blocked" || m.code === "vehicle_moving" || m.code === "rate" || m.code === "too_far" || m.code === "occupied" || m.code === "need_vehicle" || m.code === "coins" || m.code === "locked" || m.code === "busy" || m.code === "owned") s.toast(m.message, "error"); else if (m.code === "full" || m.code === "bad_name" || m.code === "banned") s.set({ screen: "error", errorText: m.message }); else console.warn("server error", m); break;
       case "pong": s.set({ ping: Math.round(performance.now() - m.at) }); break;
-      case "correct": correction.p = m.p; correction.at = performance.now(); break;
+      case "correct": if (m.reason === "vehicle_exit") { s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); } correction.p = m.p; correction.at = performance.now(); break;
     }
   }
 }
