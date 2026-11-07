@@ -10,3 +10,6 @@ assets/audio/dialogues/*.mp3
 *.log
 .DS_Store
 .vercel
+
+# Local takeover backups and diagnostic artifacts
+work/
