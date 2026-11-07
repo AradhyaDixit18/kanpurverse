@@ -74,11 +74,13 @@ function Compass() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { let raf = 0; const draw = () => { const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const W = c.width, H = c.height; x.clearRect(0, 0, W, H);
     const { mission, settings } = useStore.getState(); const yaw = camYaw.v; const en = settings.lang === "english"; const pxPerRad = W / (Math.PI * 1.2);
-    const mark = (ang: number, label: string, col: string, big = false) => { let d = ang - yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; if (Math.abs(d) > Math.PI * 0.6) return; const px = W / 2 - d * pxPerRad; x.fillStyle = col; x.font = `${big ? "bold 13px" : "11px"} Inter, system-ui`; x.textAlign = "center"; x.fillText(label, px, big ? 16 : 14); x.fillRect(px - 1, 20, 2, big ? 10 : 6); };
+    const used: number[] = []; // label centres already drawn (px); nearby labels are skipped so the strip never overlaps
+    const mark = (ang: number, label: string, col: string, big = false, spacing = 0) => { let d = ang - yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; if (Math.abs(d) > Math.PI * 0.6) return; const px = W / 2 - d * pxPerRad; if (spacing && used.some(u => Math.abs(u - px) < spacing)) return; used.push(px); x.fillStyle = col; x.font = `${big ? "bold 13px" : "11px"} Inter, system-ui`; x.textAlign = "center"; x.fillText(label, px, 14); x.fillRect(px - 1, 22, 2, 6); };
     // cardinal: world +Z is south; camera yaw 0 looks toward -Z (north)
     mark(0, "N", "#fff", true); mark(Math.PI / 2, "W", "#bbb"); mark(Math.PI, "S", "#bbb"); mark(-Math.PI / 2, "E", "#bbb");
-    for (const l of LANDMARKS) { if (l.kind === "park" && l.id !== "nana_rao") continue; const dx = l.p[0] - playerPos.x, dz = l.p[1] - playerPos.z; const dist = Math.hypot(dx, dz); if (dist > 1800) continue; mark(Math.atan2(-dx, -dz), (en ? l.name : l.nameHi) + (dist > 120 ? ` ${Math.round(dist)}m` : ""), "#ffd23f"); }
-    if (mission) { const cp = mission.def.checkpoints[mission.index]; const dx = cp[0] - playerPos.x, dz = cp[1] - playerPos.z; mark(Math.atan2(-dx, -dz), `◆ ${Math.round(Math.hypot(dx, dz))} m`, "#ff5a3c", true); }
+    if (mission) { const cp = mission.def.checkpoints[mission.index]; const dx = cp[0] - playerPos.x, dz = cp[1] - playerPos.z; mark(Math.atan2(-dx, -dz), `◆ ${Math.round(Math.hypot(dx, dz))} m`, "#ff5a3c", true, 1); }
+    const near = LANDMARKS.filter(l => l.kind !== "park" || l.id === "nana_rao").map(l => ({ l, dx: l.p[0] - playerPos.x, dz: l.p[1] - playerPos.z })).map(o => ({ ...o, dist: Math.hypot(o.dx, o.dz) })).filter(o => o.dist < 1800).sort((a, b) => a.dist - b.dist).slice(0, 4);
+    for (const { l, dx, dz, dist } of near) mark(Math.atan2(-dx, -dz), (en ? l.name : l.nameHi) + (dist > 120 ? ` ${Math.round(dist)}m` : ""), "#ffd23f", false, 92);
     x.fillStyle = "rgba(255,255,255,.5)"; x.fillRect(W / 2 - 1, 0, 2, 8); raf = requestAnimationFrame(draw); }; draw(); return () => cancelAnimationFrame(raf); }, []);
   return <canvas ref={ref} width={560} height={34} className="hud-compass" />;
 }
