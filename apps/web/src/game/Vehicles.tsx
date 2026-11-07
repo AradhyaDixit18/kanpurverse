@@ -10,11 +10,13 @@ import { useStore } from "../state/store";
 import { net, vehicleBuf } from "../net/client";
 import { input, pollKeys, once, camYaw } from "./input";
 import { sfx } from "../audio/sfx";
+import { puff } from "./Dust";
 import { NameTag } from "./Avatar";
 
 export const SPECS: Record<VehicleKind, { accel: number; max: number; turn: number; size: [number, number, number]; seats: number; wheelR: number }> = {
   hatchback: { accel: 10, max: 26, turn: 2.0, size: [1.75, 1.45, 3.8], seats: 2, wheelR: 0.32 }, sedan: { accel: 11, max: 32, turn: 1.8, size: [1.85, 1.4, 4.6], seats: 2, wheelR: 0.33 }, suv: { accel: 9.5, max: 30, turn: 1.7, size: [2.05, 1.85, 4.8], seats: 2, wheelR: 0.4 },
   bike: { accel: 13, max: 36, turn: 2.7, size: [0.7, 1.1, 2.1], seats: 2, wheelR: 0.32 }, scooter: { accel: 8, max: 20, turn: 2.9, size: [0.7, 1.1, 1.8], seats: 2, wheelR: 0.26 }, auto: { accel: 7, max: 17, turn: 2.5, size: [1.45, 1.75, 2.8], seats: 2, wheelR: 0.28 },
+  erickshaw: { accel: 5, max: 11, turn: 2.6, size: [1.3, 1.8, 2.9], seats: 2, wheelR: 0.3 }, bus: { accel: 5, max: 22, turn: 1.2, size: [2.5, 3.1, 10.5], seats: 2, wheelR: 0.5 }, truck: { accel: 6, max: 24, turn: 1.3, size: [2.4, 2.8, 7.5], seats: 2, wheelR: 0.5 }, taxi: { accel: 10, max: 26, turn: 2.0, size: [1.75, 1.45, 3.9], seats: 2, wheelR: 0.32 },
 };
 import { vehicleTelemetry } from "./refs";
 export { vehicleTelemetry };
@@ -44,7 +46,9 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       const vyNow = rb.linvel().y; rb.setLinvel({ x: vx, y: Math.max(-25, Math.min(vyNow, 1.5)), z: vz }, true); // never launch upward: clamp vertical velocity q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current); rb.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
       const p = rb.translation(); net.sendVehicle(snap.id, [p.x, p.y, p.z], [q.x, q.y, q.z, q.w], speed.current);
       sfx.engine(true, Math.abs(speed.current)); vehicleTelemetry.speed = Math.abs(speed.current); vehicleTelemetry.kind = snap.kind;
+      if ((brake && Math.abs(speed.current) > 6) || Math.abs(steer.current) > 0.8 && Math.abs(speed.current) > 12) { if (Math.random() < 0.3) puff(p.x - Math.sin(yaw.current) * spec.size[2] * 0.35, p.y - spec.size[1] / 2, p.z - Math.cos(yaw.current) * spec.size[2] * 0.35, 1.2); }
       if ((input.horn || once("KeyH")) && performance.now() - lastHorn.current > 600) { lastHorn.current = performance.now(); sfx.horn(); }
+      if (once("KeyR")) { const p0 = rb.translation(); rb.setTranslation({ x: p0.x, y: spec.size[1] / 2 + 0.6, z: p0.z }, true); rb.setLinvel({ x: 0, y: 0, z: 0 }, true); speed.current = 0; s.toast("Vehicle reset"); }
       if (!s.settings.reduceMotion && Math.abs(speed.current) > 2) camYaw.v = lerpAngle(camYaw.v, yaw.current + Math.PI, 1 - Math.exp(-dt * 2.2));
       if (vis.current) { vis.current.position.set(p.x, p.y, p.z); vis.current.quaternion.copy(q); vis.current.rotation.z = -steer.current * 0.03 * grip; }
       state.current = { speed: speed.current, steer: steer.current, brake };
@@ -121,6 +125,29 @@ export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kin
     {[-1, 1].map(sx => <mesh key={sx} position={[sx * (w / 2 - 0.2), -0.15, -l / 2 - 0.01]} material={brake}><boxGeometry args={[0.2, 0.12, 0.04]} /></mesh>)}
     <Wheel x={0} z={l * 0.4} i={0} front width={0.16} /><Wheel x={-w / 2 + 0.12} z={-l * 0.3} i={1} width={0.18} /><Wheel x={w / 2 - 0.12} z={-l * 0.3} i={2} width={0.18} />
   </group>;
+  if (kind === "erickshaw") return <group>
+    <mesh position={[0, -0.3, 0]} material={paint} castShadow><boxGeometry args={[w, h * 0.35, l]} /></mesh>
+    <mesh position={[0, h * 0.2, -0.3]} material={trim}><boxGeometry args={[w * 0.94, h * 0.12, l * 0.7]} /></mesh>{/* bench */}
+    {[-1, 1].map(sx => [-1.1, 0.9].map(z => <mesh key={sx + "_" + z} position={[sx * (w / 2 - 0.04), h * 0.4, z]} material={trim}><boxGeometry args={[0.06, h * 0.75, 0.06]} /></mesh>))}
+    <mesh position={[0, h * 0.78, -0.1]}><boxGeometry args={[w + 0.1, 0.07, l * 0.9]} /><meshStandardMaterial color="#2f6fb0" roughness={0.6} /></mesh>{/* canopy */}
+    <mesh position={[0, h * 0.4, l * 0.44]} material={glass}><boxGeometry args={[w * 0.9, h * 0.5, 0.05]} /></mesh>
+    <mesh position={[0, h * 0.45, -l * 0.46]}><boxGeometry args={[w * 0.9, h * 0.5, 0.05]} /><meshStandardMaterial color="#e8f0ff" /></mesh>
+    <mesh position={[0, -0.1, l * 0.5]} material={head}><sphereGeometry args={[0.12]} /></mesh>
+    <Wheel x={0} z={l * 0.42} i={0} front width={0.12} /><Wheel x={-w / 2 + 0.12} z={-l * 0.32} i={1} width={0.14} /><Wheel x={w / 2 - 0.12} z={-l * 0.32} i={2} width={0.14} />
+  </group>;
+  if (kind === "bus" || kind === "truck") { const isBus = kind === "bus"; return <group>
+    <mesh position={[0, 0.25, isBus ? 0 : l * 0.3]} material={paint} castShadow><boxGeometry args={[w, h * 0.85, isBus ? l : l * 0.3]} /></mesh>{/* body / cab */}
+    {!isBus && <mesh position={[0, 0.1, -l * 0.2]} castShadow><boxGeometry args={[w, h * 0.8, l * 0.6]} /><meshStandardMaterial color="#c9ccd1" roughness={0.8} /></mesh>}{/* cargo */}
+    {!isBus && <mesh position={[0, 0.1, -l * 0.2]}><boxGeometry args={[w + 0.02, h * 0.82, l * 0.61]} /><meshStandardMaterial color="#8a4a1a" transparent opacity={0.3} /></mesh>}
+    {isBus && <mesh position={[0, h * 0.2, 0]} material={glass}><boxGeometry args={[w + 0.02, h * 0.35, l * 0.96]} /></mesh>}{/* window band */}
+    {isBus && <mesh position={[0, -0.25, 0]}><boxGeometry args={[w + 0.02, 0.22, l * 0.96]} /><meshStandardMaterial color="#ffd23f" /></mesh>}{/* yellow band */}
+    {isBus && <mesh position={[0, h * 0.5, l / 2 - 0.02]}><boxGeometry args={[w * 0.6, 0.4, 0.05]} /><meshStandardMaterial color="#111" emissive="#f2b134" emissiveIntensity={0.8} /></mesh>}{/* route board */}
+    <mesh position={[0, h * 0.15, (isBus ? l / 2 : l * 0.45) + 0.01]} material={glass}><boxGeometry args={[w * 0.85, h * 0.4, 0.05]} /></mesh>
+    {[-1, 1].map(sx => <mesh key={sx} position={[sx * (w / 2 - 0.35), -0.3, (isBus ? l / 2 : l * 0.45) + 0.02]} material={head}><boxGeometry args={[0.35, 0.2, 0.05]} /></mesh>)}
+    {[-1, 1].map(sx => <mesh key={"b" + sx} position={[sx * (w / 2 - 0.35), -0.3, -l / 2 - 0.02]} material={brake}><boxGeometry args={[0.35, 0.2, 0.05]} /></mesh>)}
+    <Wheel x={-w / 2} z={l * 0.36} i={0} front width={0.35} /><Wheel x={w / 2} z={l * 0.36} i={1} front width={0.35} /><Wheel x={-w / 2} z={-l * 0.3} i={2} width={0.35} /><Wheel x={w / 2} z={-l * 0.3} i={3} width={0.35} />
+    {isBus && <><Wheel x={-w / 2} z={-l * 0.18} i={4} width={0.35} /><Wheel x={w / 2} z={-l * 0.18} i={5} width={0.35} /></>}
+  </group>; }
   const cab = kind === "suv" ? 0.62 : 0.55; const cabH = kind === "suv" ? 0.55 : 0.5;
   return <group>
     <mesh position={[0, -0.12, 0]} material={paint} castShadow><boxGeometry args={[w, h * 0.48, l, 1, 1, 1]} /></mesh>{/* body */}
@@ -132,6 +159,7 @@ export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kin
     {[-1, 1].map(sx => <mesh key={sx} position={[sx * (w / 2 - 0.25), -0.08, l / 2 + 0.01]} material={head}><boxGeometry args={[0.32, 0.14, 0.05]} /></mesh>)}
     {[-1, 1].map(sx => <mesh key={sx} position={[sx * (w / 2 - 0.25), -0.08, -l / 2 - 0.01]} material={brake}><boxGeometry args={[0.32, 0.14, 0.05]} /></mesh>)}
     <mesh position={[0, -0.2, l / 2 + 0.02]} material={trim}><boxGeometry args={[w * 0.5, 0.14, 0.04]} /></mesh>{/* grille */}
+    {kind === "taxi" && <mesh position={[0, h * cabH + 0.2, -0.15]}><boxGeometry args={[0.6, 0.22, 0.25]} /><meshStandardMaterial color="#111" emissive="#ffd23f" emissiveIntensity={0.9} /></mesh>}
     <Wheel x={-w / 2} z={l * 0.32} i={0} front /><Wheel x={w / 2} z={l * 0.32} i={1} front /><Wheel x={-w / 2} z={-l * 0.32} i={2} /><Wheel x={w / 2} z={-l * 0.32} i={3} />
   </group>;
 }

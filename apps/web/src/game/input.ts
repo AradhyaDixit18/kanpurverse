@@ -1,9 +1,9 @@
 "use client";
 /** Unified input: keyboard + mouse look + touch joystick/buttons. Read by the controller each frame. */
-export const camYaw = { v: Math.PI, pitch: 0.25, dist: 6 };
+export const camYaw = { v: Math.PI, pitch: 0.25, dist: 6, mode: 0 as 0 | 1 | 2 | 3, lookBack: false };
 export const input = {
   fwd: 0, right: 0, jump: false, sprint: false, interact: false, horn: false, exit: false, look: { dx: 0, dy: 0 }, zoom: 0, pointerLocked: false,
-  touch: { joy: { x: 0, y: 0 }, lookActive: false },
+  touch: { joy: { x: 0, y: 0 }, lookActive: false }, lookBackHeld: false,
   pressedOnce: new Set<string>(),
 };
 const keys = new Set<string>();
@@ -25,7 +25,7 @@ export function pollKeys() {
   const kr = (k("KeyD") || k("ArrowRight") ? 1 : 0) - (k("KeyA") || k("ArrowLeft") ? 1 : 0);
   input.fwd = kf || -input.touch.joy.y; input.right = kr || input.touch.joy.x;
   input.sprint = k("ShiftLeft") || k("ShiftRight") || Math.hypot(input.touch.joy.x, input.touch.joy.y) > 0.9;
-  input.jump = k("Space"); input.horn = k("KeyH");
+  input.jump = k("Space"); input.horn = k("KeyH"); input.lookBackHeld = k("KeyQ");
 }
 export function once(code: string) { const had = input.pressedOnce.has(code); if (had) input.pressedOnce.delete(code); return had; }
 export function clearOnce() { input.pressedOnce.clear(); }

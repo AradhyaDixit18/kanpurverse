@@ -105,8 +105,8 @@ export const NPCS: NpcDef[] = [
 ];
 
 /** Body height per kind (metres); the physics body centre sits at height/2 above the road. */
-export const VEHICLE_HEIGHT: Record<"hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto", number> = { hatchback: 1.45, sedan: 1.4, suv: 1.85, bike: 1.1, scooter: 1.1, auto: 1.75 };
-export interface VehicleSpawn { id: string; kind: "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto"; p: [number, number]; ry: number; color: number }
+export const VEHICLE_HEIGHT: Record<"hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi", number> = { hatchback: 1.45, sedan: 1.4, suv: 1.85, bike: 1.1, scooter: 1.1, auto: 1.75, erickshaw: 1.8, bus: 3.1, truck: 2.8, taxi: 1.45 };
+export interface VehicleSpawn { id: string; kind: "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi"; p: [number, number]; ry: number; color: number }
 export const VEHICLE_SPAWNS: VehicleSpawn[] = [
   { id: "v_auto_1", kind: "auto", p: [506, -320], ry: Math.PI / 2, color: 0x2e8b57 },
   { id: "v_hatch_1", kind: "hatchback", p: [438, -320], ry: Math.PI / 2, color: 0xc8102e },
@@ -116,6 +116,10 @@ export const VEHICLE_SPAWNS: VehicleSpawn[] = [
   { id: "v_bike_1", kind: "bike", p: [585, -268], ry: 0, color: 0xffd23f },
   { id: "v_auto_2", kind: "auto", p: [430, 1770], ry: Math.PI, color: 0xf2b134 },
   { id: "v_hatch_2", kind: "hatchback", p: [-140, -470], ry: Math.PI / 2, color: 0x4b7bec },
+  { id: "v_erick_1", kind: "erickshaw", p: [512, -314], ry: Math.PI / 2, color: 0x2f6fb0 },
+  { id: "v_taxi_1", kind: "taxi", p: [430, 1778], ry: Math.PI, color: 0xffd23f },
+  { id: "v_bus_1", kind: "bus", p: [560, -270], ry: 0, color: 0xe07b1a },
+  { id: "v_truck_1", kind: "truck", p: [-820, -760], ry: Math.PI / 2, color: 0x3a7d44 },
 ];
 
 export const SPAWN_POINT: [number, number, number] = [472, 1, -330];   // The Mall Road beside Z Square (OSM)
@@ -128,6 +132,13 @@ export const MISSIONS: MissionDef[] = [
   { id: "race_mall", name: "Mall Road Dash", nameHi: "मॉल रोड डैश", kind: "race", giver: "auto_raju", start: [502, -320], checkpoints: [[538, -299], [1351, -206], [1367, 307], [639, -168], [472, -330]], radius: 12, timeLimitSec: 300, reward: { coins: 600, xp: 300 }, needsVehicle: true, coop: true, desc: "Bada Chauraha → Nana Rao Park → Phool Bagh → Christ Church → back to Z Square. Fastest wins.", descHi: "बड़ा चौराहा → नाना राव पार्क → फूल बाग़ → क्राइस्ट चर्च → वापस ज़ेड स्क्वायर। सबसे तेज़ जीतेगा।" },
   { id: "photo_city", name: "Shehar ki Tasveer", nameHi: "शहर की तस्वीर", kind: "photo", giver: "ped_priya", start: [-980, -830], checkpoints: [[-1046, -835], [639, -168], [423, 1797]], radius: 25, reward: { coins: 350, xp: 180 }, coop: true, desc: "Photograph Moti Jheel, Christ Church and Kanpur Central (press E at each).", descHi: "मोती झील, क्राइस्ट चर्च और कानपुर सेंट्रल की फ़ोटो लो (हर जगह E दबाओ)।" },
   { id: "taxi_station", name: "Station Drop", nameHi: "स्टेशन ड्रॉप", kind: "taxi", giver: "auto_raju", start: [502, -320], checkpoints: [[452, -316], [423, 1790]], radius: 12, timeLimitSec: 240, reward: { coins: 300, xp: 150 }, needsVehicle: true, desc: "Pick up a passenger at Cafe Chowk and drop them at Kanpur Central.", descHi: "कैफ़े चौक से सवारी लो और कानपुर सेंट्रल छोड़ो।" },
+  { id: "crossing_patience", name: "Phatak pe Sabra", nameHi: "फाटक पे सब्र", kind: "explore", giver: "police_singh", start: [532, -338], checkpoints: [[1104, 1553]], radius: 14, reward: { coins: 220, xp: 110 }, desc: "Reach the railway crossing near Nayaganj and wait for the train to pass. Never jump a closed gate.", descHi: "नयागंज वाले फाटक तक जाओ और ट्रेन निकलने का इंतज़ार करो। बंद फाटक कभी मत फाँदो।" },
+  { id: "ghantaghar_trial", name: "Ghantaghar Time Trial", nameHi: "घंटाघर टाइम ट्रायल", kind: "race", giver: "auto_raju", start: [502, -320], checkpoints: [[639, -168], [1246, 650], [423, 1790], [-155, -453], [472, -330]], radius: 14, timeLimitSec: 420, reward: { coins: 800, xp: 400 }, needsVehicle: true, coop: true, desc: "Civil Lines → Nayaganj → Kanpur Central → Naveen Market → back to Z Square. Seven minutes.", descHi: "सिविल लाइंस → नयागंज → कानपुर सेंट्रल → नवीन मार्केट → वापस ज़ेड स्क्वायर। सात मिनट।" },
+  { id: "sabzi_run", name: "Sabzi Run", nameHi: "सब्ज़ी रन", kind: "delivery", giver: "ped_sunita", start: [-130, -420], checkpoints: [[80, -1300], [1367, 307]], radius: 16, timeLimitSec: 360, reward: { coins: 450, xp: 220 }, needsVehicle: true, desc: "Sunita ji's vegetables: Naveen Market → Green Park gate → Phool Bagh, before the evening rush.", descHi: "सुनीता जी की सब्ज़ी: नवीन मार्केट → ग्रीन पार्क गेट → फूल बाग़, शाम की भीड़ से पहले।" },
+  { id: "station_taxi", name: "Central Pickup", nameHi: "सेंट्रल पिकअप", kind: "taxi", giver: "ped_rekha", start: [400, 1760], checkpoints: [[423, 1790], [538, -299]], radius: 14, timeLimitSec: 300, reward: { coins: 380, xp: 190 }, needsVehicle: true, desc: "A passenger just got off at Kanpur Central and needs Bada Chauraha. Mall Road traffic is yours to beat.", descHi: "एक सवारी अभी कानपुर सेंट्रल उतरी है, बड़ा चौराहा जाना है। मॉल रोड का ट्रैफ़िक तुम्हारा इम्तिहान है।" },
+  { id: "lal_imli_hunt", name: "Lal Imli ki Khoj", nameHi: "लाल इमली की खोज", kind: "explore", giver: "guide_babloo", start: [462, -336], checkpoints: [[-800, -800], [-990, -784], [-1046, -835]], radius: 20, reward: { coins: 500, xp: 260 }, coop: true, desc: "Treasure hunt: the old Lal Imli mills, then Chunniganj, then the jheel. Follow the clues Babloo gives.", descHi: "खज़ाने की खोज: पुरानी लाल इमली मिल, फिर चुन्नीगंज, फिर झील। बबलू के इशारे समझो।" },
+  { id: "park_photo", name: "Nana Rao Park Selfie", nameHi: "नाना राव पार्क सेल्फ़ी", kind: "photo", giver: "ped_aman", start: [492, -360], checkpoints: [[1351, -206], [1367, 307]], radius: 30, reward: { coins: 260, xp: 130 }, coop: true, desc: "Two photos: Nana Rao Park and Phool Bagh. Press E at each.", descHi: "दो फ़ोटो: नाना राव पार्क और फूल बाग़। हर जगह E दबाओ।" },
+  { id: "evening_jheel", name: "Shaam-e-Jheel", nameHi: "शाम-ए-झील", kind: "social", giver: "chai_munna", start: [452, -316], checkpoints: [[-966, -825]], radius: 12, reward: { coins: 300, xp: 150 }, coop: true, desc: "Sit with a friend at Moti Jheel's edge for a minute. Best after 5 pm Kanpur time.", descHi: "मोती झील किनारे किसी दोस्त के साथ एक मिनट बैठो। शाम पाँच बजे के बाद सबसे अच्छा।" },
   { id: "cafe_date", name: "Chai pe Charcha", nameHi: "चाय पे चर्चा", kind: "social", giver: "chai_munna", start: [452, -316], checkpoints: [[452, -316]], radius: 6, reward: { coins: 150, xp: 100 }, coop: true, desc: "Sit at the cafe with a friend for 60 seconds.", descHi: "कैफ़े में किसी दोस्त के साथ 60 सेकंड बैठो।" },
 ];
 

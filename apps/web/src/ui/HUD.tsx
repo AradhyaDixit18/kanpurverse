@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOP_ITEMS, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
+import { camYaw } from "../game/input";
 import { useStore } from "../state/store";
 import { net } from "../net/client";
 import { playerPos, playerYaw } from "../game/refs";
@@ -15,7 +16,7 @@ import { SettingsPanel } from "./Settings";
 
 export function HUD() {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory">(null);
+  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
   const [showChat, setShowChat] = useState(false);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -25,6 +26,8 @@ export function HUD() {
       if (e.code === "Enter" || e.code === "KeyT") { setShowChat(true); if (document.pointerLockElement) document.exitPointerLock(); }
       if (e.code === "F1") { e.preventDefault(); setPanel(p => p === "help" ? null : "help"); }
       if (e.code === "KeyI") setPanel(p => p === "inventory" ? null : "inventory");
+      if (e.code === "KeyJ") setPanel(p => p === "quests" ? null : "quests");
+      if (e.code === "KeyP") setPhoto(v => !v);
     };
     window.addEventListener("keydown", k);
     const shop = () => setPanel("shop"); const garage = () => setPanel("garage"); window.addEventListener("kv:shop", shop); window.addEventListener("kv:garage", garage);
@@ -36,8 +39,10 @@ export function HUD() {
   const m = s.mission; const left = m?.def.timeLimitSec ? Math.max(0, m.def.timeLimitSec - (Date.now() - m.startedAt) / 1000) : undefined;
   const online = Object.keys(s.players).length;
 
+  if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
+      <Compass />
       {/* top-left stats */}
       <div className="hud-stats">
         <Logo size={14} />
@@ -65,6 +70,18 @@ export function HUD() {
   );
 }
 function Speedo() { const [v, setV] = useState(0); useEffect(() => { const i = setInterval(() => setV(Math.round(vehicleTelemetry.speed * 3.6)), 100); return () => clearInterval(i); }, []); return <div className="hud-speedo"><b>{v}</b><small>km/h</small><div className="speedo-bar" style={{ width: Math.min(100, v / 1.3) + "%" }} /></div>; }
+function Compass() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { let raf = 0; const draw = () => { const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const W = c.width, H = c.height; x.clearRect(0, 0, W, H);
+    const { mission, settings } = useStore.getState(); const yaw = camYaw.v; const en = settings.lang === "english"; const pxPerRad = W / (Math.PI * 1.2);
+    const mark = (ang: number, label: string, col: string, big = false) => { let d = ang - yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; if (Math.abs(d) > Math.PI * 0.6) return; const px = W / 2 - d * pxPerRad; x.fillStyle = col; x.font = `${big ? "bold 13px" : "11px"} Inter, system-ui`; x.textAlign = "center"; x.fillText(label, px, big ? 16 : 14); x.fillRect(px - 1, 20, 2, big ? 10 : 6); };
+    // cardinal: world +Z is south; camera yaw 0 looks toward -Z (north)
+    mark(0, "N", "#fff", true); mark(Math.PI / 2, "W", "#bbb"); mark(Math.PI, "S", "#bbb"); mark(-Math.PI / 2, "E", "#bbb");
+    for (const l of LANDMARKS) { if (l.kind === "park" && l.id !== "nana_rao") continue; const dx = l.p[0] - playerPos.x, dz = l.p[1] - playerPos.z; const dist = Math.hypot(dx, dz); if (dist > 1800) continue; mark(Math.atan2(-dx, -dz), (en ? l.name : l.nameHi) + (dist > 120 ? ` ${Math.round(dist)}m` : ""), "#ffd23f"); }
+    if (mission) { const cp = mission.def.checkpoints[mission.index]; const dx = cp[0] - playerPos.x, dz = cp[1] - playerPos.z; mark(Math.atan2(-dx, -dz), `◆ ${Math.round(Math.hypot(dx, dz))} m`, "#ff5a3c", true); }
+    x.fillStyle = "rgba(255,255,255,.5)"; x.fillRect(W / 2 - 1, 0, 2, 8); raf = requestAnimationFrame(draw); }; draw(); return () => cancelAnimationFrame(raf); }, []);
+  return <canvas ref={ref} width={560} height={34} className="hud-compass" />;
+}
 const clock = (t: number) => { const h = Math.floor(t * 24), mm = Math.floor((t * 24 - h) * 60); return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`; };
 const dist = (p: [number, number]) => Math.round(Math.hypot(p[0] - playerPos.x, p[1] - playerPos.z));
 
@@ -126,7 +143,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
   </>;
 }
 
-function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory") => void }) {
+function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests") => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   return <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
     <div className="modal-card">
@@ -135,6 +152,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
           <button className="btn btn-accent" onClick={close}>{t("Resume", "जारी रखो")}</button>
           <button className="btn" onClick={() => open("map")}>{t("Map", "नक्शा")}</button>
           <button className="btn" onClick={() => open("social")}>{t("Players & party", "खिलाड़ी और पार्टी")}</button>
+          <button className="btn" onClick={() => open("quests")}>{t("Missions log", "मिशन लॉग")}</button>
           <button className="btn" onClick={() => open("inventory")}>{t("Inventory & character", "इन्वेंटरी और किरदार")}</button>
           <button className="btn" onClick={() => open("settings")}>{t("Settings", "सेटिंग्स")}</button>
           <button className="btn" onClick={() => open("help")}>{t("Controls & help", "कंट्रोल और मदद")}</button>
@@ -146,10 +164,11 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
       {kind === "help" && <><h2>{t("Controls", "कंट्रोल")}</h2><div className="help-grid">
         <div><kbd>W A S D</kbd> {t("move", "चलो")}</div><div><kbd>Shift</kbd> {t("sprint", "दौड़ो")}</div><div><kbd>Space</kbd> {t("jump / brake", "कूदो / ब्रेक")}</div><div><kbd>Mouse</kbd> {t("look (click to lock)", "कैमरा (क्लिक करो)")}</div>
         <div><kbd>E</kbd> {t("talk / enter / photo", "बात / चढ़ो / फ़ोटो")}</div><div><kbd>F</kbd> {t("exit vehicle", "गाड़ी से उतरो")}</div><div><kbd>H</kbd> {t("horn", "हॉर्न")}</div><div><kbd>1–6</kbd> {t("emotes: wave, dance, laugh, celebrate, high-five, sit", "इमोट: हाथ हिलाओ, डांस, हँसो, जश्न, हाई-फाइव, बैठो")}</div>
-        <div><kbd>T</kbd> {t("chat", "चैट")}</div><div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>Tab</kbd> {t("players", "खिलाड़ी")}</div><div><kbd>Esc</kbd> {t("menu", "मेन्यू")}</div></div>
+        <div><kbd>T</kbd> {t("chat", "चैट")}</div><div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>Tab</kbd> {t("players", "खिलाड़ी")}</div><div><kbd>Esc</kbd> {t("menu", "मेन्यू")}</div><div><kbd>C</kbd> {t("camera: normal / close / far / first-person", "कैमरा: सामान्य / पास / दूर / फर्स्ट-पर्सन")}</div><div><kbd>Q</kbd> {t("look back (hold)", "पीछे देखो")}</div><div><kbd>R</kbd> {t("reset vehicle", "गाड़ी रीसेट")}</div><div><kbd>P</kbd> {t("photo mode", "फ़ोटो मोड")}</div><div><kbd>J</kbd> {t("missions log", "मिशन लॉग")}</div><div><kbd>I</kbd> {t("inventory", "इन्वेंटरी")}</div></div>
         <p className="muted">{t("Find Babloo Bhaiya at Cafe Chowk for your first mission. Yellow diamonds mark mission givers.", "पहले मिशन के लिए कैफ़े चौक पर बबलू भैया से मिलो। पीले हीरे मिशन देने वालों को दिखाते हैं।")}</p>
         <button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
       {kind === "social" && <SocialPanel close={close} />}
+      {kind === "quests" && <QuestPanel close={close} />}
       {kind === "shop" && <ShopPanel close={close} />}
       {kind === "inventory" && <ShopPanel close={close} inventory />}
       {kind === "garage" && <GaragePanel close={close} />}
@@ -157,6 +176,10 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
   </div>;
 }
 
+function QuestPanel({ close }: { close: () => void }) {
+  const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi; const done = s.profile?.missionsCompleted ?? [];
+  return <><h2>{t("Missions", "मिशन")} · {done.length}/{MISSIONS.length}</h2><div className="plist">{MISSIONS.map(m => { const d = Math.round(Math.hypot(m.start[0] - playerPos.x, m.start[1] - playerPos.z)); const active = s.mission?.def.id === m.id; return <div key={m.id} className={`prow ${active ? "active" : ""}`}><span><b>{t(m.name, m.nameHi)}</b> <small className="muted">{m.kind}{m.needsVehicle ? " · 🚗" : ""}{m.coop ? " · 👥" : ""} · {d} m</small><div className="muted small">{t(m.desc, m.descHi)}</div></span><span>{done.includes(m.id) ? "✅" : active ? "▶" : `+${m.reward.coins}🪙`}</span></div>; })}</div><p className="muted">{t("Yellow diamonds in the world and ◆ on the compass mark mission givers and objectives.", "दुनिया में पीले हीरे और कंपास पर ◆ मिशन देने वालों और लक्ष्यों को दिखाते हैं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+}
 function MapPanel({ close }: { close: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null); const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   useEffect(() => { const c = ref.current!; const x = c.getContext("2d")!; const S = c.width; const SPAN = 2400; const k = S / SPAN; x.fillStyle = "#1c1d22"; x.fillRect(0, 0, S, S); x.save(); x.translate(S / 2, S / 2); x.translate(-playerPos.x * k, -playerPos.z * k);

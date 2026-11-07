@@ -128,3 +128,9 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .lang-card { background: rgba(11,11,13,.7); border: 1px solid rgba(255,255,255,.14); border-radius: 20px; padding: 1.4rem 1rem; color: #fff; cursor: pointer; display: flex; flex-direction: column; gap: .5rem; align-items: center; transition: transform .12s, border-color .15s; backdrop-filter: blur(10px); }
 .lang-card:hover { transform: translateY(-4px); border-color: #ffd23f; } .lang-card.accent { border-color: #ff5a3c; box-shadow: 0 0 0 1px #ff5a3c inset; } .lang-big { font-size: 2rem; font-weight: 900; } .lang-card small { color: var(--muted); line-height: 1.4; }
 .load-steps { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: .4rem; } .ls { font-size: .75rem; color: #666; padding: .2em .6em; border: 1px solid #333; border-radius: 999px; } .ls.on { color: #ffd23f; border-color: #ffd23f; } .ls.done { color: #8fd18f; border-color: #3a5a3a; }
+
+/* compass + photo mode + quest log */
+.hud-compass { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(560px, 70vw); height: 34px; background: linear-gradient(90deg, transparent, rgba(11,11,13,.6) 15%, rgba(11,11,13,.6) 85%, transparent); border-radius: 999px; }
+.hud.photo > * { pointer-events: none; } .photo-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(11,11,13,.6); padding: .4em 1em; border-radius: 999px; font-size: .85em; }
+.prow.active { border: 1px solid #ffd23f; } .hud-stats { top: 52px; } .hud-mission { top: 52px; } .hud-vehicle { top: 50px; }
+@media (max-width: 760px) { .hud-compass { top: 62px; width: 60vw; height: 28px; } .hud-stats { top: 96px; } .hud-mission { top: 96px; } }

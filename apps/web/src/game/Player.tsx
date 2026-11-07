@@ -11,6 +11,7 @@ export { camYaw };
 import { useStore } from "../state/store";
 import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
+import { puff } from "./Dust";
 import { npcPositions } from "./refs";
 
 const WALK = 3.2, RUN = 5.5, SPRINT = 8.5, JUMP_V = 6.5, GRAV = -18;
@@ -23,7 +24,7 @@ export { playerYaw };
 export function Player() {
   const body = useRef<RapierRigidBody>(null); const vis = useRef<THREE.Group>(null);
   const { rapier, world } = useRapier(); const { camera, gl } = useThree();
-  const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
+  const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const wasGrounded = useRef(true); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
   const appearance = useStore(s => s.appearance); const name = useStore(s => s.name); const inVehicle = useStore(s => s.inVehicle);
   const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
@@ -37,6 +38,8 @@ export function Player() {
     // camera orbit
     const look = consumeLook(); if (!paused) { camYaw.v -= look.dx * 0.0025 * s.settings.sensitivity; camYaw.pitch = THREE.MathUtils.clamp(camYaw.pitch + look.dy * 0.0025 * sens, -0.6, 1.1); }
     camYaw.dist = THREE.MathUtils.clamp(camYaw.dist + consumeZoom() * 0.6, 2.5, 12);
+    if (once("KeyC") && !paused) { camYaw.mode = ((camYaw.mode + 1) % 4) as 0 | 1 | 2 | 3; camYaw.dist = [6, 3.5, 11, 0.3][camYaw.mode]; camYaw.pitch = [0.25, 0.15, 0.45, 0.05][camYaw.mode]; s.toast(["Camera: normal", "Camera: close", "Camera: far", "Camera: first person"][camYaw.mode]); }
+    camYaw.lookBack = input.lookBackHeld;
 
     if (inVehicle) { // vehicle handles position; keep avatar hidden/in car
       const v = s.vehicles[inVehicle]; if (v) { playerPos.set(v.p[0], v.p[1], v.p[2]); refPos.set(v.p[0], v.p[1], v.p[2]); rb.setNextKinematicTranslation({ x: v.p[0], y: v.p[1] + 0.3, z: v.p[2] }); }
@@ -66,7 +69,8 @@ export function Player() {
     const now = performance.now();
     const movingVis = Math.hypot(vel.current.x, vel.current.z) > 0.4;
     if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
-    if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); } }
+    if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); if (speed >= RUN) puff(playerPos.x, playerPos.y, playerPos.z, speed === SPRINT ? 1 : 0.6); } }
+    if (grounded.current && !wasGrounded.current) { puff(playerPos.x, playerPos.y, playerPos.z, 1.4); sfx.step(); } wasGrounded.current = grounded.current;
     if (vis.current) { vis.current.position.copy(playerPos); const prev = vis.current.rotation.y; vis.current.rotation.y = lerpAngle(prev, playerYaw.v, 1 - Math.exp(-dt * 12)); let dyaw = vis.current.rotation.y - prev; while (dyaw > Math.PI) dyaw -= 2 * Math.PI; while (dyaw < -Math.PI) dyaw += 2 * Math.PI; vis.current.rotation.z = THREE.MathUtils.lerp(vis.current.rotation.z, -dyaw * 6 * Math.min(1, Math.hypot(vel.current.x, vel.current.z) / 5), 0.2); }
     const cam = camera as THREE.PerspectiveCamera; const wantFov = input.sprint && moving ? 68 : 60; if (Math.abs(cam.fov - wantFov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, wantFov, 1 - Math.exp(-dt * 4)); cam.updateProjectionMatrix(); }
     // emotes
@@ -89,11 +93,13 @@ export function Player() {
 
   function placeCamera(cam: THREE.Camera, w: typeof world, r: typeof rapier, target: THREE.Vector3, smooth: number, h: number) {
     camTarget.current.set(target.x, target.y + h, target.z);
-    const dir = rayDir.current.set(Math.sin(camYaw.v) * Math.cos(camYaw.pitch), Math.sin(camYaw.pitch), Math.cos(camYaw.v) * Math.cos(camYaw.pitch));
+    const yawEff = camYaw.v + (camYaw.lookBack ? Math.PI : 0);
+    const dir = rayDir.current.set(Math.sin(yawEff) * Math.cos(camYaw.pitch), Math.sin(camYaw.pitch), Math.cos(yawEff) * Math.cos(camYaw.pitch));
     let dist = camYaw.dist;
     const ray = new r.Ray(camTarget.current, dir); const hit = w.castRay(ray, dist, true, undefined, undefined, undefined, body.current ?? undefined);
     if (hit && hit.timeOfImpact < dist) dist = Math.max(0.8, hit.timeOfImpact - 0.3);
     const want = camTarget.current.clone().addScaledVector(dir, dist);
+    if (camYaw.mode === 3) { cam.position.copy(camTarget.current).addScaledVector(dir, 0.0001); cam.lookAt(camTarget.current.clone().addScaledVector(dir, -10)); if (vis.current) vis.current.visible = false; return; } else if (vis.current && !inVehicle) vis.current.visible = true;
     cam.position.lerp(want, smooth); cam.lookAt(camTarget.current);
   }
   function probe(s: ReturnType<typeof useStore.getState>, p: { x: number; z: number }) {

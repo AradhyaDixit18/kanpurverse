@@ -15,6 +15,7 @@ import { Railway } from "./Railway";
 import { Props } from "./Props";
 import { Animals } from "./Animals";
 import { Effects } from "./Effects";
+import { Dust } from "./Dust";
 import { OsmCity, useGeo } from "./OsmCity";
 import { Environment } from "@react-three/drei";
 import * as THREE from "three";
@@ -34,7 +35,7 @@ export function Game() {
     <Canvas shadows={quality !== "low"} dpr={quality === "high" ? [1, 2] : [0.75, 1.25]} camera={{ fov: 60, near: 0.1, far: 900, position: [0, 4, 10] }} gl={{ antialias: quality !== "low", powerPreference: "high-performance" }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
       <Suspense fallback={null}>
         <Physics gravity={[0, -18, 0]} timeStep="vary">
-          <Sky /><Ibl /><GroundCollider /><World /><Player /><NPCs /><Vehicles /><Traffic /><Props /><Animals /><RemotePlayers /><MissionMarkers />
+          <Sky /><Ibl /><GroundCollider /><World /><Player /><NPCs /><Vehicles /><Traffic /><Props /><Animals /><RemotePlayers /><MissionMarkers /><Dust />
         </Physics>
       </Suspense>
       <Effects /><Bind /><Fps /><AdaptiveDpr pixelated />

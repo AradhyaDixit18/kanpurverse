@@ -43,6 +43,7 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
 
 export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }: { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string }) {
   const refs = { lArm: useRef<THREE.Group>(null), rArm: useRef<THREE.Group>(null), lFore: useRef<THREE.Group>(null), rFore: useRef<THREE.Group>(null), lLeg: useRef<THREE.Group>(null), rLeg: useRef<THREE.Group>(null), lShin: useRef<THREE.Group>(null), rShin: useRef<THREE.Group>(null), body: useRef<THREE.Group>(null), head: useRef<THREE.Group>(null) };
+  const eyes = useRef<THREE.Group>(null); const blinkAt = useRef(2 + Math.random() * 4);
   const t = useRef(Math.random() * 10); const cur = useRef<Pose>({ ...REST, la: [...REST.la], ra: [...REST.ra] }); const blend = useRef({ walk: 0 });
   const appKey = JSON.stringify(appearance);
   const mats = useMemo(() => ({
@@ -72,6 +73,9 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
     if (R.lShin.current) R.lShin.current.rotation.x = c.lk; if (R.rShin.current) R.rShin.current.rotation.x = c.rk;
     if (R.body.current) { R.body.current.position.y = c.by; R.body.current.rotation.set(c.brx, c.bry, 0); }
     if (R.head.current) R.head.current.rotation.set(c.hx, c.hy, 0);
+    if (eyes.current) { const since = T - blinkAt.current; if (since > 0) { eyes.current.scale.y = since < 0.08 ? 0.1 : 1; if (since > 0.16) blinkAt.current = T + 2.5 + Math.random() * 4; } }
+    // jump squash/stretch and landing crouch
+    if (R.body.current) { const sy = anim === "jump" ? 1.06 : anim === "fall" ? 1.03 : 1; R.body.current.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy)); }
   });
 
   const torsoW = female ? 0.4 : 0.48, hipW = female ? 0.42 : 0.4;
@@ -79,7 +83,8 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
     <group scale={scale}>
       <group ref={refs.body}>
         {/* torso */}
-        <RoundedBox position={[0, 1.17, 0]} material={mats.top} castShadow args={[torsoW, 0.56, 0.26]} radius={0.045} smoothness={3} />
+        <RoundedBox position={[0, 1.17, 0]} material={mats.top} castShadow args={[torsoW, 0.56, 0.27]} radius={0.09} smoothness={4} />
+        <mesh position={[0, 1.43, 0.02]} material={mats.topDark}><torusGeometry args={[0.09, 0.025, 6, 14]} /></mesh>{/* collar */}
         <RoundedBox position={[0, 1.42, 0]} material={mats.top} args={[torsoW + 0.08, 0.1, 0.28]} radius={0.045} smoothness={3} />{/* shoulders */}
         {appearance.top === 5 && <RoundedBox position={[0, 0.84, 0]} material={mats.top} args={[hipW + 0.1, 0.22, 0.3]} radius={0.045} smoothness={3} />}{/* kurta hem */}
         {female && <RoundedBox position={[0, 0.78, 0]} material={mats.top} args={[hipW + 0.14, 0.3, 0.32]} radius={0.05} />}{/* kurti flare */}
@@ -97,7 +102,7 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
           {appearance.hair !== 0 && <RoundedBox position={[0, 0.02, -0.14]} material={mats.hair} args={[0.32, 0.22, 0.06]} radius={0.045} smoothness={3} />}
           {appearance.hair === 2 && <RoundedBox position={[0, -0.12, -0.19]} material={mats.hair} args={[0.2, 0.42, 0.08]} radius={0.045} smoothness={3} />}
           {appearance.hair === 5 && <RoundedBox position={[0, -0.04, 0.1]} material={mats.hair} args={[0.22, 0.1, 0.12]} radius={0.045} smoothness={3} />}
-          {[-0.07, 0.07].map(x => <group key={x}><mesh position={[x, 0.03, 0.152]} material={mats.white}><boxGeometry args={[0.06, 0.05, 0.01]} /></mesh><mesh position={[x + 0.01, 0.03, 0.158]} material={mats.eye}><boxGeometry args={[0.03, 0.04, 0.01]} /></mesh></group>)}
+          <group ref={eyes}>{[-0.07, 0.07].map(x => <group key={x}><mesh position={[x, 0.03, 0.152]} material={mats.white}><boxGeometry args={[0.06, 0.05, 0.01]} /></mesh><mesh position={[x + 0.012, 0.03, 0.158]} material={mats.eye}><sphereGeometry args={[0.016]} /></mesh></group>)}</group>
           <RoundedBox position={[0, -0.02, 0.155]} material={mats.skin} args={[0.05, 0.07, 0.03]} radius={0.045} smoothness={3} />{/* nose */}
           <mesh position={[0, -0.075, 0.152]} rotation={[0, 0, Math.PI]}><torusGeometry args={[0.035, 0.008, 6, 10, Math.PI]} /><meshBasicMaterial color="#7a3b3b" /></mesh>{/* smile */}
           {[-0.07, 0.07].map(x => <mesh key={"b" + x} position={[x, 0.085, 0.152]} rotation={[0, 0, x > 0 ? -0.15 : 0.15]} material={mats.hair}><boxGeometry args={[0.07, 0.012, 0.01]} /></mesh>)}{/* eyebrows */}
@@ -110,7 +115,7 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
         {/* arms: upper + forearm pivots */}
         {([["lArm", "lFore", -1], ["rArm", "rFore", 1]] as const).map(([a, f, sx]) => (
           <group key={a} ref={refs[a]} position={[sx * (torsoW / 2 + 0.08), 1.42, 0]}>
-            <RoundedBox position={[0, -0.15, 0]} material={mats.top} args={[0.13, 0.3, 0.13]} radius={0.045} smoothness={3} />
+            <RoundedBox position={[0, -0.15, 0]} material={mats.top} args={[0.14, 0.32, 0.14]} radius={0.065} smoothness={4} />
             <group ref={refs[f]} position={[0, -0.3, 0]}>
               <mesh position={[0, -0.13, 0]} material={appearance.top === 7 || appearance.top === 5 ? mats.top : mats.skin}><boxGeometry args={[0.12, 0.26, 0.12]} /></mesh>
               <RoundedBox position={[0, -0.3, 0]} material={mats.skin} args={[0.11, 0.1, 0.09]} radius={0.045} smoothness={3} />
@@ -119,9 +124,9 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
         {/* legs: thigh + shin pivots */}
         {([["lLeg", "lShin", -1], ["rLeg", "rShin", 1]] as const).map(([l, s, sx]) => (
           <group key={l} ref={refs[l]} position={[sx * 0.12, 0.78, 0]}>
-            <RoundedBox position={[0, -0.18, 0]} material={mats.bottom} args={[0.17, 0.36, 0.18]} radius={0.045} smoothness={3} />
+            <RoundedBox position={[0, -0.18, 0]} material={mats.bottom} args={[0.17, 0.38, 0.18]} radius={0.08} smoothness={4} />
             <group ref={refs[s]} position={[0, -0.36, 0]}>
-              <RoundedBox position={[0, -0.17, 0]} material={mats.bottom} args={[0.15, 0.34, 0.16]} radius={0.045} smoothness={3} />
+              <RoundedBox position={[0, -0.17, 0]} material={mats.bottom} args={[0.15, 0.34, 0.16]} radius={0.07} smoothness={4} />
               <RoundedBox position={[0, -0.37, 0.04]} material={mats.shoe} args={[0.17, 0.09, 0.27]} radius={0.045} smoothness={3} />
             </group>
           </group>))}

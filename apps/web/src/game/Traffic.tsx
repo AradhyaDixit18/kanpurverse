@@ -11,7 +11,7 @@ import { useStore } from "../state/store";
 import { playerPos } from "./refs";
 
 interface Car { kind: VehicleKind; color: number; seg: Seg; lane: 1 | -1; offset: number; speed: number }
-const KINDS: VehicleKind[] = ["auto", "auto", "hatchback", "scooter", "bike", "sedan", "auto", "hatchback"];
+const KINDS: VehicleKind[] = ["auto", "erickshaw", "hatchback", "scooter", "bike", "sedan", "auto", "bus", "taxi", "scooter", "truck", "erickshaw"];
 const COLORS = [0x2e8b57, 0xf2b134, 0xd8d8d8, 0x3d8bff, 0xc8102e, 0x1c1d22, 0x8fd1ff, 0xf5f5f5];
 
 export function Traffic() {
