@@ -2,7 +2,7 @@
 /** Real Kanpur from the OpenStreetMap extract (© OpenStreetMap contributors, ODbL): roads as textured ribbons with pavements and
  * markings, buildings extruded from footprints with procedural facades, railway lines with sleepers/rails, level crossings at OSM
  * crossing nodes, stations/platforms, water, parks with trees. Tiled (250 m) and streamed around the player; colliders only nearby. */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
@@ -12,6 +12,7 @@ import { clearZones } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 import { playerPos } from "./refs";
 import { Crossing, OsmTrain } from "./RailwayOsm";
+import { Boundary } from "./Boundary";
 const FONT = "/fonts/NotoSansDevanagari-400.woff";
 const Text = (props: React.ComponentProps<typeof DreiText>) => <DreiText font={FONT} {...props} />;
 
@@ -39,7 +40,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     const R = quality === "low" ? 1 : LOAD_R; for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const kk = `${tx + dx},${tz + dz}`; if (tiles.has(kk)) { a.push(kk); if (Math.abs(dx) <= COLLIDE_R && Math.abs(dz) <= COLLIDE_R) n.push(kk); } } setActive(a); setNear(n); });
   return <group>
     <GroundPlane />
-    {active.map(k => <Tile key={k} id={k} t={tiles.get(k)!} collide={near.includes(k)} />)}
+    {active.map(k => <Boundary key={k} name={"tile " + k}><Suspense fallback={null}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} /></Suspense></Boundary>)}
     <Crossings geo={geo} />
     <Stations geo={geo} />
     <OsmTrain geo={geo} />
@@ -54,7 +55,7 @@ function GroundPlane() {
 
 /** Ribbon geometry along a polyline: per-segment quads + round joints; UV.x along length (metres/8), UV.y across. */
 function ribbon(pts: [number, number][], w: number, y: number, uvScale = 8): THREE.BufferGeometry {
-  const pos: number[] = [], uv: number[] = [], idx: number[] = []; let d = 0;
+  const pos: number[] = [], uv: number[] = [], idx: number[] = []; let d = 0; if (pts.length < 2) return new THREE.BufferGeometry();
   for (let i = 0; i + 1 < pts.length; i++) {
     const [ax, az] = pts[i], [bx, bz] = pts[i + 1]; const dx = bx - ax, dz = bz - az; const len = Math.hypot(dx, dz) || 1; const nx = -dz / len * w / 2, nz = dx / len * w / 2; const base = pos.length / 3;
     pos.push(ax + nx, y, az + nz, ax - nx, y, az - nz, bx + nx, y, bz + nz, bx - nx, y, bz - nz); uv.push(d / uvScale, 0, d / uvScale, 1, (d + len) / uvScale, 0, (d + len) / uvScale, 1);
@@ -65,8 +66,8 @@ function ribbon(pts: [number, number][], w: number, y: number, uvScale = 8): THR
   }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
-function merge(gs: THREE.BufferGeometry[]): THREE.BufferGeometry | null {
-  if (!gs.length) return null; let n = 0, m = 0; for (const g of gs) { n += g.getAttribute("position").count; m += g.getIndex()!.count; }
+function merge(gsIn: THREE.BufferGeometry[]): THREE.BufferGeometry | null {
+  const gs = gsIn.filter(g => g.getAttribute("position") && g.getIndex() && g.getAttribute("uv") && g.getAttribute("normal")); if (!gs.length) return null; let n = 0, m = 0; for (const g of gs) { n += g.getAttribute("position").count; m += g.getIndex()!.count; }
   const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2), nor = new Float32Array(n * 3), idx = new Uint32Array(m); let vo = 0, io = 0;
   for (const g of gs) { const p = g.getAttribute("position"), u = g.getAttribute("uv"), nn = g.getAttribute("normal"), ii = g.getIndex()!; pos.set(p.array as Float32Array, vo * 3); uv.set(u.array as Float32Array, vo * 2); nor.set(nn.array as Float32Array, vo * 3); for (let k = 0; k < ii.count; k++) idx[io + k] = ii.getX(k) + vo; vo += p.count; io += ii.count; g.dispose(); }
   const out = new THREE.BufferGeometry(); out.setAttribute("position", new THREE.BufferAttribute(pos, 3)); out.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); out.setAttribute("normal", new THREE.BufferAttribute(nor, 3)); out.setIndex(new THREE.BufferAttribute(idx, 1)); return out;
@@ -112,7 +113,7 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
     const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, 0.04, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
     const sleepers = merge(t.rails.map(r => ribbon(r.pts, 2.6 * r.tracks, 0.1, 0.7)));
     const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
-    for (const b of t.buildings) { if (b.pts.length < 3) continue; const h = buildingHeight(b); const st = Math.floor(hash(b.id + 7) * 8); const { walls, roof } = building(b.pts, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(walls); byStyle[st].roofs.push(roof);
+    for (const b of t.buildings) { if (b.pts.length < 4) continue; const h = buildingHeight(b); const st = Math.floor(hash(b.id + 7) * 8); const { walls, roof } = building(b.pts, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(walls); byStyle[st].roofs.push(roof);
       if (hash(b.id + 3) < 0.45 && h < 20) { const g = building(b.pts, 3.4, 0.0); shops.push(g.walls); g.roof.dispose(); } const bb = bbox(b.pts); boxes.push({ x: (bb.x0 + bb.x1) / 2, z: (bb.z0 + bb.z1) / 2, w: bb.x1 - bb.x0, d: bb.z1 - bb.z0, h }); }
     // procedural infill: lots along real roads where OSM has no footprint (typical Kanpur: continuous shophouses on main roads, homes on residential lanes)
     const osmBoxes = boxes.slice(); let lots = 0;
@@ -128,8 +129,8 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
           if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(poly, 3.4); shops.push(sg.walls); sg.roof.dispose(); }
           osmBoxes.push({ x: cx, z: cz, w: width, d: depth, h }); boxes.push({ x: cx, z: cz, w: Math.max(width, depth), d: Math.max(width, depth), h }); lots++; } } }
     const styles = Object.entries(byStyle).map(([s, g]) => ({ style: Number(s), walls: merge(g.walls)!, roofs: merge(g.roofs)! })); const shop = merge(shops);
-    const water = t.water.map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.05, 0); return g; });
-    const parks = t.parks.map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
+    const water = t.water.filter(w => w.pts.length >= 4).map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.05, 0); return g; });
+    const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
     const platforms = merge(t.platforms.map(p => ribbon(p.pts, 6, 0.9, 4)));
     return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms };
   }, [t]);
