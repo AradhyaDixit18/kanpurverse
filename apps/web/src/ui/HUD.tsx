@@ -52,7 +52,7 @@ export function HUD() {
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
-      {s.nearby && !s.dialogue && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
+      {s.nearby && !s.dialogue && !(s.inVehicle && s.nearby.kind === "vehicle") && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
       {s.inVehicle && s.seat === "driver" && <Speedo />}
       {s.inVehicle && <div className="hud-vehicle">{t("W/S drive · A/D steer · Space brake · H horn · F exit", "W/S चलाओ · A/D मोड़ो · Space ब्रेक · H हॉर्न · F बाहर")}</div>}
       {/* subtitles */}

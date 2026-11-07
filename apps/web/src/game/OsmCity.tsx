@@ -17,6 +17,7 @@ const FONT = "/fonts/NotoSansDevanagari-400.woff";
 const Text = (props: React.ComponentProps<typeof DreiText>) => <DreiText font={FONT} {...props} />;
 
 const TILE = 250; const LOAD_R = 2, COLLIDE_R = 1; // tiles
+let extraClear: { x: number; z: number; r: number }[] = []; // station footprints etc. (set when the extract is bucketed)
 const tileKey = (x: number, z: number) => `${Math.floor(x / TILE)},${Math.floor(z / TILE)}`;
 
 /** Hook: load the extract once; returns null while loading / if missing. */
@@ -31,6 +32,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     const m = new Map<string, { roads: GeoData["roads"]; buildings: GeoData["buildings"]; rails: GeoData["rails"]; water: GeoData["water"]; parks: GeoData["parks"]; platforms: GeoData["platforms"]; cx: number; cz: number }>();
     const get = (p: [number, number]) => { const k = tileKey(p[0], p[1]); let t = m.get(k); if (!t) { t = { roads: [], buildings: [], rails: [], water: [], parks: [], platforms: [], cx: (Math.floor(p[0] / TILE) + 0.5) * TILE, cz: (Math.floor(p[1] / TILE) + 0.5) * TILE }; m.set(k, t); } return t; };
     const mid = (pts: [number, number][]) => pts[Math.floor(pts.length / 2)];
+    extraClear = geo.stations.filter(st => /^Kanpur/.test(st.name ?? "")).map(st => ({ x: st.p[0], z: st.p[1], r: st.name === "Kanpur Central" ? 58 : 36 }));
     for (const r of geo.roads) get(mid(r.pts)).roads.push(r); for (const b of geo.buildings) get(mid(b.pts)).buildings.push(b); for (const r of geo.rails) get(mid(r.pts)).rails.push(r);
     for (const w of geo.water) if (Math.abs(w.pts[0][0]) < 6000) get(mid(w.pts)).water.push(w); for (const p of geo.parks) get(mid(p.pts)).parks.push(p); for (const p of geo.platforms) get(mid(p.pts)).platforms.push(p);
     return m;
@@ -127,7 +129,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
           if (osmBoxes.some(o => Math.abs(o.x - cx) < (o.w + width) / 2 + 1 && Math.abs(o.z - cz) < (o.d + depth) / 2 + 1)) continue;
           if (t.roads.some(o => o !== r && o.pts.some((q, k) => k + 1 < o.pts.length && distToSeg([cx, cz], q, o.pts[k + 1]) < o.w / 2 + 6))) continue;
           if (t.parks.some(p => inPoly([cx, cz], p.pts)) || t.water.some(w => inPoly([cx, cz], w.pts))) continue;
-          if (clearZones().some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2)) continue;
+          if (clearZones().some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2) || extraClear.some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2)) continue;
           const yaw = Math.atan2(dx, dz); const h = (r.cls === "residential" || r.cls === "living_street") ? 6.4 + Math.floor(hash(cx * 3 + cz) * 3) * 3.2 : 9.6 + Math.floor(hash(cx + cz * 3) * 3) * 3.2;
           const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof);
           if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(poly, 3.4); shops.push(sg.walls); sg.roof.dispose(); }
@@ -180,13 +182,37 @@ function Crossings({ geo }: { geo: GeoData }) {
 
 function Stations({ geo }: { geo: GeoData }) {
   const lang = useStore(s => s.settings.lang);
-  return <>{geo.stations.filter((s, i, a) => a.findIndex(x => x.name === s.name) === i && /^Kanpur/.test(s.name ?? "")).map(s => <group key={s.id} position={[s.p[0], 0, s.p[1]]}>
-    <mesh position={[0, 6, 0]} castShadow><boxGeometry args={[40, 12, 14]} /><meshStandardMaterial color="#b43a2a" roughness={0.9} /></mesh>
-    <mesh position={[0, 12.6, 0]}><boxGeometry args={[44, 1.2, 18]} /><meshStandardMaterial color="#8a2a1e" /></mesh>
-    {[-15, 15].map(x => <mesh key={x} position={[x, 15, 0]}><boxGeometry args={[6, 5, 6]} /><meshStandardMaterial color="#b43a2a" /></mesh>)}
-    <mesh position={[0, 8, 7.2]}><boxGeometry args={[30, 3, 0.3]} /><meshStandardMaterial color="#ffd23f" /></mesh>
-    <Suspense fallback={null}><Text position={[0, 8, 7.4]} fontSize={1.8} color="#0b0b0d" anchorX="center" anchorY="middle">{(lang === "english" ? s.name : (s.nameHi ?? s.name))?.toUpperCase()}</Text></Suspense>
-  </group>)}</>;
+  const facade = useMemo(() => facadeTex(3), []);
+  // Stylised Indo-Saracenic station building (FICTIONALIZED APPROXIMATION of Kanpur Central's red-brick facade): arcaded ground floor,
+  // central clock tower with dome, two side towers, cream trim, bilingual board, platform canopies behind. Not a replica.
+  return <>{geo.stations.filter((s, i, a) => a.findIndex(x => x.name === s.name) === i && /^Kanpur/.test(s.name ?? "")).map(s => { const big = s.name === "Kanpur Central"; const W = big ? 64 : 34, H = big ? 13 : 9, D = 16; const name = (lang === "english" ? s.name : (s.nameHi ?? s.name)) ?? ""; return <group key={s.id} position={[s.p[0], 0, s.p[1]]}>
+    <mesh position={[0, H / 2, 0]} castShadow receiveShadow><boxGeometry args={[W, H, D]} /><meshStandardMaterial color="#9c3b2b" map={facade} roughness={0.9} /></mesh>
+    <mesh position={[0, H + 0.5, 0]}><boxGeometry args={[W + 2, 1, D + 2]} /><meshStandardMaterial color="#e8dcc0" /></mesh>
+    <mesh position={[0, 3.6, D / 2 + 0.05]}><boxGeometry args={[W - 2, 0.5, 0.1]} /><meshStandardMaterial color="#e8dcc0" /></mesh>
+    {Array.from({ length: Math.floor((W - 6) / 5) }, (_, i) => { const x = -(W - 6) / 2 + 2.5 + i * 5; return <group key={i} position={[x, 0, D / 2 + 0.2]}>
+      <mesh position={[0, 1.6, 0]}><boxGeometry args={[2.6, 3.2, 0.3]} /><meshStandardMaterial color="#2a1a14" /></mesh>
+      <mesh position={[0, 3.2, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[1.3, 1.3, 0.3, 16, 1, false, 0, Math.PI]} /><meshStandardMaterial color="#2a1a14" /></mesh>
+      <mesh position={[0, 3.25, -0.05]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[1.45, 0.14, 8, 16, Math.PI]} /><meshStandardMaterial color="#e8dcc0" /></mesh>
+      <mesh position={[0, H - 3.2, 0]}><boxGeometry args={[1.8, 3.4, 0.2]} /><meshStandardMaterial color="#1a2a3a" roughness={0.2} metalness={0.3} /></mesh>
+    </group>; })}
+    {big && <group position={[0, 0, 0]}>
+      <mesh position={[0, H + 5, 0]} castShadow><boxGeometry args={[12, 10, D + 2]} /><meshStandardMaterial color="#9c3b2b" map={facade} /></mesh>
+      <mesh position={[0, H + 10.4, 0]}><boxGeometry args={[13, 0.8, D + 3]} /><meshStandardMaterial color="#e8dcc0" /></mesh>
+      <mesh position={[0, H + 13.5, 0]}><sphereGeometry args={[5.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#e8dcc0" roughness={0.6} /></mesh>
+      <mesh position={[0, H + 7.5, D / 2 + 1.1]}><cylinderGeometry args={[2.2, 2.2, 0.3, 24]} /><meshStandardMaterial color="#fff6e0" /></mesh>
+      <mesh position={[0, H + 7.5, D / 2 + 1.3]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[2.2, 2.2, 0.1, 24]} /><meshStandardMaterial color="#fff6e0" /></mesh>
+      <mesh position={[0, H + 7.5, D / 2 + 1.4]}><boxGeometry args={[0.2, 1.6, 0.05]} /><meshStandardMaterial color="#111" /></mesh>
+    </group>}
+    {[-W / 2 + 4, W / 2 - 4].map(x => <group key={x}><mesh position={[x, H + 3, 0]} castShadow><boxGeometry args={[7, 6, D + 1]} /><meshStandardMaterial color="#9c3b2b" map={facade} /></mesh><mesh position={[x, H + 7.5, 0]}><sphereGeometry args={[3.2, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#e8dcc0" /></mesh></group>)}
+    <mesh position={[0, H - 1.6, D / 2 + 0.3]}><boxGeometry args={[Math.min(W - 10, 34), 2.6, 0.3]} /><meshStandardMaterial color="#ffd23f" /></mesh>
+    <Suspense fallback={null}><Text position={[0, H - 1.6, D / 2 + 0.5]} fontSize={1.5} color="#0b0b0d" anchorX="center" anchorY="middle" maxWidth={Math.min(W - 12, 32)}>{name.toUpperCase()}</Text></Suspense>
+    <Suspense fallback={null}><Text position={[0, 4.6, D / 2 + 0.4]} fontSize={0.9} color="#e8dcc0" anchorX="center" anchorY="middle">{lang === "english" ? "उत्तर मध्य रेलवे · NORTH CENTRAL RAILWAY" : "उत्तर मध्य रेलवे"}</Text></Suspense>
+    {/* platform canopies behind the building (towards the tracks, -Z) */}
+    {[-1, 1].map(side => <group key={side} position={[0, 0, -D / 2 - 8 - (side > 0 ? 10 : 0)]}>
+      <mesh position={[0, 5.4, 0]} castShadow><boxGeometry args={[W + 20, 0.3, 7]} /><meshStandardMaterial color="#6b6f75" metalness={0.3} roughness={0.6} /></mesh>
+      {Array.from({ length: Math.floor((W + 20) / 8) }, (_, i) => <mesh key={i} position={[-(W + 20) / 2 + 4 + i * 8, 2.7, 0]}><cylinderGeometry args={[0.18, 0.18, 5.4, 8]} /><meshStandardMaterial color="#4a4e55" /></mesh>)}
+    </group>)}
+  </group>; })}</>;
 }
 
 function Attribution() { return <Suspense fallback={null}><Text position={[0, 0.5, 0]} fontSize={0.001} color="#000">© OpenStreetMap contributors (ODbL)</Text></Suspense>; }

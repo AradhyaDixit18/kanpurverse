@@ -1,4 +1,9 @@
-# Kanpuriya Dialogue Guide
+# Kanpuriya Dialogue Guide — v0.5
+
+**Status: COMPLETED AND VERIFIED.** 54 line ids × 3 tracks (Kanpuriya, Hindi, English), 55 MP3 files per language generated with Microsoft Edge neural voices (`hi-IN-MadhurNeural`, `hi-IN-SwaraNeural`, `en-IN-PrabhatNeural`, `en-IN-NeerjaNeural`) by `.github/workflows/voices.yml` (run 4, 2026-11-07). Played and heard in Brave on the public build with subtitles (Devanagari + roman for Kanpuriya). There is **no silent fallback**: if an MP3 is missing the subtitle still shows and the console warns, nothing synthetic is played.
+
+## New in v0.5 (30 lines)
+Mission barks for the 7 new Kanpuriya missions (`crossing_patience`, `ghantaghar_trial`, `sabzi_run`, `station_taxi`, `lal_imli_hunt`, `park_photo`, `evening_jheel`), time-of-day greetings (`any.greet_morning`, `any.greet_evening`), crossing etiquette (`any.crossing_wait`: "Phatak band hai guru, train aane do — jaan se zyada keemti kuch nahi"), and station lines for Rekha at Kanpur Central.
 
 ## What makes it Kanpuriya
 Kanpuriya Hindi is Kanpur's street register: warm, cheeky, direct, Awadhi-tinged. Markers used in the library:
