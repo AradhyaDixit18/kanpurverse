@@ -38,7 +38,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
   const [active, setActive] = useState<string[]>([]); const [near, setNear] = useState<string[]>([]); const last = useRef("");
   useFrame(() => { const k = tileKey(playerPos.x, playerPos.z); if (k === last.current) return; last.current = k; const [tx, tz] = k.split(",").map(Number); const a: string[] = [], n: string[] = [];
     const R = quality === "low" ? 1 : LOAD_R; for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const kk = `${tx + dx},${tz + dz}`; if (tiles.has(kk)) { a.push(kk); if (Math.abs(dx) <= COLLIDE_R && Math.abs(dz) <= COLLIDE_R) n.push(kk); } } setActive(a); setNear(n); });
-  return <group>
+  return <group name="osm-city">
     <GroundPlane />
     {active.map(k => <Boundary key={k} name={"tile " + k}><Suspense fallback={null}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} /></Suspense></Boundary>)}
     <Crossings geo={geo} />
@@ -137,7 +137,7 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
   const names = useMemo(() => t.roads.filter(r => r.name && r.pts.length > 1).filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6), [t]);
   const trees = useMemo(() => { const out: [number, number][] = []; for (const p of geo.parks) { const bb = bbox(p.pts); const n = Math.min(40, Math.floor(polyArea(p.pts) / 400)); let tries = 0; while (out.length < n && tries++ < n * 6) { const x = bb.x0 + Math.random() * (bb.x1 - bb.x0), z = bb.z0 + Math.random() * (bb.z1 - bb.z0); if (inPoly([x, z], p.pts)) out.push([x, z]); } } return out; }, [geo]);
   void id;
-  return <group>
+  return <group name={"tile:" + id}>
     {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial map={pave} roughness={0.95} color="#b8b0a2" /></mesh>}
     {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} /></mesh>}
     {geo.marks && quality !== "low" && <mesh geometry={geo.marks}><meshBasicMaterial color="#e8e2c6" /></mesh>}
