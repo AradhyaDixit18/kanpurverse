@@ -69,7 +69,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
 }
 
 /** Procedural vehicle. `state` (optional ref) drives wheel spin, steering and brake lights; `wheelSpin` spins wheels constantly (traffic). */
-export function VehicleMesh({ kind, color, state, wheelSpin }: { kind: VehicleKind; color: number; state?: React.RefObject<{ speed: number; steer: number; brake: boolean }>; wheelSpin?: boolean }) {
+export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kind: VehicleKind; color: number; state?: React.RefObject<{ speed: number; steer: number; brake: boolean }>; wheelSpin?: boolean; stoppedRef?: React.RefObject<boolean> }) {
   const spec = SPECS[kind]; const [w, h, l] = spec.size; const R = spec.wheelR;
   const paint = useMemo(() => new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 }), [color]);
   const trim = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.6, metalness: 0.3 }), []);
@@ -79,11 +79,11 @@ export function VehicleMesh({ kind, color, state, wheelSpin }: { kind: VehicleKi
   const head = useMemo(() => new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2cc, emissiveIntensity: 1.2 }), []);
   const wheels = useRef<THREE.Group[]>([]); const fronts = useRef<THREE.Group[]>([]); const spin = useRef(0);
   useFrame((_, dt) => {
-    const sp = state?.current?.speed ?? (wheelSpin ? 8 : 0); spin.current += sp * dt / R;
+    const sp = state?.current?.speed ?? (wheelSpin && !stoppedRef?.current ? 8 : 0); spin.current += sp * dt / R;
     for (const g of wheels.current) if (g) g.rotation.x = spin.current;
     const st = state?.current?.steer ?? 0; for (const g of fronts.current) if (g) g.rotation.y = -st * 0.45;
     const night = (() => { const t = useStore.getState().worldTime; return t < 0.23 || t > 0.77; })();
-    brake.emissiveIntensity = state?.current?.brake ? 2.2 : night ? 0.8 : 0.3; head.emissiveIntensity = night ? 2.5 : 0.6;
+    brake.emissiveIntensity = state?.current?.brake || stoppedRef?.current ? 2.2 : night ? 0.8 : 0.3; head.emissiveIntensity = night ? 2.5 : 0.6;
   });
   const Wheel = ({ x, z, i, front, width = 0.26 }: { x: number; z: number; i: number; front?: boolean; width?: number }) => (
     <group position={[x, -h / 2 + R, z]} ref={el => { if (el && front) fronts.current[i] = el; }}>

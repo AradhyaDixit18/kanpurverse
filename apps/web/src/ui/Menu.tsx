@@ -9,7 +9,20 @@ import dynamic from "next/dynamic";
 const CharacterCreator = dynamic(() => import("./Character").then(m => m.CharacterCreator), { ssr: false, loading: () => <div className="screen center"><Skyline /><Logo size={56} /><div className="spinner" /><p className="muted">Loading character studio…</p></div> });
 import { Logo, Skyline } from "./Brand";
 
-export function MainMenu() {
+export function LanguageGate() {
+  const set = useStore(s => s.setSettings);
+  const pick = (lang: "english" | "hindi" | "kanpuriya") => { unlockAudio(); sfx.ui(); set({ lang, langChosen: true }); };
+  return <div className="screen menu"><Skyline /><div className="lang-gate"><Logo size={60} />
+    <h2>Choose your language · अपनी भाषा चुनें</h2><p className="muted">You can change this any time in Settings · सेटिंग्स में कभी भी बदल सकते हैं</p>
+    <div className="lang-cards">
+      <button className="lang-card" onClick={() => pick("english")}><span className="lang-big">English</span><small>Menus, subtitles and NPC voices in English</small></button>
+      <button className="lang-card" onClick={() => pick("hindi")}><span className="lang-big">हिंदी</span><small>मेन्यू, सबटाइटल और NPC की आवाज़ हिंदी में</small></button>
+      <button className="lang-card accent" onClick={() => pick("kanpuriya")}><span className="lang-big">कनपुरिया</span><small>असली कानपुर वाली बोली — &ldquo;का हो भैया!&rdquo;</small></button>
+    </div></div></div>;
+}
+
+export function MainMenu() { const chosen = useStore(s => s.settings.langChosen); return chosen ? <MainMenuInner /> : <LanguageGate />; }
+function MainMenuInner() {
   const s = useStore(); const lang = s.settings.lang; const t = (en: string, hi: string) => lang === "english" ? en : hi;
   const [view, setView] = useState<"main" | "settings" | "character" | "about" | "howto" | "multiplayer">(!s.name ? "character" : "main"); const [room, setRoom] = useState("kanpur-1");
   const play = (r = room) => { unlockAudio(); sfx.ui(); if (!s.name) return setView("character"); s.set({ screen: "loading", errorText: undefined, loadStage: "engine" }); net.connect(r.trim() || "kanpur-1"); };
@@ -55,8 +68,8 @@ const STAGES: Record<string, [string, string, number]> = { engine: ["Loading eng
 export function LoadingScreen() {
   const en = useStore(s => s.settings.lang === "english"); const stage = useStore(s => s.loadStage ?? "engine"); const [elapsed, setElapsed] = useState(0);
   useEffect(() => { const t0 = Date.now(); const i = setInterval(() => setElapsed((Date.now() - t0) / 1000), 500); return () => clearInterval(i); }, []);
-  const st = STAGES[stage] ?? STAGES.engine; const slow = elapsed > 12;
-  return <div className="screen center"><Skyline /><Logo size={56} /><div className="progress"><div className="progress-bar" style={{ width: st[2] + "%" }} /></div><p className="muted">{en ? st[0] : st[1]}…</p>
+  const st = STAGES[stage] ?? STAGES.engine; const slow = elapsed > 12; const prog = useStore(s => s.loadProgress); const pct = stage === "engine" && prog !== undefined ? Math.round(prog * 0.5) : st[2];
+  return <div className="screen center"><Skyline /><Logo size={56} /><div className="progress"><div className="progress-bar" style={{ width: pct + "%" }} /></div><p className="muted">{en ? st[0] : st[1]}… {pct}%</p><div className="load-steps">{(["engine", "connecting", "auth", "joining", "done"] as const).map(k => <span key={k} className={`ls ${k === stage ? "on" : STAGES[k][2] < st[2] ? "done" : ""}`}>{en ? STAGES[k][0] : STAGES[k][1]}</span>)}</div>
     {slow && <p className="muted small">{en ? "Taking longer than usual. The server may be waking up (free hosting) — this can take up to 60 s." : "थोड़ा समय लग रहा है। सर्वर जाग रहा होगा (मुफ़्त होस्टिंग) — 60 सेकंड तक लग सकते हैं।"}</p>}
     {elapsed > 30 && <button className="btn" onClick={() => { net.disconnect(); useStore.getState().set({ screen: "menu" }); }}>{en ? "Cancel" : "रद्द करो"}</button>}
     <Tips /></div>;

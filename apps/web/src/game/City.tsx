@@ -71,12 +71,14 @@ const facadeCache = new Map<string, THREE.Texture>();
 function facadeTexture(style: number, floors: number, cols: number, shop: boolean): THREE.Texture {
   const key = `${style}-${floors}-${cols}-${shop ? 1 : 0}`; const hit = facadeCache.get(key); if (hit) return hit;
   const W = 64 * cols, H = 48 * floors; const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d")!;
-  const base = ["#d9c9b0", "#e8d8c3", "#c9b8a3", "#bfb3a6", "#e3c9a6"][style]; x.fillStyle = base; x.fillRect(0, 0, W, H);
+  const base = ["#e9c6a0", "#f2d9b1", "#d7b8c9", "#c9d9e8", "#f6e3a1"][style]; x.fillStyle = base; x.fillRect(0, 0, W, H);
+  // weathering: darker base band + streaks (monsoon stains typical of UP towns)
+  x.fillStyle = "rgba(60,40,20,0.18)"; x.fillRect(0, H - 14, W, 14); for (let k = 0; k < cols * 2; k++) { x.fillStyle = `rgba(40,30,20,${0.05 + Math.random() * 0.08})`; x.fillRect(Math.random() * W, 0, 2 + Math.random() * 4, H * (0.3 + Math.random() * 0.7)); }
   for (let i = 0; i < W * H / 40; i++) { x.fillStyle = `rgba(60,40,20,${Math.random() * 0.08})`; x.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
   for (let f = 0; f < floors; f++) { const y0 = H - (f + 1) * 48; // floor f from ground
     x.fillStyle = "rgba(0,0,0,0.12)"; x.fillRect(0, y0 + 46, W, 2); // slab line
     for (let k = 0; k < cols; k++) { const x0 = k * 64;
-      if (f === 0 && shop) { x.fillStyle = ["#c8102e", "#1a3c8c", "#2e8b57", "#7b2cbf", "#f2b134"][(k + style) % 5]; x.fillRect(x0 + 4, y0 + 2, 56, 12); x.fillStyle = "#6b6f7a"; x.fillRect(x0 + 8, y0 + 16, 48, 30); x.fillStyle = "rgba(255,255,255,0.08)"; for (let s = 0; s < 6; s++) x.fillRect(x0 + 8, y0 + 18 + s * 5, 48, 1); }
+      if (f === 0 && shop) { x.fillStyle = ["#c8102e", "#1a3c8c", "#2e8b57", "#7b2cbf", "#f2b134"][(k + style) % 5]; x.fillRect(x0 + 4, y0 + 2, 56, 12); const open = (k + style) % 3 !== 0; x.fillStyle = open ? "#2a2f3a" : ["#5aa0d8", "#d85a5a", "#7bb66b"][(k + style) % 3]; x.fillRect(x0 + 6, y0 + 16, 52, 30); if (open) { x.fillStyle = "rgba(255,220,150,0.5)"; x.fillRect(x0 + 10, y0 + 19, 44, 22); x.fillStyle = "#c8102e"; x.fillRect(x0 + 14, y0 + 24, 10, 10); x.fillStyle = "#2e8b57"; x.fillRect(x0 + 28, y0 + 24, 10, 10); x.fillStyle = "#f2b134"; x.fillRect(x0 + 42, y0 + 24, 10, 10); } else { x.fillStyle = "rgba(0,0,0,0.15)"; for (let s = 0; s < 7; s++) x.fillRect(x0 + 6, y0 + 18 + s * 4, 52, 1); } }
       else { x.fillStyle = "#2b3550"; x.fillRect(x0 + 16, y0 + 10, 32, 26); x.fillStyle = "rgba(140,190,255,0.35)"; x.fillRect(x0 + 18, y0 + 12, 13, 10); x.fillStyle = "#e9e2d2"; x.fillRect(x0 + 14, y0 + 36, 36, 3); x.fillStyle = base; x.fillRect(x0 + 31, y0 + 10, 2, 26);
         if ((k * 7 + f * 3 + style) % 5 === 0) { x.fillStyle = "#cfd3d8"; x.fillRect(x0 + 50, y0 + 20, 10, 8); x.fillStyle = "#777"; x.fillRect(x0 + 52, y0 + 22, 6, 4); } // AC unit
         if ((k + f) % 3 === 1 && f > 0) { x.fillStyle = "rgba(0,0,0,0.18)"; x.fillRect(x0 + 10, y0 + 38, 44, 8); x.fillStyle = "#8a7a66"; x.fillRect(x0 + 10, y0 + 40, 44, 2); } // balcony rail
@@ -93,7 +95,9 @@ function Buildings({ list }: { list: Building[] }) {
     <group>
       {items.map(({ b, mats, floors }, i) => <group key={i} position={[b.p[0], 0, b.p[1]]}>
         <mesh position={[0, b.h / 2, 0]} material={mats} castShadow receiveShadow><boxGeometry args={[b.w, b.h, b.d]} /></mesh>
-        <mesh position={[0, b.h + 0.3, 0]}><boxGeometry args={[b.w + 0.3, 0.6, b.d + 0.3]} /><meshStandardMaterial color="#b9ad99" /></mesh>{/* parapet */}
+        <mesh position={[0, b.h + 0.3, 0]}><boxGeometry args={[b.w + 0.3, 0.6, b.d + 0.3]} /><meshStandardMaterial color={["#d8b58a", "#e2c7a0", "#c7a9bd", "#b9c9d8", "#e8d48f"][b.style]} /></mesh>{/* parapet */}
+        {i % 4 === 1 && <mesh position={[b.w * 0.3, b.h + 1.0, b.d * 0.3]} rotation={[0.9, 0.6, 0]}><circleGeometry args={[0.7, 16]} /><meshStandardMaterial color="#dfe3e8" side={THREE.DoubleSide} /></mesh>}{/* dish antenna */}
+        {i % 5 === 2 && <mesh position={[-b.w * 0.3, b.h + 1.2, -b.d * 0.3]}><boxGeometry args={[0.06, 2.4, 0.06]} /><meshStandardMaterial color="#555" /></mesh>}
         {i % 2 === 0 && <mesh position={[b.w * 0.25, b.h + 1.1, -b.d * 0.2]}><cylinderGeometry args={[0.7, 0.7, 1.2, 10]} /><meshStandardMaterial color="#111" /></mesh>}{/* water tank */}
         {i % 3 === 0 && <mesh position={[-b.w * 0.25, b.h + 0.9, b.d * 0.2]}><boxGeometry args={[1.6, 0.6, 1.2]} /><meshStandardMaterial color="#6a7280" /></mesh>}
         {b.sign && <mesh position={[0, 3.1, b.p[1] > 0 ? -b.d / 2 - 0.6 : b.d / 2 + 0.6]} rotation={[0.25 * (b.p[1] > 0 ? -1 : 1), 0, 0]}><boxGeometry args={[Math.min(b.w - 1, 8), 0.06, 1.4]} /><meshStandardMaterial color={["#c8102e", "#2e8b57", "#f2b134", "#1a3c8c"][floors % 4]} /></mesh>}{/* awning */}

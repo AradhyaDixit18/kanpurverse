@@ -5,7 +5,7 @@ import { useStore } from "../../src/state/store";
 import { MainMenu, LoadingScreen, ErrorScreen } from "../../src/ui/Menu";
 const HUD = dynamic(() => import("../../src/ui/HUD").then(m => m.HUD), { ssr: false });
 
-const Game = dynamic(() => import("../../src/game/Game").then(m => m.Game), { ssr: false, loading: () => <LoadingScreen /> });
+const Game = dynamic(() => { useStore.getState().set({ loadProgress: 5 }); const tick = setInterval(() => { const p = useStore.getState().loadProgress ?? 0; if (p < 90) useStore.getState().set({ loadProgress: p + (p < 50 ? 6 : 2) }); }, 250); return import("../../src/game/Game").then(m => { clearInterval(tick); useStore.getState().set({ loadProgress: 100 }); return m.Game; }); }, { ssr: false, loading: () => <LoadingScreen /> });
 
 export default function PlayClient() {
   const screen = useStore(s => s.screen); const [mounted, setMounted] = useState(false); const [webgl, setWebgl] = useState(true);
