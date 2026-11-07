@@ -36,3 +36,8 @@ Device: MacBook (Apple Silicon), Brave, 1470×867 CSS px at DPR 2, quality **Med
 - 4.6 k meshes is high for a scene at 60 FPS mainly because props, crowd and animals are separate meshes; instancing those is the next win for Low-tier devices.
 - The 777 kB 3D chunk could be cut by ~200 kB by dropping `@react-three/postprocessing` on Low and lazy-loading the vehicle meshes.
 - `Text` labels (troika) cost a font load (~200 kB) and one draw each; they are already suspended independently so they never block a tile.
+
+
+## Phase 2 measurement status — 8 November 2026
+
+PARTIALLY IMPLEMENTED. Earlier measurements above remain historical. Fresh 73-test baseline/build passed; no new representative FPS, frame-time distribution, memory, draw-call, loading or multiplayer throughput measurements yet. No 60 FPS achievement claimed. Exit safety uses a 50-metre coarse server polygon index queried only on requests; runtime costs still require measurement. See PHASE_2_QA_REPORT.md for identified browser/hardware conditions when sampled.
