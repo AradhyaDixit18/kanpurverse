@@ -40,3 +40,7 @@ Fresh `npm run verify` passed: **73/73 tests**, typecheck, lint (two existing wa
 ## Current repair evidence
 
 Safe-exit tests now cover all ten categories against live Rapier walls, full enclosure, server seat retention, teleport/height rejection, movement gating and disconnect cleanup. `work/phase2/exit-tests.log`: 35 tests across exit/authority/existing multiplayer suites passed. Integrated browser evidence is recorded in `PHASE_2_QA_REPORT.md` as it is collected. Full traffic/navigation/production persistence remain unverified.
+
+## Milestone updates
+
+Safety/ground work committed as `e8028a8`; verified with 104 passing tests, typecheck/lint/build and a production-mode check returning 404 for the development QA route. Browser testing uncovered and reproduced the 28cm giant-ground-collider penetration, then confirmed its fix. Visible seats/cabins and capability negotiation add 23 regressions (127 total); current final build/CI results are appended to the QA/master report after execution. One hatchback/two-player fixture was played through and recorded. Remaining nine visual vehicle playthroughs and broad city simulation are still unverified.

@@ -41,3 +41,7 @@ Device: MacBook (Apple Silicon), Brave, 1470×867 CSS px at DPR 2, quality **Med
 ## Phase 2 measurement status — 8 November 2026
 
 PARTIALLY IMPLEMENTED. Earlier measurements above remain historical. Fresh 73-test baseline/build passed; no new representative FPS, frame-time distribution, memory, draw-call, loading or multiplayer throughput measurements yet. No 60 FPS achievement claimed. Exit safety uses a 50-metre coarse server polygon index queried only on requests; runtime costs still require measurement. See PHASE_2_QA_REPORT.md for identified browser/hardware conditions when sampled.
+
+### Scoped browser observation
+
+Local development integration scene, 1280×720 in-app browser, Low quality, one hatchback, two procedural avatars and simple walls/ground: HUD generally showed 59–60 FPS while settled, and 0–6ms local ping; transient lower samples occurred during hot reload. These are sampled counters, not a frame-time distribution or average, and are not representative of the complete city or ordinary-device performance. Heap, draw-call totals, asset/load timings and city AI/physics budgets were not measured in this milestone. The fixture WebM records actual driving; no 60 FPS product target is declared achieved.

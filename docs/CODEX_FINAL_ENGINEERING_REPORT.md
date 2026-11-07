@@ -135,3 +135,24 @@ Continue with P1 collision authority and safe exits, seat-local occupant renderi
 Remote verification of first pushed batch (`e7c1163`): [GitHub CI passed](https://github.com/AradhyaDixit18/kanpurverse/actions/runs/42402139966); [Vercel preview build completed](https://vercel.com/aradhu74s-projects/kanpurverse/7nEPstHPwZ9Tr6MtsP7BZvM6Vbwt). This is build/deployment status, not independent gameplay verification, and predates the geometry follow-up. Final local `npm run verify` includes the geometry fix: 73 tests, typecheck, lint and production build passed. Main remains `4ae52721a94ebeca70705552db8a588954a8caa6` (verified with `git ls-remote`).
 
 Final remote check for code revision `2d49c7436925b024b28eea8666a335982b7fc986`: [GitHub CI completed successfully](https://github.com/AradhyaDixit18/kanpurverse/actions/runs/42402542169), including all 73 tests and production build. [Vercel preview deployment completed](https://vercel.com/aradhu74s-projects/kanpurverse/Frfzq1CFPKrXyuTWtdYbnuKVGdKf). Preview gameplay/backend compatibility remains unverified. This final evidence update changes documentation only.
+
+
+# Phase 2 continuation — 8 November 2026
+
+PARTIALLY IMPLEMENTED. User's full Phase 2 request is an ongoing multi-milestone scope, not completed by this safety/seat batch.
+
+- Fresh inherited baseline: 73 tests plus typecheck/lint/build passed. Audit of 22 systems and ordered implementation gates created in PHASE_2_GAMEPLAY_AUDIT.md / PHASE_2_IMPLEMENTATION_PLAN.md; all requested topic reports created/maintained.
+- Safety milestone `e8028a8`: geometry-aware local exit candidates plus bounded server validation, stop-before-exit/entry, blocked-seat retention, reliable disconnect release and exit reconciliation. 104 tests and production build passed. Production-mode QA route returned 404. No production database touched.
+- New actual-browser defect: the 8km ground cuboid caused 0.2791m KCC penetration at real city coordinates. Real WASM reproduced the exact value; streamed 128m contact tiles and refreshed placement queries fix it, including seam/outer-city regression cases. Browser exit feet now y≈0.00.
+- Visible seating milestone: shared roots for all ten kinds; occupants attached to vehicle transforms, hollow cabins/windows, initialized seated pose, seat-local first-person view and stable mobile exit control. Twenty geometry/rotation tests plus three compatibility tests added; existing tests retained (127 total before final verification).
+- Two independent browser identities completed an isolated shared hatchback ride: exclusive driver claim, passenger entry, steering/replication, blocked/moving-exit recovery, braking and grounded driver/passenger exits. Actual frames and WebM are saved in docs/screenshots/phase2 and linked from PHASE_2_QA_REPORT.md. This is not a full city/public multiplayer playthrough.
+- New previews fail closed for vehicle entry on an old server via an advertised exit capability. A matching public backend preview remains unverified: Render preview UI did not finish rendering; the installed Vercel CLI account was outside scope and was not used for project operations. No production changes or purchases.
+- Open priority work: complete replicated/ambient collision authority, safe spawn/infill parity, remaining vehicle visual playthroughs, navigation/traffic/rail integration, economy validation, meaningful missions, full UI/audio, representative performance, physical mobile and public matched-backend QA.
+
+See PHASE_2_QA_REPORT.md for precise evidence/limits; VEHICLE_AND_PHYSICS_REPORT.md for collider and authority gaps. No full-Phase-2 completion or release certification is claimed.
+
+## Final local verification for this batch
+
+COMPLETED AND VERIFIED: `npm run verify` passed **127/127 tests across ten suites**, typecheck, lint (the same two inherited warnings), and production build. Evidence: `work/phase2/final-verify.log`. `/play` first-load JS is approximately 152kB from the build report, not total game assets. `git diff --check` passed.
+
+Commits: [safety/ground e8028a8](https://github.com/AradhyaDixit18/kanpurverse/commit/e8028a8) and [visible seats / compatibility ac5a34e](https://github.com/AradhyaDixit18/kanpurverse/commit/ac5a34ea3cb0af463f7275b23a19ff4faa54779e). Public CI/preview build state is recorded separately after push; no production merge is authorized or performed.

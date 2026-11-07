@@ -1,0 +1,64 @@
+{
+  "date_ist": "2026-11-08",
+  "scene": "local isolated vehicle integration fixture; existing Game/Player/Vehicles/Rapier components",
+  "origins": [
+    "http://localhost:3002",
+    "http://127.0.0.1:3002"
+  ],
+  "players": [
+    "QA_Driver",
+    "QA_Rider"
+  ],
+  "verified": [
+    "two independent identities",
+    "exclusive driver claim rejected",
+    "passenger entry and visible attachment",
+    "local full enclosure retains driver with actionable message",
+    "steering changes shared chassis quaternion",
+    "replicated shared ride",
+    "moving exit rejected",
+    "braking to zero",
+    "both occupants exit grounded",
+    "seat-local first-person view inspected"
+  ],
+  "observed_stopped_vehicle": {
+    "p": [
+      338.96,
+      0.72,
+      -305.88
+    ],
+    "q": [
+      0,
+      -0.67,
+      0,
+      0.742
+    ]
+  },
+  "observed_grounded_exits": {
+    "passenger": [
+      338.5,
+      0,
+      -307.41
+    ],
+    "driver": [
+      338.82,
+      0,
+      -304.28
+    ]
+  },
+  "limits": [
+    "not full city playthrough",
+    "not Atlas persistence",
+    "no forced network-drop test",
+    "no physical mobile test",
+    "not a public matched-backend preview",
+    "other nine vehicle visual playthroughs pending",
+    "fixture enclosure local only; server blocking independently unit-tested"
+  ],
+  "files": [
+    "occupant-before.png",
+    "occupants-after.png",
+    "grounded-exit.png",
+    "shared-ride.webm"
+  ]
+}
