@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, ROADS, MISSIONS, SHOP_ITEMS, WORLD_SIZE, type AnimState } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 import { net } from "../net/client";
-import { playerPos, playerYaw } from "../game/Player";
+import { playerPos, playerYaw } from "../game/refs";
 import { input, touchPress, once } from "../game/input";
 import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
-import { vehicleTelemetry } from "../game/Vehicles";
+import { vehicleTelemetry } from "../game/refs";
 import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 

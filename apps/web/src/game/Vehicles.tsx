@@ -16,7 +16,8 @@ export const SPECS: Record<VehicleKind, { accel: number; max: number; turn: numb
   hatchback: { accel: 10, max: 26, turn: 2.0, size: [1.75, 1.45, 3.8], seats: 2, wheelR: 0.32 }, sedan: { accel: 11, max: 32, turn: 1.8, size: [1.85, 1.4, 4.6], seats: 2, wheelR: 0.33 }, suv: { accel: 9.5, max: 30, turn: 1.7, size: [2.05, 1.85, 4.8], seats: 2, wheelR: 0.4 },
   bike: { accel: 13, max: 36, turn: 2.7, size: [0.7, 1.1, 2.1], seats: 2, wheelR: 0.32 }, scooter: { accel: 8, max: 20, turn: 2.9, size: [0.7, 1.1, 1.8], seats: 2, wheelR: 0.26 }, auto: { accel: 7, max: 17, turn: 2.5, size: [1.45, 1.75, 2.8], seats: 2, wheelR: 0.28 },
 };
-export const vehicleTelemetry = { speed: 0, kind: "" as VehicleKind | "" };
+import { vehicleTelemetry } from "./refs";
+export { vehicleTelemetry };
 
 export function Vehicles() { const vehicles = useStore(s => s.vehicles); return <>{Object.values(vehicles).map(v => <Vehicle key={v.id} snap={v} />)}</>; }
 

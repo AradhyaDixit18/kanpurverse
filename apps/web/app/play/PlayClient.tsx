@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useStore } from "../../src/state/store";
 import { MainMenu, LoadingScreen, ErrorScreen } from "../../src/ui/Menu";
-import { HUD } from "../../src/ui/HUD";
+const HUD = dynamic(() => import("../../src/ui/HUD").then(m => m.HUD), { ssr: false });
 
 const Game = dynamic(() => import("../../src/game/Game").then(m => m.Game), { ssr: false, loading: () => <LoadingScreen /> });
 

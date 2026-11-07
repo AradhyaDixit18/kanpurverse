@@ -10,7 +10,8 @@ import { useStore } from "../state/store";
 import { useDialogueLines } from "./dialogueData";
 import { speak } from "../audio/voice";
 
-export const npcPositions = new Map<string, { x: number; z: number }>();
+import { npcPositions } from "./refs";
+export { npcPositions };
 
 function appearanceFor(seed: number, role: NpcDef["role"], female: boolean): Appearance {
   const r = (n: number) => (seed * 9301 + n * 49297) % 233280 / 233280;

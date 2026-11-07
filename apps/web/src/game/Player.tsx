@@ -11,11 +11,14 @@ export { camYaw };
 import { useStore } from "../state/store";
 import { net } from "../net/client";
 import { sfx } from "../audio/sfx";
-import { npcPositions } from "./NPCs";
+import { npcPositions } from "./refs";
 
 const WALK = 3.2, RUN = 5.5, SPRINT = 8.5, JUMP_V = 6.5, GRAV = -18;
-export const playerPos = new THREE.Vector3(...SPAWN_POINT);  // read by camera/HUD/minimap
-export const playerYaw = { v: 0 };
+import { playerPos as refPos, playerYaw, vehicleTelemetry as _vt } from "./refs";
+void _vt;
+/** Live player position as a Vector3 for 3D code; mirrored into refs.playerPos for UI code. */
+export const playerPos = new THREE.Vector3(...SPAWN_POINT);
+export { playerYaw };
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null); const vis = useRef<THREE.Group>(null);
@@ -36,7 +39,7 @@ export function Player() {
     camYaw.dist = THREE.MathUtils.clamp(camYaw.dist + consumeZoom() * 0.6, 2.5, 12);
 
     if (inVehicle) { // vehicle handles position; keep avatar hidden/in car
-      const v = s.vehicles[inVehicle]; if (v) { playerPos.set(v.p[0], v.p[1], v.p[2]); rb.setNextKinematicTranslation({ x: v.p[0], y: v.p[1] + 0.3, z: v.p[2] }); }
+      const v = s.vehicles[inVehicle]; if (v) { playerPos.set(v.p[0], v.p[1], v.p[2]); refPos.set(v.p[0], v.p[1], v.p[2]); rb.setNextKinematicTranslation({ x: v.p[0], y: v.p[1] + 0.3, z: v.p[2] }); }
       if (once("KeyF") || once("KeyE")) { net.send({ t: "vehicle.exit" }); sfx.doorOpen(); sfx.engine(false); }
       if (animState !== (seat === "driver" ? "drive" : "sit")) setAnimState(seat === "driver" ? "drive" : "sit");
       placeCamera(camera, world, rapier, playerPos, s.settings.reduceMotion ? 1 : 0.15, 1.4);
@@ -74,6 +77,7 @@ export function Player() {
     const self = s.selfId ? s.players[s.selfId] : undefined;
     if (self && Math.hypot(self.p[0] - np.x, self.p[2] - np.z) > 6) { rb.setNextKinematicTranslation({ x: self.p[0], y: self.p[1] + 0.95, z: self.p[2] }); playerPos.set(self.p[0], self.p[1], self.p[2]); }
     if (anim.current !== animState) setAnimState(anim.current);
+    refPos.set(playerPos.x, playerPos.y, playerPos.z);
     net.sendState([playerPos.x, playerPos.y, playerPos.z], playerYaw.v, anim.current);
     placeCamera(camera, world, rapier, playerPos, s.settings.reduceMotion ? 1 : 0.18, 1.6);
     if (s.settings.touch) clearOnce();

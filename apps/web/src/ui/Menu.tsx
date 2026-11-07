@@ -5,7 +5,8 @@ import { useStore } from "../state/store";
 import { net, WS_URL } from "../net/client";
 import { unlockAudio, sfx } from "../audio/sfx";
 import { SettingsPanel } from "./Settings";
-import { CharacterCreator } from "./Character";
+import dynamic from "next/dynamic";
+const CharacterCreator = dynamic(() => import("./Character").then(m => m.CharacterCreator), { ssr: false, loading: () => <div className="screen center"><Skyline /><Logo size={56} /><div className="spinner" /><p className="muted">Loading character studio…</p></div> });
 import { Logo, Skyline } from "./Brand";
 
 export function MainMenu() {

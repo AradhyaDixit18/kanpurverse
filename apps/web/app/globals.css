@@ -110,7 +110,7 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 @media (max-width: 900px) { .menu-layout { grid-template-columns: 1fr; padding: 16px; align-items: start; } .menu-right { display: none; } .menu-left { padding: 1.2rem; } }
 
 /* loading */
-.screen.center > * { position: relative; z-index: 1; }
+.screen.center > *:not(.skyline) { position: relative; z-index: 1; }
 .progress { width: min(420px, 80vw); height: 8px; background: rgba(255,255,255,.12); border-radius: 999px; overflow: hidden; } .progress-bar { height: 100%; background: linear-gradient(90deg, #ff5a3c, #ffd23f); border-radius: 999px; transition: width .6s ease; }
 
 /* speedometer */
