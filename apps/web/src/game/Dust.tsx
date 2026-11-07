@@ -1,6 +1,6 @@
 "use client";
 /** Tiny particle pool for footstep dust, landing puffs and vehicle tyre dust. CPU-cheap: one InstancedMesh, 48 puffs. */
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 const N = 48; const pool: { x: number; y: number; z: number; t: number; s: number }[] = [];
