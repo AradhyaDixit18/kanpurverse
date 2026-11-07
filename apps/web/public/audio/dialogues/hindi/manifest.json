@@ -1,0 +1,222 @@
+{
+ "guide_babloo.greet_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.greet_1.mp3",
+  "hash": "215badec09",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.greet_2": {
+  "file": "/audio/dialogues/hindi/guide_babloo.greet_2.mp3",
+  "hash": "57f315c757",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.tut_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.tut_1.mp3",
+  "hash": "665ddcb6c2",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.offer_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.offer_1.mp3",
+  "hash": "ae906f5fff",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.offer_2": {
+  "file": "/audio/dialogues/hindi/guide_babloo.offer_2.mp3",
+  "hash": "d42d01fe6a",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.done_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.done_1.mp3",
+  "hash": "64a661d76d",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.dir_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.dir_1.mp3",
+  "hash": "ae7c0fa69b",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "guide_babloo.bye_1": {
+  "file": "/audio/dialogues/hindi/guide_babloo.bye_1.mp3",
+  "hash": "bb09e23293",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.greet_1": {
+  "file": "/audio/dialogues/hindi/chai_munna.greet_1.mp3",
+  "hash": "6648eeb10a",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.greet_2": {
+  "file": "/audio/dialogues/hindi/chai_munna.greet_2.mp3",
+  "hash": "34fc589b70",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.offer_1": {
+  "file": "/audio/dialogues/hindi/chai_munna.offer_1.mp3",
+  "hash": "380ea6cb51",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.done_1": {
+  "file": "/audio/dialogues/hindi/chai_munna.done_1.mp3",
+  "hash": "24472ba23e",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.idle_1": {
+  "file": "/audio/dialogues/hindi/chai_munna.idle_1.mp3",
+  "hash": "94a1bec718",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.greet_1": {
+  "file": "/audio/dialogues/hindi/auto_raju.greet_1.mp3",
+  "hash": "3bb21ef363",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.greet_2": {
+  "file": "/audio/dialogues/hindi/auto_raju.greet_2.mp3",
+  "hash": "f69f9bb07d",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.offer_1": {
+  "file": "/audio/dialogues/hindi/auto_raju.offer_1.mp3",
+  "hash": "9c47499675",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.offer_2": {
+  "file": "/audio/dialogues/hindi/auto_raju.offer_2.mp3",
+  "hash": "9655350528",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.done_1": {
+  "file": "/audio/dialogues/hindi/auto_raju.done_1.mp3",
+  "hash": "e5ec82d8fd",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.idle_1": {
+  "file": "/audio/dialogues/hindi/auto_raju.idle_1.mp3",
+  "hash": "fa47b5c5e9",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "shop_gupta.greet_1": {
+  "file": "/audio/dialogues/hindi/shop_gupta.greet_1.mp3",
+  "hash": "14dfae806e",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "shop_gupta.greet_2": {
+  "file": "/audio/dialogues/hindi/shop_gupta.greet_2.mp3",
+  "hash": "06b5761237",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "shop_gupta.offer_1": {
+  "file": "/audio/dialogues/hindi/shop_gupta.offer_1.mp3",
+  "hash": "fd3b74c037",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "shop_gupta.done_1": {
+  "file": "/audio/dialogues/hindi/shop_gupta.done_1.mp3",
+  "hash": "4532210199",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "shop_gupta.idle_1": {
+  "file": "/audio/dialogues/hindi/shop_gupta.idle_1.mp3",
+  "hash": "0c6f591a1a",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "police_singh.greet_1": {
+  "file": "/audio/dialogues/hindi/police_singh.greet_1.mp3",
+  "hash": "d21b575bde",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "police_singh.greet_2": {
+  "file": "/audio/dialogues/hindi/police_singh.greet_2.mp3",
+  "hash": "25557412d6",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "police_singh.idle_1": {
+  "file": "/audio/dialogues/hindi/police_singh.idle_1.mp3",
+  "hash": "eacef48bc8",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_priya.greet_1": {
+  "file": "/audio/dialogues/hindi/ped_priya.greet_1.mp3",
+  "hash": "2d4bc86260",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_priya.offer_1": {
+  "file": "/audio/dialogues/hindi/ped_priya.offer_1.mp3",
+  "hash": "c242ae23c3",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_priya.done_1": {
+  "file": "/audio/dialogues/hindi/ped_priya.done_1.mp3",
+  "hash": "8b21832039",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_aman.greet_1": {
+  "file": "/audio/dialogues/hindi/ped_aman.greet_1.mp3",
+  "hash": "9de248aec7",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_aman.greet_2": {
+  "file": "/audio/dialogues/hindi/ped_aman.greet_2.mp3",
+  "hash": "7b2114e502",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_sunita.greet_1": {
+  "file": "/audio/dialogues/hindi/ped_sunita.greet_1.mp3",
+  "hash": "35eea93b0e",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_vikas.greet_1": {
+  "file": "/audio/dialogues/hindi/ped_vikas.greet_1.mp3",
+  "hash": "786972f2fd",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_rekha.greet_1": {
+  "file": "/audio/dialogues/hindi/ped_rekha.greet_1.mp3",
+  "hash": "7738cb9de8",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "any.react_bump": {
+  "file": "/audio/dialogues/hindi/any.react_bump.mp3",
+  "hash": "34b504437b",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.react_bump2": {
+  "file": "/audio/dialogues/hindi/any.react_bump2.mp3",
+  "hash": "56ea66007b",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.react_horn": {
+  "file": "/audio/dialogues/hindi/any.react_horn.mp3",
+  "hash": "6aea133af3",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.react_wave": {
+  "file": "/audio/dialogues/hindi/any.react_wave.mp3",
+  "hash": "cb29ccf9c9",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.social_1": {
+  "file": "/audio/dialogues/hindi/any.social_1.mp3",
+  "hash": "2eae994b54",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.idle_weather": {
+  "file": "/audio/dialogues/hindi/any.idle_weather.mp3",
+  "hash": "c7837b4231",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.idle_cricket": {
+  "file": "/audio/dialogues/hindi/any.idle_cricket.mp3",
+  "hash": "efddccea82",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.bye_1": {
+  "file": "/audio/dialogues/hindi/any.bye_1.mp3",
+  "hash": "bc987429f4",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.bye_2": {
+  "file": "/audio/dialogues/hindi/any.bye_2.mp3",
+  "hash": "4c7d117b6f",
+  "voice": "hi-IN-MadhurNeural"
+ }
+}

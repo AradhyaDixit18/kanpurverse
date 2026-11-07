@@ -1,0 +1,222 @@
+{
+ "guide_babloo.greet_1": {
+  "file": "/audio/dialogues/english/guide_babloo.greet_1.mp3",
+  "hash": "216245bef1",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.greet_2": {
+  "file": "/audio/dialogues/english/guide_babloo.greet_2.mp3",
+  "hash": "f9c511f24e",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.tut_1": {
+  "file": "/audio/dialogues/english/guide_babloo.tut_1.mp3",
+  "hash": "62c35263f7",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.offer_1": {
+  "file": "/audio/dialogues/english/guide_babloo.offer_1.mp3",
+  "hash": "cd20ac9b83",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.offer_2": {
+  "file": "/audio/dialogues/english/guide_babloo.offer_2.mp3",
+  "hash": "6c40202798",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.done_1": {
+  "file": "/audio/dialogues/english/guide_babloo.done_1.mp3",
+  "hash": "4d0bef8371",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.dir_1": {
+  "file": "/audio/dialogues/english/guide_babloo.dir_1.mp3",
+  "hash": "ceda1214d7",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "guide_babloo.bye_1": {
+  "file": "/audio/dialogues/english/guide_babloo.bye_1.mp3",
+  "hash": "f868d78bc2",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.greet_1": {
+  "file": "/audio/dialogues/english/chai_munna.greet_1.mp3",
+  "hash": "c4e6262012",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.greet_2": {
+  "file": "/audio/dialogues/english/chai_munna.greet_2.mp3",
+  "hash": "ff3df3fe29",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.offer_1": {
+  "file": "/audio/dialogues/english/chai_munna.offer_1.mp3",
+  "hash": "42b29be4b5",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.done_1": {
+  "file": "/audio/dialogues/english/chai_munna.done_1.mp3",
+  "hash": "91ce6e40d7",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.idle_1": {
+  "file": "/audio/dialogues/english/chai_munna.idle_1.mp3",
+  "hash": "feeebc43d7",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.greet_1": {
+  "file": "/audio/dialogues/english/auto_raju.greet_1.mp3",
+  "hash": "9ed4e56785",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.greet_2": {
+  "file": "/audio/dialogues/english/auto_raju.greet_2.mp3",
+  "hash": "94e1e55c06",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.offer_1": {
+  "file": "/audio/dialogues/english/auto_raju.offer_1.mp3",
+  "hash": "73575aaf4e",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.offer_2": {
+  "file": "/audio/dialogues/english/auto_raju.offer_2.mp3",
+  "hash": "04052667dd",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.done_1": {
+  "file": "/audio/dialogues/english/auto_raju.done_1.mp3",
+  "hash": "b008709a02",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.idle_1": {
+  "file": "/audio/dialogues/english/auto_raju.idle_1.mp3",
+  "hash": "2bd1db76ec",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "shop_gupta.greet_1": {
+  "file": "/audio/dialogues/english/shop_gupta.greet_1.mp3",
+  "hash": "19413cd4ef",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "shop_gupta.greet_2": {
+  "file": "/audio/dialogues/english/shop_gupta.greet_2.mp3",
+  "hash": "81a96c394e",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "shop_gupta.offer_1": {
+  "file": "/audio/dialogues/english/shop_gupta.offer_1.mp3",
+  "hash": "320cc57a96",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "shop_gupta.done_1": {
+  "file": "/audio/dialogues/english/shop_gupta.done_1.mp3",
+  "hash": "925ddd238e",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "shop_gupta.idle_1": {
+  "file": "/audio/dialogues/english/shop_gupta.idle_1.mp3",
+  "hash": "5bc2fe7d92",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "police_singh.greet_1": {
+  "file": "/audio/dialogues/english/police_singh.greet_1.mp3",
+  "hash": "8b02fa82cd",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "police_singh.greet_2": {
+  "file": "/audio/dialogues/english/police_singh.greet_2.mp3",
+  "hash": "e570b6c23a",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "police_singh.idle_1": {
+  "file": "/audio/dialogues/english/police_singh.idle_1.mp3",
+  "hash": "b3d3e9c135",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_priya.greet_1": {
+  "file": "/audio/dialogues/english/ped_priya.greet_1.mp3",
+  "hash": "6412efc6e7",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "ped_priya.offer_1": {
+  "file": "/audio/dialogues/english/ped_priya.offer_1.mp3",
+  "hash": "654be14cd8",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "ped_priya.done_1": {
+  "file": "/audio/dialogues/english/ped_priya.done_1.mp3",
+  "hash": "43209602ee",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "ped_aman.greet_1": {
+  "file": "/audio/dialogues/english/ped_aman.greet_1.mp3",
+  "hash": "a67c221954",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_aman.greet_2": {
+  "file": "/audio/dialogues/english/ped_aman.greet_2.mp3",
+  "hash": "aec2a9bd29",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_sunita.greet_1": {
+  "file": "/audio/dialogues/english/ped_sunita.greet_1.mp3",
+  "hash": "d9ba156d3a",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "ped_vikas.greet_1": {
+  "file": "/audio/dialogues/english/ped_vikas.greet_1.mp3",
+  "hash": "a07387385c",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_rekha.greet_1": {
+  "file": "/audio/dialogues/english/ped_rekha.greet_1.mp3",
+  "hash": "3070ba2493",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "any.react_bump": {
+  "file": "/audio/dialogues/english/any.react_bump.mp3",
+  "hash": "60eb3d735b",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.react_bump2": {
+  "file": "/audio/dialogues/english/any.react_bump2.mp3",
+  "hash": "0d6138c6d8",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.react_horn": {
+  "file": "/audio/dialogues/english/any.react_horn.mp3",
+  "hash": "0f019a912e",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.react_wave": {
+  "file": "/audio/dialogues/english/any.react_wave.mp3",
+  "hash": "a6d16e0002",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.social_1": {
+  "file": "/audio/dialogues/english/any.social_1.mp3",
+  "hash": "febea0ea61",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "any.idle_weather": {
+  "file": "/audio/dialogues/english/any.idle_weather.mp3",
+  "hash": "341d8a6c30",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.idle_cricket": {
+  "file": "/audio/dialogues/english/any.idle_cricket.mp3",
+  "hash": "bc98a77526",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.bye_1": {
+  "file": "/audio/dialogues/english/any.bye_1.mp3",
+  "hash": "c1e161a0a1",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.bye_2": {
+  "file": "/audio/dialogues/english/any.bye_2.mp3",
+  "hash": "e657ff43c7",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ }
+}
