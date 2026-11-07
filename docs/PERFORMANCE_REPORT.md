@@ -1,37 +1,38 @@
-# Performance Report
+# Performance Report — v0.5 (2026-11-07)
 
-**Measured in this session (headless, Linux sandbox):**
-| Metric | Value |
-|---|---|
-| Production build time | 12.9–27.6 s (`next build`) |
-| `/` first-load JS | 106 kB |
-| `/play` first-load JS | 1.16 MB (three.js ≈ 600 kB, Rapier WASM ≈ 2 MB loaded lazily by `@react-three/rapier`, drei/troika text, React) |
-| Server tick | 20 Hz; 5-test multiplayer suite incl. ~25 s of simulated walking runs in ≈10 s wall time |
-| Server memory (idle, file store) | ≈ 45 MB RSS (Node 22) |
-| Unit + integration tests | 15 pass in ≈ 10.5 s |
+## Measured (COMPLETED AND VERIFIED)
+Device: MacBook (Apple Silicon), Brave, 1470×867 CSS px at DPR 2, quality **Medium** (default), public build https://kanpurverse.vercel.app.
 
-**Not measured (needs a GPU/browser on the Mac):** FPS, frame time, draw calls, shader compile time, mobile thermals. Expectations below are design targets, not results.
+| Metric | Value | How measured |
+|---|---|---|
+| Frame rate at spawn (The Mall Road, Bada Chauraha) | **59–61 FPS** | in-game counter (`__kv.state().fps`) over several minutes |
+| Frame rate during tile streaming (first 2 s after load / after moving 250 m) | dips to ~42 FPS for < 1 s | counter sampled right after load |
+| Scene at spawn | 4,638 meshes (483 merged road/building/rail meshes across 25 tiles, rest = props/crowd/vehicles/animals), ≈ 888 k triangles | `__kv.scene()` |
+| JS heap after 5 min | ≈ 250 MB | `performance.memory` |
+| First Load JS (`/play`) | **149 kB** gzip (shared 103 kB + page 43 kB) | `next build` |
+| 3D bundle (three + fiber + drei + rapier WASM glue), loaded lazily behind the loading screen | 777 kB gzip | largest chunk |
+| Textures (12 ambientCG sets at 512 px, colour+normal+rough JPG) | 1.9 MB total on disk, ~1.2 MB fetched per session | `public/tex` |
+| HDRI (3 Poly Haven 1k) | 4.4 MB on disk, one (~1.5 MB) fetched per time-of-day band | `public/hdr` |
+| Dialogue audio (55 lines × 3 languages, MP3) | 6.1 MB on disk, fetched one line at a time on demand (206 partial) | `public/audio/dialogues` |
+| OSM extract | 868 kB JSON, one fetch, cached | `public/geo/kanpur.json` |
+| Network to the game server | ≈ 6 kB/s down at 20 Hz with 1–2 players; ≤ 1 kB/s up | protocol estimate, see MULTIPLAYER_ARCHITECTURE |
+| Ping (Mumbai → Render Singapore) | 110–150 ms | HUD |
 
-## Rendering budget and techniques
-- Buildings: one `InstancedMesh` per style (5 draw calls for all buildings) with a canvas window texture; trees 2 instanced draws; street lights 2.
-- Roads: 9 planes + pavements + dashes (merged per road in future).
-- Text: troika SDF text for ~45 signs/labels (each a draw call; LOD/culling by fog distance).
-- Avatars: ~20 primitives each, code-animated (no skinning); 10 NPCs + up to 31 remote players ≈ 800 meshes worst case → candidate for merged geometry in v1.1.
-- Quality tiers: Low (no shadows, no AA, fog 180 m, DPR ≤ 1.25, 60 trees), Medium (default), High (2k shadow map, DPR up to 2, 240 trees). `AdaptiveDpr` lowers resolution under load.
-- Physics: Rapier WASM, fixed colliders for ~30 buildings + lake + bounds + trees; one kinematic capsule per player; one body per vehicle. Vehicle driver body is dynamic only for the local driver.
+## Techniques in use
+- **Tile streaming**: the city is bucketed into 250 m tiles; 5×5 tiles (Medium/High) or 3×3 (Low) around the player are mounted; physics colliders only in the 3×3 ring. Each tile merges all roads, pavements, rails, buildings-by-style and shopfronts into a handful of `BufferGeometry` draws (≈ 20 draw calls per tile).
+- **Instancing**: trees, pigeon flocks, poles; crowd/animals are cheap primitives.
+- **Textures loaded once** at the city root and shared by every tile (v0.5.1 fix — see QA_REPORT "empty city").
+- **Quality tiers** (Settings): Low = no shadows, no post-processing, DPR ≤ 1.25, 3×3 tiles, no road markings/labels; Medium = PCF soft shadows, SMAA+Bloom+Vignette, DPR ≤ 1.25; High = DPR up to 2.
+- Shadows: single directional light with a 160 m shadow frustum following the player.
+- HUD canvases (compass, minimap, speedo) are 2D and read shared refs — no React state per frame.
+- Code splitting: HUD and character creator are dynamic imports; the 3D bundle loads behind the staged loading screen with progress.
 
-## Targets
-| Device | Target |
-|---|---|
-| M2 MacBook Air (Brave) | 60 fps at High |
-| Mid-range Android (2022, Chrome) | 30 fps at Low |
-| iPhone 12+ (Safari) | 45–60 fps at Medium |
+## Not measured / IMPLEMENTED BUT NOT VERIFIED
+- Phones and low-end laptops (Low tier is implemented; the touch joystick is implemented; neither was tested on a real phone this session).
+- 10+ concurrent players in one room (vitest covers 2–4 `ws` clients; browser test covered 2).
+- Memory over a 1-hour session (tile disposal is implemented via React unmount + `geometry.dispose()` in effects; no long-run leak test yet).
 
-## Known hot spots (to verify on device)
-1. HUD subscribes to the whole store → React re-render at 20 Hz. Acceptable, but move to selectors if profiler shows >3 ms.
-2. Remote avatars re-render per snapshot; materials are memoised by appearance content (fixed in this build).
-3. `generateBuildings()` is called by Trees and Buildings separately (deterministic, ~1 ms) — fine.
-4. Troika text with Devanagari: first-render font parse ~100–200 ms (86 KB woff) — one-time.
-
-## Network
-Snapshot ≈ 6.7 KB/tick at 32 players (see MULTIPLAYER_ARCHITECTURE). At 2–8 players: 0.4–1.7 KB/tick ≈ 8–34 KB/s. Fine on 4G.
+## Known costs / next
+- 4.6 k meshes is high for a scene at 60 FPS mainly because props, crowd and animals are separate meshes; instancing those is the next win for Low-tier devices.
+- The 777 kB 3D chunk could be cut by ~200 kB by dropping `@react-three/postprocessing` on Low and lazy-loading the vehicle meshes.
+- `Text` labels (troika) cost a font load (~200 kB) and one draw each; they are already suspended independently so they never block a tile.

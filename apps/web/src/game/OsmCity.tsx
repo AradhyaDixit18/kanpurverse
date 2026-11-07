@@ -5,7 +5,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
-import { RigidBody, CuboidCollider } from "@react-three/rapier";
+import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
 import { getGeo, loadGeo, type GeoData } from "./roads";
 import { clearZones } from "@kanpurverse/shared";
@@ -156,7 +156,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     <Trees pts={trees} />
     {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Suspense fallback={null}><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></Suspense></group>; })}
-    {collide && <RigidBody type="fixed" colliders={false}>{geo.boxes.map((b, i) => <CuboidCollider key={i} args={[b.w / 2, b.h / 2, b.d / 2]} position={[b.x, b.h / 2, b.z]} />)}</RigidBody>}
+    {collide && <RigidBody type="fixed" colliders={false}>{geo.styles.map(s => { const pos = s.walls.getAttribute("position").array as Float32Array; const idx = s.walls.getIndex()!.array as Uint32Array | Uint16Array; return <TrimeshCollider key={s.style} args={[pos, idx instanceof Uint32Array ? idx : new Uint32Array(idx)]} />; })}</RigidBody>}
   </group>;
 }
 function distToSeg(p: [number, number], a: [number, number], b: [number, number]) { const dx = b[0] - a[0], dz = b[1] - a[1]; const l2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dz)); }
