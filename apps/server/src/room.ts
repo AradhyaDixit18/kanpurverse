@@ -113,12 +113,14 @@ export class Room {
 
   enterVehicle(pl: Player, id: string, seat: "driver" | "passenger") {
     const v = this.vehicles.get(id); if (!v) return pl.send({ t: "error", code: "no_vehicle", message: "No such vehicle" });
-    if (pl.vehicle) this.exitVehicle(pl);
+    // Validate the target before releasing a current seat: failed transfers are atomic.
+    if (pl.vehicle === id && pl.seat === seat) return;
     if (Math.hypot(v.p[0] - pl.p[0], v.p[2] - pl.p[2]) > 6) return pl.send({ t: "error", code: "too_far", message: "Get closer to the vehicle" });
     if (seat === "driver" && v.driver) return pl.send({ t: "error", code: "occupied", message: "Someone's already driving" });
     if (seat === "passenger" && (v.passenger || v.kind === "bike" && v.passenger)) return pl.send({ t: "error", code: "occupied", message: "Seat taken" });
-    if (seat === "driver") v.driver = pl.id; else v.passenger = pl.id;
-    pl.vehicle = id; pl.seat = seat; pl.anim = seat === "driver" ? "drive" : "sit";
+    if (pl.vehicle) return pl.send({ t: "error", code: "busy", message: "Exit your current vehicle first" });
+    if (seat === "driver") { v.driver = pl.id; v.lastAt = 0; } else v.passenger = pl.id;
+    pl.vehicle = id; pl.seat = seat; pl.anim = seat === "driver" ? "drive" : "sit"; pl.p = [...v.p] as Vec3;
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
   }
   exitVehicle(pl: Player) {
@@ -127,14 +129,18 @@ export class Room {
     pl.vehicle = undefined; pl.seat = undefined; pl.anim = "idle";
     pl.p = [v.p[0] + 2.2 * Math.cos(quatYaw(v.q)), 1, v.p[2] - 2.2 * Math.sin(quatYaw(v.q))]; pl.lastStateAt = Date.now();
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
+    pl.send({ t: "correct", p: pl.p, reason: "vehicle_exit" });
   }
   vehicleState(pl: Player, id: string, p: Vec3, q: [number, number, number, number], speed: number) {
     const v = this.vehicles.get(id); if (!v || v.driver !== pl.id) return;
-    const now = Date.now(); const dt = v.lastAt ? Math.min(2, (now - v.lastAt) / 1000) : 0.05; v.lastAt = now;
+    const now = Date.now(); const dt = v.lastAt ? Math.min(2, (now - v.lastAt) / 1000) : 0.05;
     const half = WORLD_SIZE / 2 + 5;
-    if (!p.every(Number.isFinite) || Math.abs(p[0]) > half || Math.abs(p[2]) > half || p[1] < -5 || p[1] > 60) return;
+    if (!p.every(Number.isFinite) || Math.abs(p[0]) > half || Math.abs(p[2]) > half || p[1] < -5 || p[1] > 60) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
     if (Math.hypot(p[0] - v.p[0], p[2] - v.p[2]) > MAX_VEHICLE_SPEED * dt + TELEPORT_TOLERANCE) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
-    v.p = p; v.q = q; v.v = Math.min(Math.abs(speed), MAX_VEHICLE_SPEED); pl.p = [...p] as Vec3;
+    const norm = Math.hypot(...q);
+    if (!q.every(Number.isFinite) || !Number.isFinite(speed) || Math.abs(norm - 1) > 0.05) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
+    v.lastAt = now;
+    v.p = p; v.q = q.map(n => n / norm) as typeof q; v.v = Math.min(Math.abs(speed), MAX_VEHICLE_SPEED); pl.p = [...p] as Vec3;
     const pass = v.passenger ? this.players.get(v.passenger) : undefined; if (pass) pass.p = [...p] as Vec3;
     this.checkMissionProgress(pl);
   }
