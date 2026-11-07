@@ -48,7 +48,7 @@ export function OsmCity({ geo }: { geo: GeoData }) {
 
 function GroundPlane() {
   const dirt = useTex("/tex/dirt/color.jpg", 600); const n = useTex("/tex/dirt/normal.jpg", 600, false);
-  return <RigidBody type="fixed" colliders={false}><mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[12000, 12000]} /><meshStandardMaterial map={dirt} normalMap={n} normalScale={new THREE.Vector2(0.4, 0.4)} roughness={1} color="#cfc3a6" /></mesh><CuboidCollider args={[6000, 0.5, 6000]} position={[0, -0.5, 0]} /></RigidBody>;
+  return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[12000, 12000]} /><meshStandardMaterial map={dirt} normalMap={n} normalScale={new THREE.Vector2(0.4, 0.4)} roughness={1} color="#cfc3a6" /></mesh>;
 }
 
 /** Ribbon geometry along a polyline: per-segment quads + round joints; UV.x along length (metres/8), UV.y across. */
@@ -113,6 +113,18 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
     const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
     for (const b of t.buildings) { if (b.pts.length < 3) continue; const h = buildingHeight(b); const st = Math.floor(hash(b.id + 7) * 8); const { walls, roof } = building(b.pts, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(walls); byStyle[st].roofs.push(roof);
       if (hash(b.id + 3) < 0.45 && h < 20) { const g = building(b.pts, 3.4, 0.0); shops.push(g.walls); g.roof.dispose(); } const bb = bbox(b.pts); boxes.push({ x: (bb.x0 + bb.x1) / 2, z: (bb.z0 + bb.z1) / 2, w: bb.x1 - bb.x0, d: bb.z1 - bb.z0, h }); }
+    // procedural infill: lots along real roads where OSM has no footprint (typical Kanpur: continuous shophouses on main roads, homes on residential lanes)
+    const osmBoxes = boxes.slice(); let lots = 0;
+    for (const r of t.roads) { if (!["residential", "tertiary", "secondary", "unclassified", "living_street", "primary"].includes(r.cls)) continue;
+      for (let i = 0; i + 1 < r.pts.length; i++) { const a = r.pts[i], b = r.pts[i + 1]; const len = Math.hypot(b[0] - a[0], b[1] - a[1]); const dx = (b[0] - a[0]) / len, dz = (b[1] - a[1]) / len, nx = -dz, nz = dx;
+        for (let d = 8; d < len - 8 && lots < 160; d += 13) for (const side of [1, -1]) { const h1 = hash(r.id * 31 + i * 7 + d + side); if (h1 < 0.18) continue; const depth = 9 + h1 * 6, width = 11 + hash(r.id + d) * 3; const setback = r.w / 2 + 3.2 + depth / 2; const cx = a[0] + dx * d + nx * setback * side, cz = a[1] + dz * d + nz * setback * side;
+          if (osmBoxes.some(o => Math.abs(o.x - cx) < (o.w + width) / 2 + 1 && Math.abs(o.z - cz) < (o.d + depth) / 2 + 1)) continue;
+          if (t.roads.some(o => o !== r && o.pts.some((q, k) => k + 1 < o.pts.length && distToSeg([cx, cz], q, o.pts[k + 1]) < o.w / 2 + 6))) continue;
+          if (t.parks.some(p => inPoly([cx, cz], p.pts)) || t.water.some(w => inPoly([cx, cz], w.pts))) continue;
+          const yaw = Math.atan2(dx, dz); const h = (r.cls === "residential" || r.cls === "living_street") ? 6.4 + Math.floor(hash(cx * 3 + cz) * 3) * 3.2 : 9.6 + Math.floor(hash(cx + cz * 3) * 3) * 3.2;
+          const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof);
+          if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(poly, 3.4); shops.push(sg.walls); sg.roof.dispose(); }
+          osmBoxes.push({ x: cx, z: cz, w: width, d: depth, h }); boxes.push({ x: cx, z: cz, w: Math.max(width, depth), d: Math.max(width, depth), h }); lots++; } } }
     const styles = Object.entries(byStyle).map(([s, g]) => ({ style: Number(s), walls: merge(g.walls)!, roofs: merge(g.roofs)! })); const shop = merge(shops);
     const water = t.water.map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.05, 0); return g; });
     const parks = t.parks.map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
@@ -139,6 +151,8 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
     {collide && <RigidBody type="fixed" colliders={false}>{geo.boxes.map((b, i) => <CuboidCollider key={i} args={[b.w / 2, b.h / 2, b.d / 2]} position={[b.x, b.h / 2, b.z]} />)}</RigidBody>}
   </group>;
 }
+function distToSeg(p: [number, number], a: [number, number], b: [number, number]) { const dx = b[0] - a[0], dz = b[1] - a[1]; const l2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dz)); }
+function rectPoly(cx: number, cz: number, w: number, d: number, yaw: number): [number, number][] { const c = Math.cos(yaw), s = Math.sin(yaw); const pts: [number, number][] = []; for (const [u, v] of [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]) pts.push([cx + u * s + v * c, cz + u * c - v * s]); return pts; }
 function offset(pts: [number, number][], d: number): [number, number][] { return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; const dx = b[0] - a[0], dz = b[1] - a[1]; const l = Math.hypot(dx, dz) || 1; return [p[0] - dz / l * d, p[1] + dx / l * d]; }); }
 function inPoly(p: [number, number], poly: [number, number][]) { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const xi = poly[i][0], zi = poly[i][1], xj = poly[j][0], zj = poly[j][1]; if ((zi > p[1]) !== (zj > p[1]) && p[0] < (xj - xi) * (p[1] - zi) / (zj - zi) + xi) inside = !inside; } return inside; }
 
@@ -158,7 +172,7 @@ function Crossings({ geo }: { geo: GeoData }) {
 
 function Stations({ geo }: { geo: GeoData }) {
   const lang = useStore(s => s.settings.lang);
-  return <>{geo.stations.filter((s, i, a) => a.findIndex(x => x.name === s.name) === i).map(s => <group key={s.id} position={[s.p[0], 0, s.p[1]]}>
+  return <>{geo.stations.filter((s, i, a) => a.findIndex(x => x.name === s.name) === i && /^Kanpur/.test(s.name ?? "")).map(s => <group key={s.id} position={[s.p[0], 0, s.p[1]]}>
     <mesh position={[0, 6, 0]} castShadow><boxGeometry args={[40, 12, 14]} /><meshStandardMaterial color="#b43a2a" roughness={0.9} /></mesh>
     <mesh position={[0, 12.6, 0]}><boxGeometry args={[44, 1.2, 18]} /><meshStandardMaterial color="#8a2a1e" /></mesh>
     {[-15, 15].map(x => <mesh key={x} position={[x, 15, 0]}><boxGeometry args={[6, 5, 6]} /><meshStandardMaterial color="#b43a2a" /></mesh>)}

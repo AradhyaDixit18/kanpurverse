@@ -34,10 +34,7 @@ export function City() {
 function Ground() {
   const tex = useMemo(() => { const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#8f8d6c"; x.fillRect(0, 0, 256, 256); for (let i = 0; i < 2600; i++) { x.fillStyle = `rgba(${60 + Math.random() * 60},${70 + Math.random() * 50},${30 + Math.random() * 30},${0.12 + Math.random() * 0.2})`; x.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 3); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(90, 90); t.colorSpace = THREE.SRGBColorSpace; return t; }, []);
   return (
-    <RigidBody type="fixed" colliders={false}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}><planeGeometry args={[WORLD_SIZE + 400, WORLD_SIZE + 400]} /><meshStandardMaterial map={tex} roughness={1} /></mesh>
-      <CuboidCollider args={[WORLD_SIZE, 0.5, WORLD_SIZE]} position={[0, -0.5, 0]} />
-    </RigidBody>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}><planeGeometry args={[WORLD_SIZE + 400, WORLD_SIZE + 400]} /><meshStandardMaterial map={tex} roughness={1} /></mesh>
   );
 }
 

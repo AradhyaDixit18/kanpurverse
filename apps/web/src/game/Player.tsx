@@ -60,6 +60,7 @@ export function Player() {
     const col = rb.collider(0); c.computeColliderMovement(col, desired); const mv = c.computedMovement();
     const p = rb.translation(); const np = { x: p.x + mv.x, y: p.y + mv.y, z: p.z + mv.z };
     grounded.current = c.computedGrounded(); if (grounded.current && vy.current < 0) vy.current = -0.5;
+    if (np.y < 0.3) { np.y = 2.2; vy.current = 0; } // never let the capsule sink below the ground plane (e.g. after a world reload)
     rb.setNextKinematicTranslation(np); playerPos.set(np.x, np.y - 0.95, np.z);
     // animation state
     const now = performance.now();
