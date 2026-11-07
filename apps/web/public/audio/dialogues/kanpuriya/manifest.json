@@ -106,7 +106,7 @@
  },
  "shop_gupta.offer_1": {
   "file": "/audio/dialogues/kanpuriya/shop_gupta.offer_1.mp3",
-  "hash": "81263eafe1",
+  "hash": "0a8b169670",
   "voice": "hi-IN-MadhurNeural"
  },
  "shop_gupta.done_1": {
@@ -166,7 +166,7 @@
  },
  "ped_vikas.greet_1": {
   "file": "/audio/dialogues/kanpuriya/ped_vikas.greet_1.mp3",
-  "hash": "9876c4e77d",
+  "hash": "86626001db",
   "voice": "hi-IN-MadhurNeural"
  },
  "ped_rekha.greet_1": {
@@ -217,6 +217,56 @@
  "any.bye_2": {
   "file": "/audio/dialogues/kanpuriya/any.bye_2.mp3",
   "hash": "ea9e3ec652",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "police_singh.offer_1": {
+  "file": "/audio/dialogues/kanpuriya/police_singh.offer_1.mp3",
+  "hash": "7866c6beab",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.offer_3": {
+  "file": "/audio/dialogues/kanpuriya/auto_raju.offer_3.mp3",
+  "hash": "56b37a020c",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_sunita.offer_1": {
+  "file": "/audio/dialogues/kanpuriya/ped_sunita.offer_1.mp3",
+  "hash": "04adcba58b",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_rekha.offer_1": {
+  "file": "/audio/dialogues/kanpuriya/ped_rekha.offer_1.mp3",
+  "hash": "0d9838938a",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "guide_babloo.offer_3": {
+  "file": "/audio/dialogues/kanpuriya/guide_babloo.offer_3.mp3",
+  "hash": "36805f716c",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_aman.offer_1": {
+  "file": "/audio/dialogues/kanpuriya/ped_aman.offer_1.mp3",
+  "hash": "b53db0bab6",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.offer_2": {
+  "file": "/audio/dialogues/kanpuriya/chai_munna.offer_2.mp3",
+  "hash": "da180dd430",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.crossing_wait": {
+  "file": "/audio/dialogues/kanpuriya/any.crossing_wait.mp3",
+  "hash": "df77c34c9a",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.greet_morning": {
+  "file": "/audio/dialogues/kanpuriya/any.greet_morning.mp3",
+  "hash": "eb832181b9",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.greet_evening": {
+  "file": "/audio/dialogues/kanpuriya/any.greet_evening.mp3",
+  "hash": "f7f621db80",
   "voice": "hi-IN-MadhurNeural"
  }
 }

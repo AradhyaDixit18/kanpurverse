@@ -106,7 +106,7 @@
  },
  "shop_gupta.offer_1": {
   "file": "/audio/dialogues/english/shop_gupta.offer_1.mp3",
-  "hash": "320cc57a96",
+  "hash": "52ee22475b",
   "voice": "en-IN-PrabhatNeural"
  },
  "shop_gupta.done_1": {
@@ -166,7 +166,7 @@
  },
  "ped_vikas.greet_1": {
   "file": "/audio/dialogues/english/ped_vikas.greet_1.mp3",
-  "hash": "a07387385c",
+  "hash": "5572ed038c",
   "voice": "en-IN-PrabhatNeural"
  },
  "ped_rekha.greet_1": {
@@ -217,6 +217,56 @@
  "any.bye_2": {
   "file": "/audio/dialogues/english/any.bye_2.mp3",
   "hash": "e657ff43c7",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "police_singh.offer_1": {
+  "file": "/audio/dialogues/english/police_singh.offer_1.mp3",
+  "hash": "4a07ea2bd2",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "auto_raju.offer_3": {
+  "file": "/audio/dialogues/english/auto_raju.offer_3.mp3",
+  "hash": "57edc1f653",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_sunita.offer_1": {
+  "file": "/audio/dialogues/english/ped_sunita.offer_1.mp3",
+  "hash": "ba3552d33c",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "ped_rekha.offer_1": {
+  "file": "/audio/dialogues/english/ped_rekha.offer_1.mp3",
+  "hash": "926f8c55a3",
+  "voice": "en-IN-NeerjaExpressiveNeural"
+ },
+ "guide_babloo.offer_3": {
+  "file": "/audio/dialogues/english/guide_babloo.offer_3.mp3",
+  "hash": "1629e4854d",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "ped_aman.offer_1": {
+  "file": "/audio/dialogues/english/ped_aman.offer_1.mp3",
+  "hash": "410fd99079",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "chai_munna.offer_2": {
+  "file": "/audio/dialogues/english/chai_munna.offer_2.mp3",
+  "hash": "a460423a85",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.crossing_wait": {
+  "file": "/audio/dialogues/english/any.crossing_wait.mp3",
+  "hash": "0c54d38377",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.greet_morning": {
+  "file": "/audio/dialogues/english/any.greet_morning.mp3",
+  "hash": "fefe2ae68b",
+  "voice": "en-IN-PrabhatNeural"
+ },
+ "any.greet_evening": {
+  "file": "/audio/dialogues/english/any.greet_evening.mp3",
+  "hash": "56ae919a85",
   "voice": "en-IN-NeerjaExpressiveNeural"
  }
 }

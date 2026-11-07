@@ -106,7 +106,7 @@
  },
  "shop_gupta.offer_1": {
   "file": "/audio/dialogues/hindi/shop_gupta.offer_1.mp3",
-  "hash": "fd3b74c037",
+  "hash": "9b6ee21d9a",
   "voice": "hi-IN-MadhurNeural"
  },
  "shop_gupta.done_1": {
@@ -166,7 +166,7 @@
  },
  "ped_vikas.greet_1": {
   "file": "/audio/dialogues/hindi/ped_vikas.greet_1.mp3",
-  "hash": "786972f2fd",
+  "hash": "1f681e89a2",
   "voice": "hi-IN-MadhurNeural"
  },
  "ped_rekha.greet_1": {
@@ -217,6 +217,56 @@
  "any.bye_2": {
   "file": "/audio/dialogues/hindi/any.bye_2.mp3",
   "hash": "4c7d117b6f",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "police_singh.offer_1": {
+  "file": "/audio/dialogues/hindi/police_singh.offer_1.mp3",
+  "hash": "70ba800a7f",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "auto_raju.offer_3": {
+  "file": "/audio/dialogues/hindi/auto_raju.offer_3.mp3",
+  "hash": "b884f8205e",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_sunita.offer_1": {
+  "file": "/audio/dialogues/hindi/ped_sunita.offer_1.mp3",
+  "hash": "78b1afa35d",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "ped_rekha.offer_1": {
+  "file": "/audio/dialogues/hindi/ped_rekha.offer_1.mp3",
+  "hash": "3d850e49dd",
+  "voice": "hi-IN-SwaraNeural"
+ },
+ "guide_babloo.offer_3": {
+  "file": "/audio/dialogues/hindi/guide_babloo.offer_3.mp3",
+  "hash": "057d73d970",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "ped_aman.offer_1": {
+  "file": "/audio/dialogues/hindi/ped_aman.offer_1.mp3",
+  "hash": "754fcac407",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "chai_munna.offer_2": {
+  "file": "/audio/dialogues/hindi/chai_munna.offer_2.mp3",
+  "hash": "558ec8ff94",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.crossing_wait": {
+  "file": "/audio/dialogues/hindi/any.crossing_wait.mp3",
+  "hash": "30e5074b55",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.greet_morning": {
+  "file": "/audio/dialogues/hindi/any.greet_morning.mp3",
+  "hash": "e54eff1d85",
+  "voice": "hi-IN-MadhurNeural"
+ },
+ "any.greet_evening": {
+  "file": "/audio/dialogues/hindi/any.greet_evening.mp3",
+  "hash": "407b0338d8",
   "voice": "hi-IN-MadhurNeural"
  }
 }
