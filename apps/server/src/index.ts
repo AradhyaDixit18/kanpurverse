@@ -9,6 +9,10 @@ import { openStorage, type PlayerDoc, type Storage } from "./storage";
 import { Room, Player } from "./room";
 
 const MSG_WINDOW_MS = 1000, MSG_MAX_PER_WINDOW = 60, MAX_MSG_BYTES = 4096;
+/** ALLOWED_ORIGINS entries: exact origin, "*" (any), or wildcard like "https://*.vercel.app" (any subdomain). */
+export function originAllowed(origin: string): boolean {
+  return CONFIG.allowedOrigins.some(a => a === "*" || a === origin || (a.includes("*") && new RegExp("^" + a.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[a-z0-9-]+") + "$", "i").test(origin)));
+}
 
 export async function startServer(opts: { port?: number; storage?: Storage } = {}) {
   const storage = opts.storage ?? await openStorage();
@@ -18,13 +22,13 @@ export async function startServer(opts: { port?: number; storage?: Storage } = {
 
   const http = createServer((req, res) => {
     const url = req.url ?? "/";
-    res.setHeader("Access-Control-Allow-Origin", CONFIG.allowedOrigins.includes(req.headers.origin ?? "") ? req.headers.origin! : CONFIG.allowedOrigins[0]);
+    const o = req.headers.origin ?? ""; res.setHeader("Access-Control-Allow-Origin", originAllowed(o) ? o : CONFIG.allowedOrigins[0]);
     if (url === "/health") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ ok: true, protocol: PROTOCOL_VERSION, storage: storage.kind, rooms: [...rooms.values()].map(r => ({ name: r.name, players: r.players.size })), uptime: process.uptime() })); }
     if (url.startsWith("/leaderboard")) { storage.leaderboard(20).then(lb => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(lb)); }); return; }
     res.writeHead(404); res.end();
   });
   const wss = new WebSocketServer({ server: http, maxPayload: MAX_MSG_BYTES, verifyClient: (info, cb) => {
-    const origin = info.origin ?? ""; const ok = !origin || CONFIG.allowedOrigins.includes(origin) || CONFIG.allowedOrigins.includes("*");
+    const origin = info.origin ?? ""; const ok = !origin || originAllowed(origin);
     if (!ok) log.warn("origin rejected", { origin }); cb(ok, 403, "origin");
   } });
 

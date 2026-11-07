@@ -43,3 +43,12 @@ describe("world", () => {
   it("missions reference existing givers; xp curve", () => { for (const m of MISSIONS) if (m.giver) expect(NPCS.some(n => n.id === m.giver)).toBe(true); expect(levelFromXp(0)).toBe(1); expect(levelFromXp(350)).toBe(2); expect(levelFromXp(5000)).toBeGreaterThan(5); });
   it("protocol rejects oversize chat and bad anims", () => { expect(C2S.safeParse({ t: "chat", text: "x".repeat(161) }).success).toBe(false); expect(C2S.safeParse({ t: "emote", anim: "fly" }).success).toBe(false); expect(C2S.safeParse({ t: "state", p: [0, 0, 0], ry: 0, anim: "walk", seq: 1 }).success).toBe(true); });
 });
+
+describe("server origin allow-list", () => {
+  it("supports exact, any and wildcard-subdomain entries", async () => {
+    process.env.ALLOWED_ORIGINS = "http://localhost:3000,https://*.vercel.app"; process.env.KV_NO_AUTOSTART = "1";
+    const { originAllowed } = await import("../apps/server/src/index");
+    expect(originAllowed("http://localhost:3000")).toBe(true); expect(originAllowed("https://kanpurverse-abc123-aradhu74s-projects.vercel.app")).toBe(true);
+    expect(originAllowed("https://evil.com")).toBe(false); expect(originAllowed("https://vercel.app.evil.com")).toBe(false);
+  });
+});

@@ -10,7 +10,7 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://kanpurverse.vercel.app
+        value: https://kanpurverse.vercel.app,https://*.vercel.app
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB
