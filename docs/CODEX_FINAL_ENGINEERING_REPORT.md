@@ -16,7 +16,7 @@ Status vocabulary: COMPLETED AND VERIFIED · IMPLEMENTED BUT NOT VERIFIED · PAR
 |---|---|---|---|
 | Typecheck | PASS | PASS | `npm run typecheck` / verification log |
 | Lint | PASS, two warnings | PASS, same two warnings | image optimization in landing; memo dependency in Props |
-| Tests | Initial native Rollup module missing; after local dependency repair 19/19 PASS | 70/70 PASS | `npm test`; five suites including actual Rapier WASM and real WebSocket clients |
+| Tests | Initial native Rollup module missing; after local dependency repair 19/19 PASS | 73/73 PASS | `npm test`; six suites including actual Rapier WASM and real WebSocket clients |
 | Production build | PASS | PASS | `npm run build`; `/play` ~150 kB first-load JS, not total assets or total game bundle |
 | OSM extract | PASS | unchanged, PASS | Python `--check`: 2,937 roads, 193 rails, 1,419 buildings, 49 crossings, seven stations |
 | Git whitespace | clean | PASS | `git diff --check` |
@@ -26,7 +26,7 @@ Full final verification log: `work/takeover/verify-final.log`. Native Rollup fix
 
 ## Defects, causes and repairs
 
-Full reproduction/expected/actual/source/cause/fix/regression records: `CODEX_DEFECT_INVENTORY.md` (KV-001–026).
+Full reproduction/expected/actual/source/cause/fix/regression records: `CODEX_DEFECT_INVENTORY.md` (KV-001–027).
 
 **COMPLETED AND VERIFIED in isolated automated regressions:**
 
@@ -36,6 +36,7 @@ Full reproduction/expected/actual/source/cause/fix/regression records: `CODEX_DE
 - Verified every vehicle category against a stationary on-foot capsule and verified character movement against a parked chassis. These are local collision fixtures, not a proof of networked moving-entity collision.
 - Character fixture verifies wall blocking, jump arc and return to aligned ground contact. Occupant collider disable/re-enable fixture passes.
 - Seat claims are idempotent/exclusive; failed requests preserve current occupancy; entry aligns occupant state; exit emits explicit correction. Rejected vehicle updates retain recovery timing; invalid quaternions/non-driver updates are rejected.
+- Corrected inward building-wall normals and downward road-corner normals without altering footprints/materials. Three geometry regressions fail on the old code and pass after the fix.
 - Turn lean is bounded; touch brake survives key polling and resets on cancel/blur; canvas listeners detach and rebind after unmount.
 - `dev:server` watch command starts successfully after subcommand ordering repair.
 
@@ -113,7 +114,7 @@ Owner-account GitHub API confirms repository push/admin permission and baseline 
 ## Milestone status and next gate
 
 1. Technical takeover — PARTIALLY IMPLEMENTED: local/code/document/Git/HTTP audit complete; authenticated deployment/Atlas dashboards and full conversation export unavailable/unreviewed.
-2. Critical repairs — PARTIALLY IMPLEMENTED: first batch with 70 passing tests; ambient/remote entity contact, safe exits, visible seat rigs, collision authority and browser playthroughs remain open.
+2. Critical repairs — PARTIALLY IMPLEMENTED: first batch with 73 passing tests; ambient/remote entity contact, safe exits, visible seat rigs, collision authority and browser playthroughs remain open.
 3. Visual/UI overhaul — NOT IMPLEMENTED as an overhaul.
 4. City simulation — PARTIALLY IMPLEMENTED (inherited); overhaul not started.
 5. Audio/missions — PARTIALLY IMPLEMENTED (inherited); current full playthrough not done.
@@ -128,3 +129,7 @@ Continue with P1 collision authority and safe exits, seat-local occupant renderi
 - [68779b8 — docs: record Codex takeover baseline and prioritized defect inventory](https://github.com/AradhyaDixit18/kanpurverse/commit/68779b857a8618afa8ce8ebc42bb3780d98d5c8a)
 - [05eeb80 — fix(server): preserve seat authority and reconcile vehicle exits](https://github.com/AradhyaDixit18/kanpurverse/commit/05eeb80b6655b42ec9dd998228cf4b0d5185948c)
 - [5b77947 — fix(game): stabilize fixed-step driving, prediction and character contacts](https://github.com/AradhyaDixit18/kanpurverse/commit/5b779471ab5bd4be7106cef9dfcb3673af6de587)
+
+- [ddbcba1 — correct facade and road-joint normals](https://github.com/AradhyaDixit18/kanpurverse/commit/ddbcba129a73a9b1a7a0d6f8795f280c0f40b0bf)
+
+Remote verification of first pushed batch (`e7c1163`): [GitHub CI passed](https://github.com/AradhyaDixit18/kanpurverse/actions/runs/42402139966); [Vercel preview build completed](https://vercel.com/aradhu74s-projects/kanpurverse/7nEPstHPwZ9Tr6MtsP7BZvM6Vbwt). This is build/deployment status, not independent gameplay verification, and predates the geometry follow-up. Final local `npm run verify` includes the geometry fix: 73 tests, typecheck, lint and production build passed. Main remains `4ae52721a94ebeca70705552db8a588954a8caa6` (verified with `git ls-remote`).

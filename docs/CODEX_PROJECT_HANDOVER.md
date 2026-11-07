@@ -60,3 +60,7 @@ See `CODEX_DEFECT_INVENTORY.md` for reproduction, causes, fixes and test scope; 
 ## First repair update
 
 See KV-001 through KV-017 for changes and limited verification scope. New findings include snapshot-prop transforms overwriting dynamic prediction (confirmed against installed Rapier wrapper), chassis Average friction combination, touch brake overwritten by keyboard polling, and canvas listeners not cleaned up on game remount. No production configuration was changed.
+
+Geometry follow-up (8 Nov): three failing baseline geometry tests confirmed inward building-wall normals for either polygon winding and downward road-joint normals. `worldGeometry.ts` now preserves the original footprint/UV/material pipeline with corrected winding. `tests/world-geometry.test.ts` verifies the fix; full suite now contains 73 tests.
+
+GitHub owner Keychain internet-password metadata lookup returned no accessible matching entry; no password/token contents requested. This is not proof that all residual Keychain items are absent. Detailed npm audit returned 14 advisories (8 moderate, 4 high, 2 critical), which supersedes the install-time count of 13.
