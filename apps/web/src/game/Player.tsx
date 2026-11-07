@@ -20,7 +20,7 @@ export const playerYaw = { v: 0 };
 export function Player() {
   const body = useRef<RapierRigidBody>(null); const vis = useRef<THREE.Group>(null);
   const { rapier, world } = useRapier(); const { camera, gl } = useThree();
-  const anim = useRef<AnimState>("idle"); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
+  const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
   const appearance = useStore(s => s.appearance); const name = useStore(s => s.name); const inVehicle = useStore(s => s.inVehicle);
   const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
@@ -51,14 +51,17 @@ export function Player() {
     // gravity / jump
     if (grounded.current && input.jump && !paused) { vy.current = JUMP_V; grounded.current = false; sfx.step(); }
     vy.current += GRAV * dt;
-    const desired = { x: mx * speed * dt, y: vy.current * dt, z: mz * speed * dt };
+    // smooth acceleration/deceleration so starts, stops and turns don't snap
+    const k = 1 - Math.exp(-dt * (moving ? 9 : 14)); vel.current.x += (mx * speed - vel.current.x) * k; vel.current.z += (mz * speed - vel.current.z) * k;
+    const desired = { x: vel.current.x * dt, y: vy.current * dt, z: vel.current.z * dt };
     const col = rb.collider(0); c.computeColliderMovement(col, desired); const mv = c.computedMovement();
     const p = rb.translation(); const np = { x: p.x + mv.x, y: p.y + mv.y, z: p.z + mv.z };
     grounded.current = c.computedGrounded(); if (grounded.current && vy.current < 0) vy.current = -0.5;
     rb.setNextKinematicTranslation(np); playerPos.set(np.x, np.y - 0.95, np.z);
     // animation state
     const now = performance.now();
-    if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (moving) anim.current = input.sprint ? "sprint" : speed === RUN ? "run" : "walk"; else anim.current = "idle";
+    const movingVis = Math.hypot(vel.current.x, vel.current.z) > 0.4;
+    if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
     if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); } }
     if (vis.current) { vis.current.position.copy(playerPos); vis.current.rotation.y = THREE.MathUtils.lerp(vis.current.rotation.y, playerYaw.v, 0.25) + 0 ; vis.current.rotation.y = lerpAngle(vis.current.rotation.y, playerYaw.v, 0.3); }
     // emotes
