@@ -59,7 +59,7 @@ export interface VehicleSnapshot { id: string; kind: VehicleKind; p: Vec3; q: [n
 export type VehicleKind = "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi";
 
 export type S2C =
-  | { t: "welcome"; id: string; token: string; name: string; profile: PlayerProfile; serverTime: number }
+  | { t: "welcome"; id: string; token: string; name: string; profile: PlayerProfile; serverTime: number; capabilities?: string[] }
   | { t: "joined"; room: string; players: PlayerSnapshot[]; vehicles: VehicleSnapshot[]; time: number /* world clock 0..1 */ }
   | { t: "snapshot"; time: number; players: PlayerSnapshot[]; vehicles: VehicleSnapshot[]; ack?: number }
   | { t: "player.join"; player: PlayerSnapshot }

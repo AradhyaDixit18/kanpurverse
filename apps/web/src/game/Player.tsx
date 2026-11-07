@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { RigidBody, CapsuleCollider, useRapier, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, type AnimState } from "@kanpurverse/shared";
+import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, type AnimState } from "@kanpurverse/shared";
 import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
@@ -119,6 +119,14 @@ export function Player() {
 
   function placeCamera(cam: THREE.Camera, w: typeof world, r: typeof rapier, target: THREE.Vector3, smooth: number, h: number) {
     camTarget.current.set(target.x, target.y + h, target.z);
+    const store = useStore.getState(); const occupiedVehicle = store.inVehicle ? store.vehicles[store.inVehicle] : undefined;
+    if (camYaw.mode === 3 && occupiedVehicle) {
+      const live = vehicleRuntime.get(occupiedVehicle.id); const rb = live ? w.getRigidBody(live.handle) : null;
+      const p = rb?.translation(), q = rb?.rotation(); const pose = vehicleSeatPose(occupiedVehicle.kind, store.seat ?? "driver");
+      const position = p ? [p.x, p.y, p.z] : occupiedVehicle.p; const rotation = q ? [q.x, q.y, q.z, q.w] : occupiedVehicle.q;
+      const eye = vehicleLocalToWorld(position, vehicleYaw(rotation), [pose.p[0], pose.p[1] + 1.28 * pose.scale, pose.p[2] + 0.08]);
+      camTarget.current.set(...eye);
+    }
     const yawEff = camYaw.v + (camYaw.lookBack ? Math.PI : 0);
     const dir = rayDir.current.set(Math.sin(yawEff) * Math.cos(camYaw.pitch), Math.sin(camYaw.pitch), Math.cos(yawEff) * Math.cos(camYaw.pitch));
     let dist = camYaw.dist;

@@ -30,3 +30,6 @@ export function vehicleExitCandidates(kind: VehicleKind, p: readonly number[], q
   const offsets = [[sideX * side, 0, doorZ], [-sideX * side, 0, doorZ], [0, 0, l / 2 + 0.7], [0, 0, -l / 2 - 0.7]];
   return offsets.map(local => { const pos = vehicleLocalToWorld(p, vehicleYaw(q), local); pos[1] = 0; return pos; });
 }
+
+/** Feature negotiation lets new previews fail closed against an older production backend. */
+export const VEHICLE_EXIT_CAPABILITY = "vehicle-exit-candidates-v1";

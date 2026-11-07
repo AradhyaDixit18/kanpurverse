@@ -1,6 +1,6 @@
 "use client";
 /** WebSocket client with reconnect, latency measurement and store wiring. Remote entities are interpolated in the renderer. */
-import { PROTOCOL_VERSION, MISSIONS, type C2S, type S2C, type PlayerSnapshot, type VehicleSnapshot, type AnimState } from "@kanpurverse/shared";
+import { PROTOCOL_VERSION, VEHICLE_EXIT_CAPABILITY, MISSIONS, type C2S, type S2C, type PlayerSnapshot, type VehicleSnapshot, type AnimState } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8787";
@@ -56,7 +56,12 @@ class NetClient {
     this.ws.onerror = () => { /* onclose follows */ };
   }
   disconnect() { this.wantOpen = false; clearInterval(this.watchdog); clearTimeout(this.reconnectTimer); this.ws?.close(); }
-  send(m: C2S) { if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m)); }
+  send(m: C2S) {
+    if (m.t === "vehicle.enter" && !useStore.getState().serverCapabilities.includes(VEHICLE_EXIT_CAPABILITY)) {
+      useStore.getState().set({ vehicleTransition: undefined });
+      useStore.getState().toast("Vehicle safety update required. Rejoin after the server is updated.", "error"); return;
+    }
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m)); }
   sendState(p: [number, number, number], ry: number, anim: AnimState) {
     const now = performance.now(); if (now - this.lastStateSend < 50) return; this.lastStateSend = now;
     this.send({ t: "state", p: [round(p[0]), round(p[1]), round(p[2])], ry: round(ry), anim, seq: ++this.seq });
@@ -68,7 +73,7 @@ class NetClient {
   private handle(m: S2C) {
     const s = useStore.getState();
     switch (m.t) {
-      case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
+      case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true, serverCapabilities: m.capabilities ?? [] }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
       case "joined": { remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
       case "snapshot": { const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
         const vehicles = { ...s.vehicles }; for (const v of m.vehicles) { vehicles[v.id] = v; if (v.driver !== s.selfId) { const b = vehicleBuf.get(v.id) ?? []; b.push({ t: now, p: v.p, q: v.q, v: v.v }); if (b.length > 6) b.shift(); vehicleBuf.set(v.id, b); } }

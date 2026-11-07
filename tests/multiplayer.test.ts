@@ -43,7 +43,7 @@ describe("multiplayer", () => {
   it("two clients join the same room and see each other", async () => {
     const a = new Client(port), b = new Client(port);
     await a.connect(); await b.connect();
-    const wa = await a.hello("Rad"); expect(wa.profile.coins).toBe(200);
+    const wa = await a.hello("Rad"); expect(wa.profile.coins).toBe(200); expect(wa.capabilities).toContain("vehicle-exit-candidates-v1");
     await b.hello("Priya");
     a.send({ t: "join", room: "kanpur-1" }); const ja = await a.wait(m => m.t === "joined"); expect(ja.players.map((p: Msg) => p.name)).toEqual(["Rad"]); expect(ja.vehicles.length).toBeGreaterThan(5);
     b.send({ t: "join", room: "kanpur-1" }); const jb = await b.wait(m => m.t === "joined"); expect(jb.players.map((p: Msg) => p.name).sort()).toEqual(["Priya", "Rad"]);

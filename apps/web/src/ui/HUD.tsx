@@ -121,6 +121,8 @@ function cmd(t: string) {
   if (map[c]) net.send({ t: "social", action: map[c] as never, target: target.id, reason: rest.slice(1).join(" ") || undefined });
 }
 
+const TouchButton = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button aria-label={label === "⏏" ? "Exit vehicle" : label === "🛑" ? "Brake" : label === "⤒" ? "Jump" : label} className={`tbtn ${cls}`} onClick={() => touchPress(code)} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
+
 function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat: () => void; onMap: () => void }) {
   const base = useRef<HTMLDivElement>(null); const knob = useRef<HTMLDivElement>(null); const joyId = useRef<number | null>(null); const lookId = useRef<number | null>(null); const last = useRef({ x: 0, y: 0 });
   const nearby = useStore(s => s.nearby); const inVehicle = useStore(s => s.inVehicle);
@@ -132,14 +134,14 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
     el.addEventListener("touchstart", start, { passive: true }); el.addEventListener("touchmove", move, { passive: true }); el.addEventListener("touchend", end); el.addEventListener("touchcancel", end);
     return () => { el.removeEventListener("touchstart", start); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", end); el.removeEventListener("touchcancel", end); };
   }, []);
-  const B = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button className={`tbtn ${cls}`} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
+
   return <>
     <div ref={base} className="joy"><div ref={knob} className="joy-knob" /></div>
     <div className="tbtns">
-      {nearby && <B code="KeyE" label={inVehicle ? "⏏" : "E"} cls="big accent" />}
-      {!inVehicle && <B code="Space" label="⤒" cls="big" />}
-      {inVehicle && <B code="KeyH" label="📯" />}{inVehicle && <B code="Space" label="🛑" />}
-      <B code="Digit1" label="👋" />
+      {(nearby || inVehicle) && <TouchButton code="KeyE" label={inVehicle ? "⏏" : "E"} cls="big accent" />}
+      {!inVehicle && <TouchButton code="Space" label="⤒" cls="big" />}
+      {inVehicle && <TouchButton code="KeyH" label="📯" />}{inVehicle && <TouchButton code="Space" label="🛑" />}
+      <TouchButton code="Digit1" label="👋" />
     </div>
     <div className="tbar"><button className="tbtn" onClick={onPause}>☰</button><button className="tbtn" onClick={onMap}>🗺</button><button className="tbtn" onClick={onChat}>💬</button></div>
   </>;

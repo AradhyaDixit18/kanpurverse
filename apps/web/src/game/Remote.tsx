@@ -20,6 +20,7 @@ function Remote({ snap }: { snap: PlayerSnapshot }) {
     g.current.position.lerp(new THREE.Vector3(target.p[0], target.p[1], target.p[2]), t);
     let d = target.ry - g.current.rotation.y; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; g.current.rotation.y += d * t;
   });
+  const seated = useStore(s => Object.values(s.vehicles).some(v => v.driver === snap.id || v.passenger === snap.id));
   const color = party.includes(snap.id) ? "#3d8bff" : friends.includes(snap.id) ? "#2e8b57" : "#fff";
-  return <group ref={g} position={snap.p} visible={!snap.vehicle}><Avatar appearance={snap.appearance} anim={snap.anim} name={snap.name} nameColor={color} /></group>;
+  return <group ref={g} position={snap.p} visible={!snap.vehicle && !seated}><Avatar appearance={snap.appearance} anim={snap.anim} name={snap.name} nameColor={color} /></group>;
 }

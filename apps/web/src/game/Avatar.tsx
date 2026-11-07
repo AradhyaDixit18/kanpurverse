@@ -44,7 +44,7 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
 export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }: { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string }) {
   const refs = { lArm: useRef<THREE.Group>(null), rArm: useRef<THREE.Group>(null), lFore: useRef<THREE.Group>(null), rFore: useRef<THREE.Group>(null), lLeg: useRef<THREE.Group>(null), rLeg: useRef<THREE.Group>(null), lShin: useRef<THREE.Group>(null), rShin: useRef<THREE.Group>(null), body: useRef<THREE.Group>(null), head: useRef<THREE.Group>(null) };
   const eyes = useRef<THREE.Group>(null); const blinkAt = useRef(2 + Math.random() * 4);
-  const t = useRef(Math.random() * 10); const cur = useRef<Pose>({ ...REST, la: [...REST.la], ra: [...REST.ra] }); const blend = useRef({ walk: 0 });
+  const t = useRef(Math.random() * 10); const cur = useRef<Pose>(poseFor(anim, 0, { walk: 0 })); const blend = useRef({ walk: 0 });
   const appKey = JSON.stringify(appearance);
   const mats = useMemo(() => ({
     skin: new THREE.MeshStandardMaterial({ color: SKIN[appearance.skin], roughness: 0.75 }),

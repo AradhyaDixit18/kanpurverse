@@ -1,7 +1,7 @@
 /** KanpurVerse multiplayer server — WebSocket, server-authoritative. Run: npm run dev:server (or tsx src/index.ts). */
 import { createServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import { C2S, PROTOCOL_VERSION, DEFAULT_APPEARANCE, SHOP_ITEMS, isValidName, type S2C } from "@kanpurverse/shared";
+import { C2S, VEHICLE_EXIT_CAPABILITY, PROTOCOL_VERSION, DEFAULT_APPEARANCE, SHOP_ITEMS, isValidName, type S2C } from "@kanpurverse/shared";
 import { CONFIG } from "./config";
 import { log } from "./log";
 import { issueToken, verifyToken, newUid } from "./auth";
@@ -66,7 +66,7 @@ export async function startServer(opts: { port?: number; storage?: Storage; exit
           // one connection per account: kick the older one
           for (const r of rooms.values()) { const dup = r.players.get(doc._id); if (dup) { dup.send({ t: "error", code: "replaced", message: "Signed in elsewhere" }); dup.ws.close(4006, "replaced"); } }
           player = new Player(ws, doc);
-          return send({ t: "welcome", id: player.id, token: issueToken(player.id), name: player.name, profile: player.profile, serverTime: now });
+          return send({ t: "welcome", id: player.id, token: issueToken(player.id), name: player.name, profile: player.profile, serverTime: now, capabilities: [VEHICLE_EXIT_CAPABILITY] });
         }
         if (!player) return send({ t: "error", code: "no_hello", message: "Send hello first" });
         if (m.t === "join") {
