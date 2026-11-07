@@ -18,6 +18,8 @@ export const sfx = {
   step: () => { const c = ac(); const b = c.createBuffer(1, 800, c.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3; const s = c.createBufferSource(); s.buffer = b; const g = c.createGain(); g.gain.value = 0.08 * vol(); const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 900; s.connect(f); f.connect(g); g.connect(master); s.start(); },
   doorOpen: () => { blip(300, 0.12, "triangle", 0.15); setTimeout(() => blip(220, 0.15, "triangle", 0.12), 90); },
   camera: () => { blip(2400, 0.03, "square", 0.1); setTimeout(() => blip(1800, 0.05, "square", 0.08), 40); },
+  trainHorn: () => { const c = ac(); const g = c.createGain(); g.gain.value = 0.3 * amb(); g.connect(master); for (const f of [220, 277, 330]) { const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900; o.connect(lp); lp.connect(g); o.start(); o.stop(c.currentTime + 1.6); } g.gain.setValueAtTime(0.3 * amb(), c.currentTime + 1.2); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.7); },
+  crossingBell: () => { blip(1760, 0.25, "triangle", 0.12); setTimeout(() => blip(1760, 0.25, "triangle", 0.12), 500); },
   engine(on: boolean, speed = 0) {
     if (!on && !engineOsc) return;
     const c = ac();

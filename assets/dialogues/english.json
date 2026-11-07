@@ -25,7 +25,7 @@
 
     { "id": "shop_gupta.greet_1", "npc": "shop_gupta", "category": "shop", "text": "Welcome! Naveen Market has everything. Kurta, shades, gamcha. Fair prices.", "voice": "english_male", "emotion": "warm" },
     { "id": "shop_gupta.greet_2", "npc": "shop_gupta", "category": "shop", "text": "Have a look. Buy if you like it, or just stay for chai.", "voice": "english_male", "emotion": "happy" },
-    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "Do me a favour? A box of laddus to V Square, still warm. Take a vehicle, two and a half minutes.", "voice": "english_male", "emotion": "neutral", "mission": "delivery_sweets" },
+    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "Do me a favour? A box of laddus to Z Square, still warm. Take a vehicle, two and a half minutes.", "voice": "english_male", "emotion": "neutral", "mission": "delivery_sweets" },
     { "id": "shop_gupta.done_1", "npc": "shop_gupta", "category": "mission_done", "text": "Delivered? Well done. Here's the money, and a laddu for you.", "voice": "english_male", "emotion": "happy" },
     { "id": "shop_gupta.idle_1", "npc": "shop_gupta", "category": "idle", "text": "Bargain if you like, but bargain with a smile.", "voice": "english_male", "emotion": "sly" },
 
@@ -40,7 +40,7 @@
     { "id": "ped_aman.greet_1", "npc": "ped_aman", "category": "greeting", "text": "Where've you been? Come on, let's hit the mall, a new showroom just opened.", "voice": "english_male", "emotion": "happy" },
     { "id": "ped_aman.greet_2", "npc": "ped_aman", "category": "greeting", "text": "Hey, what's the scene? All good?", "voice": "english_male", "emotion": "happy" },
     { "id": "ped_sunita.greet_1", "npc": "ped_sunita", "category": "greeting", "text": "Careful, beta. These auto drivers drive like they own the road.", "voice": "english_female", "emotion": "annoyed" },
-    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "V Square is that way, straight ahead.", "voice": "english_male", "emotion": "neutral" },
+    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "Z Square is that way, straight ahead.", "voice": "english_male", "emotion": "neutral" },
     { "id": "ped_rekha.greet_1", "npc": "ped_rekha", "category": "greeting", "text": "Hello! Heading to the station? The train's late, as always.", "voice": "english_female", "emotion": "happy" },
 
     { "id": "any.react_bump", "npc": "any", "category": "reaction", "text": "Hey, watch it!", "voice": "english_male", "emotion": "annoyed" },

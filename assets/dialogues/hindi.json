@@ -25,7 +25,7 @@
 
     { "id": "shop_gupta.greet_1", "npc": "shop_gupta", "category": "shop", "text": "आइए, नवीन मार्केट में सब मिलेगा। कुर्ता, चश्मा, गमछा। दाम सही हैं।", "roman": "Aaiye, Naveen Market mein sab milega. Kurta, chashma, gamcha. Daam sahi hain.", "emotion": "warm" },
     { "id": "shop_gupta.greet_2", "npc": "shop_gupta", "category": "shop", "text": "देख लीजिए, पसंद आए तो लीजिए।", "roman": "Dekh lijiye, pasand aaye to lijiye.", "emotion": "happy" },
-    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "एक काम करेंगे? लड्डू का डिब्बा वी स्क्वायर पहुँचाना है, गरम-गरम। गाड़ी से जाइए, ढाई मिनट में।", "roman": "Ek kaam karenge? Laddu ka dibba V Square pahunchana hai, garam-garam. Gaadi se jaaiye, dhai minute mein.", "emotion": "neutral", "mission": "delivery_sweets" },
+    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "एक काम करेंगे? लड्डू का डिब्बा ज़ेड स्क्वायर पहुँचाना है, गरम-गरम। गाड़ी से जाइए, ढाई मिनट में।", "roman": "Ek kaam karenge? Laddu ka dibba Z Square pahunchana hai, garam-garam. Gaadi se jaaiye, dhai minute mein.", "emotion": "neutral", "mission": "delivery_sweets" },
     { "id": "shop_gupta.done_1", "npc": "shop_gupta", "category": "mission_done", "text": "पहुँच गया? शाबाश। यह लीजिए पैसे, और एक लड्डू आपके लिए।", "roman": "Pahunch gaya? Shabash. Yeh lijiye paise, aur ek laddu aapke liye.", "emotion": "happy" },
     { "id": "shop_gupta.idle_1", "npc": "shop_gupta", "category": "idle", "text": "मोलभाव कीजिए, पर मुस्कुरा कर।", "roman": "Molbhaav kijiye, par muskura kar.", "emotion": "sly" },
 
@@ -40,7 +40,7 @@
     { "id": "ped_aman.greet_1", "npc": "ped_aman", "category": "greeting", "text": "कहाँ थे आप? चलिए, मॉल चलते हैं, नया शोरूम खुला है।", "roman": "Kahan the aap? Chaliye, mall chalte hain, naya showroom khula hai.", "emotion": "happy" },
     { "id": "ped_aman.greet_2", "npc": "ped_aman", "category": "greeting", "text": "और, क्या चल रहा है? सब ठीक?", "roman": "Aur, kya chal raha hai? Sab theek?", "emotion": "happy" },
     { "id": "ped_sunita.greet_1", "npc": "ped_sunita", "category": "greeting", "text": "बेटा, ज़रा संभल कर, ऑटो वाले बहुत तेज़ चलाते हैं।", "roman": "Beta, zara sambhal kar, auto waale bahut tez chalaate hain.", "emotion": "annoyed" },
-    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "वी स्क्वायर उस तरफ है, सीधे जाइए।", "roman": "V Square us taraf hai, seedhe jaaiye.", "emotion": "neutral" },
+    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "ज़ेड स्क्वायर उस तरफ है, सीधे जाइए।", "roman": "Z Square us taraf hai, seedhe jaaiye.", "emotion": "neutral" },
     { "id": "ped_rekha.greet_1", "npc": "ped_rekha", "category": "greeting", "text": "नमस्ते! स्टेशन जा रहे हैं? ट्रेन लेट है, हमेशा की तरह।", "roman": "Namaste! Station ja rahe hain? Train late hai, hamesha ki tarah.", "emotion": "happy" },
 
     { "id": "any.react_bump", "npc": "any", "category": "reaction", "text": "अरे, देख कर चलिए!", "roman": "Arre, dekh kar chaliye!", "emotion": "annoyed" },

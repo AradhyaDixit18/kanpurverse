@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { NPCS, ROADS, type NpcDef, type Appearance, type AnimState, type DialogueLine } from "@kanpurverse/shared";
+import { NPCS, type NpcDef, type Appearance, type AnimState, type DialogueLine } from "@kanpurverse/shared";
+import { roadsNear, getRoads, segPoint, segYaw, roadsVersion, onRoadsChange, type Seg } from "./roads";
 import { Avatar } from "./Avatar";
 import { playerPos } from "./Player";
 import { useStore } from "../state/store";
@@ -21,20 +22,21 @@ function appearanceFor(seed: number, role: NpcDef["role"], female: boolean): App
 
 export function NPCs() { const q = useStore(s => s.settings.quality); return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={q === "low" ? 6 : q === "medium" ? 14 : 22} /></>; }
 
-/** Ambient pedestrians walking the pavements (no dialogue, deterministic). */
+/** Ambient pedestrians walking the pavements near the player (no dialogue, deterministic). */
 function Crowd({ n }: { n: number }) {
-  const walkers = useMemo(() => Array.from({ length: n }, (_, i) => { const road = ROADS[i % ROADS.length]; const side = i % 2 ? 1 : -1; const h = road.a[1] === road.b[1]; const off = (road.w / 2 + 1.6) * side; const len = Math.hypot(road.b[0] - road.a[0], road.b[1] - road.a[1]);
-    return { road, h, off, len, start: (i * 83) % len, speed: 1 + (i % 3) * 0.25, dir: i % 3 === 0 ? -1 : 1, app: appearanceFor(100 + i, "pedestrian", i % 2 === 1) }; }), [n]);
-  return <>{walkers.map((w, i) => <Walker key={i} w={w} />)}</>;
+  const [ver, setVer] = useState(roadsVersion()); useEffect(() => onRoadsChange(() => setVer(roadsVersion())), []);
+  const [center, setCenter] = useState<[number, number]>([playerPos.x, playerPos.z]); useFrame(() => { if (Math.hypot(playerPos.x - center[0], playerPos.z - center[1]) > 120) setCenter([playerPos.x, playerPos.z]); });
+  const walkers = useMemo(() => { const pool = roadsNear(center[0], center[1], 220).filter(s => s.len > 20 && s.cls !== "service"); const segs = pool.length ? pool : getRoads(); if (!segs.length) return [];
+    return Array.from({ length: n }, (_, i) => { const seg = segs[(i * 5) % segs.length]; const side = i % 2 ? 1 : -1; return { seg, off: (seg.w / 2 + 1.6) * side, start: (i * 83) % seg.len, speed: 1 + (i % 3) * 0.25, dir: i % 3 === 0 ? -1 : 1, app: appearanceFor(100 + i, "pedestrian", i % 2 === 1) }; }); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n, ver, center]);
+  return <>{walkers.map((w, i) => <Walker key={i + ":" + w.seg.a[0]} w={w} />)}</>;
 }
-function Walker({ w }: { w: { road: typeof ROADS[number]; h: boolean; off: number; len: number; start: number; speed: number; dir: number; app: Appearance } }) {
+function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: number; dir: number; app: Appearance } }) {
   const g = useRef<THREE.Group>(null);
-  useFrame(() => { if (!g.current) return; const t = useStore.getState().worldTime * 86400; const d = (w.start + t * w.speed) % (w.len * 2); const fwd = d < w.len; const s = fwd ? d : w.len * 2 - d; const dir = (fwd ? 1 : -1) * w.dir;
-    const x = w.h ? w.road.a[0] + (w.dir > 0 ? s : w.len - s) : w.road.a[0] + w.off, z = w.h ? w.road.a[1] + w.off : w.road.a[1] + (w.dir > 0 ? s : w.len - s);
-    g.current.position.set(x, 0, z); g.current.rotation.y = w.h ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI); });
+  useFrame(() => { if (!g.current) return; const t = useStore.getState().worldTime * 86400; const d = (w.start + t * w.speed) % (w.seg.len * 2); const fwd = d < w.seg.len; const s = fwd ? d : w.seg.len * 2 - d; const forward = (fwd ? 1 : -1) * w.dir > 0;
+    const [x, z] = segPoint(w.seg, w.dir > 0 ? s : w.seg.len - s, w.off); g.current.position.set(x, 0, z); g.current.rotation.y = segYaw(w.seg, forward); });
   return <group ref={g}><Avatar appearance={w.app} anim="walk" /></group>;
 }
-
 function NPC({ def }: { def: NpcDef }) {
   const g = useRef<THREE.Group>(null); const idx = useRef(1); const [anim, setAnim] = useState<AnimState>("idle"); const barkAt = useRef(performance.now() + 8000 + Math.random() * 15000);
   const female = /priya|sunita|rekha/.test(def.id);

@@ -1,7 +1,8 @@
 "use client";
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
 import { useEffect, useRef, useState } from "react";
-import { LANDMARKS, ROADS, MISSIONS, SHOP_ITEMS, WORLD_SIZE, type AnimState } from "@kanpurverse/shared";
+import { LANDMARKS, MISSIONS, SHOP_ITEMS, type AnimState } from "@kanpurverse/shared";
+import { getRoads, roadsNear } from "../game/roads";
 import { useStore } from "../state/store";
 import { net } from "../net/client";
 import { playerPos, playerYaw } from "../game/refs";
@@ -75,7 +76,7 @@ function Minimap() {
       const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const S = c.width; const R = 90; // metres radius
       x.clearRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); x.clip(); x.fillStyle = "rgba(11,11,13,0.7)"; x.fillRect(0, 0, S, S);
       const k = S / (R * 2); x.translate(S / 2, S / 2); x.rotate(-playerYaw.v); x.translate(-playerPos.x * k, -playerPos.z * k);
-      x.strokeStyle = "#555"; for (const r of ROADS) { x.lineWidth = r.w * k; x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
+      x.strokeStyle = "#666"; for (const r of roadsNear(playerPos.x, playerPos.z, R + 40)) { x.lineWidth = Math.max(1.5, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
       for (const l of LANDMARKS) { x.fillStyle = l.kind === "lake" ? "#2f6f8f" : l.kind === "park" ? "#3f6f3a" : "#8a8070"; x.beginPath(); x.arc(l.p[0] * k, l.p[1] * k, Math.min(l.r, 40) * k, 0, Math.PI * 2); x.fill(); }
       if (mission) { const cp = mission.def.checkpoints[mission.index]; x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 5, 0, Math.PI * 2); x.fill(); }
       for (const p of Object.values(players)) if (p.id !== selfId) { x.fillStyle = party.includes(p.id) ? "#3d8bff" : "#fff"; x.beginPath(); x.arc(p.p[0] * k, p.p[2] * k, 3, 0, Math.PI * 2); x.fill(); }
@@ -158,16 +159,16 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
 
 function MapPanel({ close }: { close: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null); const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  useEffect(() => { const c = ref.current!; const x = c.getContext("2d")!; const S = c.width; const k = S / (WORLD_SIZE + 60); x.fillStyle = "#1c1d22"; x.fillRect(0, 0, S, S); x.save(); x.translate(S / 2, S / 2);
-    x.fillStyle = "#2f6f8f"; x.fillRect(-S, -S / 2 - (WORLD_SIZE / 2 - 10) * k - 200, 2 * S, 200); // river
+  useEffect(() => { const c = ref.current!; const x = c.getContext("2d")!; const S = c.width; const SPAN = 2400; const k = S / SPAN; x.fillStyle = "#1c1d22"; x.fillRect(0, 0, S, S); x.save(); x.translate(S / 2, S / 2); x.translate(-playerPos.x * k, -playerPos.z * k);
     for (const l of LANDMARKS) { x.fillStyle = l.kind === "lake" ? "#2f6f8f" : l.kind === "park" ? "#3f6f3a" : l.kind === "ghat" ? "#c9b79c" : "#5a5248"; x.beginPath(); x.arc(l.p[0] * k, l.p[1] * k, Math.min(l.r, 45) * k, 0, Math.PI * 2); x.fill(); }
-    x.strokeStyle = "#777"; for (const r of ROADS) { x.lineWidth = Math.max(2, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
+    for (const r of getRoads()) { if (Math.abs(r.a[0] - playerPos.x) > SPAN || Math.abs(r.a[1] - playerPos.z) > SPAN) continue; x.strokeStyle = r.cls === "primary" || r.cls === "trunk" ? "#9a9a9a" : r.cls === "secondary" || r.cls === "tertiary" ? "#7a7a7a" : "#4a4a4f"; x.lineWidth = Math.max(1, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
+    x.fillStyle = "#fff"; x.font = "bold 11px Inter, system-ui"; x.textAlign = "left"; const seen = new Set<string>(); for (const r of getRoads()) { if (!r.name || seen.has(r.name) || r.len < 60 || Math.abs(r.a[0] - playerPos.x) > SPAN / 2 || Math.abs(r.a[1] - playerPos.z) > SPAN / 2) continue; seen.add(r.name); x.fillText(r.name, r.a[0] * k + 3, r.a[1] * k - 3); }
     x.fillStyle = "#fff"; x.font = "11px Inter, system-ui"; x.textAlign = "center"; for (const l of LANDMARKS) if (l.kind !== "park") x.fillText(s.settings.lang === "english" ? l.name : l.nameHi, l.p[0] * k, l.p[1] * k - 4);
     for (const m of MISSIONS) if (!s.profile?.missionsCompleted.includes(m.id)) { x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(m.start[0] * k, m.start[1] * k, 4, 0, Math.PI * 2); x.fill(); }
     if (s.mission) { const cp = s.mission.def.checkpoints[s.mission.index]; x.strokeStyle = "#ffd23f"; x.lineWidth = 2; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 8, 0, Math.PI * 2); x.stroke(); }
     for (const p of Object.values(s.players)) { x.fillStyle = p.id === s.selfId ? "#c8102e" : "#3d8bff"; x.beginPath(); x.arc(p.p[0] * k, p.p[2] * k, 4, 0, Math.PI * 2); x.fill(); }
     x.restore(); }, [s]);
-  return <><h2>{t("Kanpur — Civil Lines & Moti Jheel", "कानपुर — सिविल लाइंस और मोती झील")}</h2><canvas ref={ref} width={520} height={520} className="bigmap" /><p className="muted">{t("Fictionalised tribute to central Kanpur. Yellow dots: missions.", "मध्य कानपुर को काल्पनिक श्रद्धांजलि। पीले बिंदु: मिशन।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  return <><h2>{t("Kanpur — Civil Lines, The Mall, Kanpur Central", "कानपुर — सिविल लाइंस, मॉल रोड, कानपुर सेंट्रल")}</h2><canvas ref={ref} width={520} height={520} className="bigmap" /><p className="muted">{t("Map data © OpenStreetMap contributors (ODbL). Yellow dots: missions. 2.4 km view around you.", "नक्शा © OpenStreetMap contributors (ODbL)। पीले बिंदु: मिशन। आपके आसपास 2.4 किमी।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 
 function SocialPanel({ close }: { close: () => void }) {

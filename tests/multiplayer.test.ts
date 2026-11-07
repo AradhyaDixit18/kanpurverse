@@ -4,6 +4,8 @@ import WebSocket from "ws";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SPAWN_POINT, VEHICLE_SPAWNS, MISSIONS } from "../packages/shared/src/index";
+const SX = SPAWN_POINT[0], SZ = SPAWN_POINT[2];
 
 process.env.KV_NO_AUTOSTART = "1";
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "kv-"));
@@ -29,7 +31,7 @@ class Client {
     for (let i = 1; i <= n; i++) { const px = x + (to[0] - x) * i / n, pz = z + (to[1] - z) * i / n; this.state([px, 1, pz]); await new Promise(r => setTimeout(r, 100)); }
     this.pos = to;
   }
-  pos: [number, number] = [-10, 14];
+  pos: [number, number] = [SX, SZ];
   close() { this.ws.close(); }
 }
 
@@ -47,8 +49,8 @@ describe("multiplayer", () => {
     b.send({ t: "join", room: "kanpur-1" }); const jb = await b.wait(m => m.t === "joined"); expect(jb.players.map((p: Msg) => p.name).sort()).toEqual(["Priya", "Rad"]);
     const pj = await a.wait(m => m.t === "player.join"); expect(pj.player.name).toBe("Priya");
     // movement propagates through snapshots
-    a.state([-8, 1, 14]);
-    const snap = await b.wait(m => m.t === "snapshot" && m.players.some((p: Msg) => p.name === "Rad" && p.p[0] === -8));
+    a.state([SX + 2, 1, SZ]);
+    const snap = await b.wait(m => m.t === "snapshot" && m.players.some((p: Msg) => p.name === "Rad" && p.p[0] === SX + 2));
     expect(snap.players.length).toBe(2);
     // chat
     b.send({ t: "chat", text: "Ka ho bhaiya 9876543210 http://x.y" });
@@ -63,9 +65,8 @@ describe("multiplayer", () => {
   it("rejects teleport and keeps authoritative position", async () => {
     const a = new Client(port); await a.connect(); await a.hello("Cheater"); a.send({ t: "join", room: "anti" }); await a.wait(m => m.t === "joined");
     a.inbox.length = 0;
-    a.state([200, 1, 200]);  // 280 m in one tick
-    const snap = await a.wait(m => m.t === "snapshot" && m.players.length === 1);
-    expect(Math.abs(snap.players[0].p[0] - -10)).toBeLessThan(0.01);
+    a.state([SX + 200, 1, SZ + 200]);  // 280 m in one tick
+    const c = await a.wait(m => m.t === "correct"); expect(Math.abs(c.p[0] - SX)).toBeLessThan(0.01);
     a.close();
   });
 
@@ -73,24 +74,25 @@ describe("multiplayer", () => {
     const a = new Client(port), b = new Client(port); await a.connect(); await b.connect(); await a.hello("Driver"); await b.hello("Rider");
     a.send({ t: "join", room: "veh" }); await a.wait(m => m.t === "joined"); b.send({ t: "join", room: "veh" }); await b.wait(m => m.t === "joined");
     // walk to the auto at (44,10) in small steps (<= 9 m/s)
-    await Promise.all([a.walk([42, 12]), b.walk([42, 11])]);
+    const auto = VEHICLE_SPAWNS.find(v => v.id === "v_auto_1")!; await Promise.all([a.walk([auto.p[0] - 2, auto.p[1] + 2]), b.walk([auto.p[0] - 2, auto.p[1] + 1])]);
     a.send({ t: "vehicle.enter", id: "v_auto_1", seat: "driver" }); const vu = await a.wait(m => m.t === "vehicle.update"); expect(vu.vehicle.driver).toBe(a.id);
     b.send({ t: "vehicle.enter", id: "v_auto_1", seat: "driver" }); const err = await b.wait(m => m.t === "error"); expect(err.code).toBe("occupied");
     b.send({ t: "vehicle.enter", id: "v_auto_1", seat: "passenger" }); const vu2 = await b.wait(m => m.t === "vehicle.update" && m.vehicle.passenger === b.id); expect(vu2.vehicle.driver).toBe(a.id);
-    a.send({ t: "vehicle.state", id: "v_auto_1", p: [46, 0.6, 10], q: [0, 0, 0, 1], v: 5 });
-    const s = await b.wait(m => m.t === "snapshot" && m.vehicles.some((v: Msg) => v.id === "v_auto_1" && v.p[0] === 46));
-    expect(s.players.find((p: Msg) => p.id === b.id).p[0]).toBe(46); // passenger moves with the vehicle
+    a.send({ t: "vehicle.state", id: "v_auto_1", p: [auto.p[0] + 2, 0.6, auto.p[1]], q: [0, 0, 0, 1], v: 5 });
+    const s = await b.wait(m => m.t === "snapshot" && m.vehicles.some((v: Msg) => v.id === "v_auto_1" && v.p[0] === auto.p[0] + 2));
+    expect(s.players.find((p: Msg) => p.id === b.id).p[0]).toBe(auto.p[0] + 2); // passenger moves with the vehicle
     a.send({ t: "vehicle.exit" }); await a.wait(m => m.t === "vehicle.update" && !m.vehicle.driver);
     a.close(); b.close();
   });
 
   it("mission completes on the server and pays once at full rate; token reconnect restores profile", async () => {
     const a = new Client(port); await a.connect(); const w = await a.hello("Runner"); a.send({ t: "join", room: "mis" }); await a.wait(m => m.t === "joined");
+    const tut = MISSIONS.find(m => m.id === "tut_walk")!; await a.walk(tut.start);
     a.send({ t: "mission.start", id: "tut_walk" }); const st = await a.wait(m => m.t === "mission.update"); expect(st.status).toBe("started");
-    await a.walk([-30, 24]); await a.walk([0, -20]);
+    await a.walk(tut.checkpoints[0]); await a.walk(tut.checkpoints[1]);
     const cp = await a.wait(m => m.t === "mission.update" && m.status === "checkpoint"); expect(cp.index).toBe(1);
     await a.wait(m => m.t === "mission.update" && m.status === "checkpoint" && m.index === 2);
-    await a.walk([-62, -92]);
+    await a.walk(tut.checkpoints[2]);
     const done = await a.wait(m => m.t === "mission.update" && m.status === "completed"); expect(done.reward).toEqual({ coins: 100, xp: 50 });
     const prof = await a.wait(m => m.t === "profile"); expect(prof.profile.coins).toBe(300); expect(prof.profile.missionsCompleted).toEqual(["tut_walk"]);
     // checkpoint spoofing: can't claim checkpoint from far away
@@ -118,9 +120,9 @@ describe("multiplayer", () => {
 describe("reconciliation", () => {
   it("a rejected hop sends a correction and the player can keep moving afterwards (no permanent desync)", async () => {
     const a = new Client(port); await a.connect(); await a.hello("Hopper"); a.send({ t: "join", room: "recon" }); await a.wait(m => m.t === "joined"); a.inbox.length = 0;
-    a.state([-4, 1, 14]); const c = await a.wait(m => m.t === "correct"); expect(c.p[0]).toBeCloseTo(-10, 1);
-    await new Promise(r => setTimeout(r, 300)); a.state([-8, 1, 14]); // 2 m from the authoritative spot after 300 ms: must be accepted
-    const snap = await a.wait(m => m.t === "snapshot" && m.players[0].p[0] === -8); expect(snap.players[0].p[0]).toBe(-8);
+    a.state([SX + 6, 1, SZ]); const c = await a.wait(m => m.t === "correct"); expect(c.p[0]).toBeCloseTo(SX, 1);
+    await new Promise(r => setTimeout(r, 300)); a.state([SX + 2, 1, SZ]); // 2 m from the authoritative spot after 300 ms: must be accepted
+    const snap = await a.wait(m => m.t === "snapshot" && m.players[0].p[0] === SX + 2); expect(snap.players[0].p[0]).toBe(SX + 2);
     a.close();
   });
 });

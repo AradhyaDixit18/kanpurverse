@@ -3,7 +3,8 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { LANDMARKS, ROADS } from "@kanpurverse/shared";
+import { LANDMARKS, SPAWN_POINT } from "@kanpurverse/shared";
+import { getRoads, roadsNear, segPoint, segYaw, type Seg } from "./roads";
 import { useStore } from "../state/store";
 import { playerPos } from "./refs";
 
@@ -11,13 +12,16 @@ const seeded = (seed: number) => { let s = seed; return () => { s = (s * 1664525
 
 export function Animals() {
   const q = useStore(s => s.settings.quality);
-  const cows = useMemo(() => { const rnd = seeded(11); const spots: [number, number][] = [[-30, 36], [20, -40], [-150, 100], [100, 100], [-200, -150], [150, -60], [60, 150], [-100, 150]]; return spots.slice(0, q === "low" ? 4 : 8).map((p, i) => ({ p, color: ["#f5f0e6", "#d9c2a3", "#f5f0e6", "#8b6b4a", "#e8e4dc"][i % 5], phase: rnd() * 100, sits: i % 3 === 0 })); }, [q]);
-  const dogs = useMemo(() => { const rnd = seeded(31); return Array.from({ length: q === "low" ? 3 : 6 }, (_, i) => { const r = ROADS[i % ROADS.length]; const h = r.a[1] === r.b[1]; return { road: r, h, side: i % 2 ? 1 : -1, start: rnd() * 400, speed: 2.2 + rnd(), color: ["#c9a66b", "#3b2f2f", "#e8e4dc", "#8b6b4a"][i % 4] }; }); }, [q]);
+  const S: [number, number] = [SPAWN_POINT[0], SPAWN_POINT[2]];
+  const cows = useMemo(() => { const rnd = seeded(11); const spots: [number, number][] = [[S[0] - 30, S[1] + 36], [S[0] + 20, S[1] - 40], [S[0] - 150, S[1] + 100], [S[0] + 100, S[1] + 100], [S[0] - 200, S[1] - 150], [S[0] + 150, S[1] - 60], [S[0] + 60, S[1] + 150], [S[0] - 100, S[1] + 150]]; return spots.slice(0, q === "low" ? 4 : 8).map((p, i) => ({ p, color: ["#f5f0e6", "#d9c2a3", "#f5f0e6", "#8b6b4a", "#e8e4dc"][i % 5], phase: rnd() * 100, sits: i % 3 === 0 })); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+  const dogs = useMemo(() => { const rnd = seeded(31); const pool = roadsNear(S[0], S[1], 300).filter(s => s.len > 30); const segs = pool.length ? pool : getRoads(); if (!segs.length) return []; return Array.from({ length: q === "low" ? 3 : 6 }, (_, i) => ({ seg: segs[(i * 11) % segs.length], side: i % 2 ? 1 : -1, start: rnd() * 400, speed: 2.2 + rnd(), color: ["#c9a66b", "#3b2f2f", "#e8e4dc", "#8b6b4a"][i % 4] })); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
   return <>
     {cows.map((c, i) => <Cow key={i} {...c} />)}
     {dogs.map((d, i) => <Dog key={i} {...d} />)}
-    <Pigeons count={q === "low" ? 10 : 24} center={[0, -60]} />
-    <Pigeons count={q === "low" ? 8 : 18} center={[-120, -60]} />
+    <Pigeons count={q === "low" ? 10 : 24} center={[S[0] + 40, S[1] - 60]} />
+    <Pigeons count={q === "low" ? 8 : 18} center={[S[0] - 120, S[1] + 60]} />
     <Crows />
   </>;
 }
@@ -49,10 +53,10 @@ function Cow({ p, color, phase, sits }: { p: [number, number]; color: string; ph
   </group>;
 }
 
-function Dog({ road, h, side, start, speed, color }: { road: typeof ROADS[number]; h: boolean; side: number; start: number; speed: number; color: string }) {
-  const g = useRef<THREE.Group>(null); const legs = useRef<THREE.Mesh[]>([]); const len = Math.hypot(road.b[0] - road.a[0], road.b[1] - road.a[1]); const off = (road.w / 2 + 2.2) * side;
+function Dog({ seg, side, start, speed, color }: { seg: Seg; side: number; start: number; speed: number; color: string }) {
+  const g = useRef<THREE.Group>(null); const legs = useRef<THREE.Mesh[]>([]); const len = seg.len; const off = (seg.w / 2 + 2.2) * side;
   useFrame(() => { const t = useStore.getState().worldTime * 86400; if (!g.current) return; const d = (start + t * speed) % (len * 2); const fwd = d < len; const s = fwd ? d : len * 2 - d; const resting = Math.floor(t / 40 + start) % 4 === 0; const ss = resting ? Math.min(s, len - 1) : s;
-    const x = h ? road.a[0] + ss : road.a[0] + off, z = h ? road.a[1] + off : road.a[1] + ss; g.current.position.set(x, resting ? 0.2 : 0.42, z); g.current.rotation.y = h ? (fwd ? Math.PI / 2 : -Math.PI / 2) : (fwd ? 0 : Math.PI);
+    const [x, z] = segPoint(seg, ss, off); g.current.position.set(x, resting ? 0.2 : 0.42, z); g.current.rotation.y = segYaw(seg, fwd);
     legs.current.forEach((l, i) => { if (l) l.rotation.x = resting ? 1.3 : Math.sin(t * 9 + i * 1.5) * 0.6; }); });
   return <group ref={g}>
     <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.3, 0.3, 0.8]} /><meshStandardMaterial color={color} /></mesh>

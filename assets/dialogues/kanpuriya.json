@@ -25,7 +25,7 @@
 
     { "id": "shop_gupta.greet_1", "npc": "shop_gupta", "category": "shop", "text": "आइए आइए, नवीन मार्केट में सब मिलेगा। कुर्ता, चश्मा, गमछा। रेट एकदम सही।", "roman": "Aaiye aaiye, Naveen Market mein sab milega. Kurta, chashma, gamcha. Rate ekdum sahi.", "emotion": "warm" },
     { "id": "shop_gupta.greet_2", "npc": "shop_gupta", "category": "shop", "text": "देख लो, पसंद आए तो लो, नहीं तो चाय पी के जाओ।", "roman": "Dekh lo, pasand aaye to lo, nahi to chai pee ke jao.", "emotion": "happy" },
-    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "एक काम करोगे? लड्डू का डिब्बा वी स्क्वायर पहुँचाना है, गरम-गरम। गाड़ी लेके जाओ, ढाई मिनट में।", "roman": "Ek kaam karoge? Laddu ka dibba V Square pahunchana hai, garam-garam. Gaadi leke jao, dhai minute mein.", "emotion": "neutral", "mission": "delivery_sweets" },
+    { "id": "shop_gupta.offer_1", "npc": "shop_gupta", "category": "mission_offer", "text": "एक काम करोगे? लड्डू का डिब्बा ज़ेड स्क्वायर पहुँचाना है, गरम-गरम। गाड़ी लेके जाओ, ढाई मिनट में।", "roman": "Ek kaam karoge? Laddu ka dibba Z Square pahunchana hai, garam-garam. Gaadi leke jao, dhai minute mein.", "emotion": "neutral", "mission": "delivery_sweets" },
     { "id": "shop_gupta.done_1", "npc": "shop_gupta", "category": "mission_done", "text": "पहुँच गया? शाबाश बेटा। ये लो मिठाई का पैसा, और एक लड्डू तुम्हारे लिए।", "roman": "Pahunch gaya? Shabash beta. Ye lo mithai ka paisa, aur ek laddu tumhare liye.", "emotion": "happy" },
     { "id": "shop_gupta.idle_1", "npc": "shop_gupta", "category": "idle", "text": "मोलभाव करना हो तो करो, पर हँस के करो।", "roman": "Molbhaav karna ho to karo, par hans ke karo.", "emotion": "sly" },
 
@@ -40,7 +40,7 @@
     { "id": "ped_aman.greet_1", "npc": "ped_aman", "category": "greeting", "text": "भाई कहाँ था तू? चल, मॉल चलते हैं, नया शोरूम खुला है।", "roman": "Bhai kahan tha tu? Chal, mall chalte hain, naya showroom khula hai.", "emotion": "happy" },
     { "id": "ped_aman.greet_2", "npc": "ped_aman", "category": "greeting", "text": "अरे गुरु, क्या सीन है? सब मस्त?", "roman": "Arre guru, kya scene hai? Sab mast?", "emotion": "happy" },
     { "id": "ped_sunita.greet_1", "npc": "ped_sunita", "category": "greeting", "text": "बेटा, ज़रा बचके, सड़क पे ऑटो वाले ऐसे चलाते हैं जैसे बाप की सड़क हो।", "roman": "Beta, zara bachke, sadak pe auto waale aise chalaate hain jaise baap ki sadak ho.", "emotion": "annoyed" },
-    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "भैया ज़ेड स्क्वायर... मतलब वी स्क्वायर उधर है, सीधे जाओ।", "roman": "Bhaiya Z Square... matlab V Square udhar hai, seedhe jao.", "emotion": "neutral" },
+    { "id": "ped_vikas.greet_1", "npc": "ped_vikas", "category": "greeting", "text": "भैया ज़ेड स्क्वायर... मतलब ज़ेड स्क्वायर उधर है, सीधे जाओ।", "roman": "Bhaiya Z Square... matlab Z Square udhar hai, seedhe jao.", "emotion": "neutral" },
     { "id": "ped_rekha.greet_1", "npc": "ped_rekha", "category": "greeting", "text": "नमस्ते! स्टेशन जा रहे हो? ट्रेन लेट है वैसे, हमेशा की तरह।", "roman": "Namaste! Station ja rahe ho? Train late hai waise, hamesha ki tarah.", "emotion": "happy" },
 
     { "id": "any.react_bump", "npc": "any", "category": "reaction", "text": "अरे देख के भैया!", "roman": "Arre dekh ke bhaiya!", "emotion": "annoyed" },
