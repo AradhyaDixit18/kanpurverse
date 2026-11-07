@@ -132,7 +132,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
     el.addEventListener("touchstart", start, { passive: true }); el.addEventListener("touchmove", move, { passive: true }); el.addEventListener("touchend", end); el.addEventListener("touchcancel", end);
     return () => { el.removeEventListener("touchstart", start); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", end); el.removeEventListener("touchcancel", end); };
   }, []);
-  const B = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button className={`tbtn ${cls}`} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.jump = true; }} onTouchEnd={() => { if (code === "Space") input.jump = false; }}>{label}</button>;
+  const B = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button className={`tbtn ${cls}`} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
   return <>
     <div ref={base} className="joy"><div ref={knob} className="joy-knob" /></div>
     <div className="tbtns">

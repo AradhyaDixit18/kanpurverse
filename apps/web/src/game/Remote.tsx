@@ -21,5 +21,5 @@ function Remote({ snap }: { snap: PlayerSnapshot }) {
     let d = target.ry - g.current.rotation.y; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; g.current.rotation.y += d * t;
   });
   const color = party.includes(snap.id) ? "#3d8bff" : friends.includes(snap.id) ? "#2e8b57" : "#fff";
-  return <group ref={g} position={snap.p} visible={!snap.vehicle || snap.seat === "passenger"}><Avatar appearance={snap.appearance} anim={snap.anim} name={snap.name} nameColor={color} /></group>;
+  return <group ref={g} position={snap.p} visible={!snap.vehicle}><Avatar appearance={snap.appearance} anim={snap.anim} name={snap.name} nameColor={color} /></group>;
 }

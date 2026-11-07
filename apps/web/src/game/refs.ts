@@ -4,3 +4,6 @@ export const playerPos = { x: -10, y: 1, z: 14, set(x: number, y: number, z: num
 export const playerYaw = { v: 0 };
 export const vehicleTelemetry = { speed: 0, kind: "" as string };
 export const npcPositions = new Map<string, { x: number; z: number }>();
+
+/** Predicted transforms and collider handles, independent of delayed network snapshots. */
+export const vehicleRuntime = new Map<string, { x: number; y: number; z: number; handle: number }>();

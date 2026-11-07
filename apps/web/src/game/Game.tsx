@@ -35,7 +35,7 @@ export function Game() {
   return (
     <Canvas shadows={quality !== "low"} dpr={quality === "high" ? [1, 2] : [0.75, 1.25]} camera={{ fov: 60, near: 0.1, far: 900, position: [0, 4, 10] }} gl={{ antialias: quality !== "low", powerPreference: "high-performance" }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
       <Suspense fallback={null}>
-        <Physics gravity={[0, -18, 0]} timeStep="vary">
+        <Physics gravity={[0, -18, 0]} timeStep={1 / 60}>
           <Sky /><Ibl /><GroundCollider /><Boundary name="world"><World /></Boundary><Player /><Boundary name="npcs"><NPCs /></Boundary><Vehicles /><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="animals"><Animals /></Boundary><RemotePlayers /><MissionMarkers /><Dust />
         </Physics>
       </Suspense>
