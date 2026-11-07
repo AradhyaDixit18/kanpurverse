@@ -9,7 +9,6 @@ const Text = (props: React.ComponentProps<typeof DreiText>) => <DreiText font={F
 import { ROADS, LANDMARKS, generateBuildings, WORLD_SIZE, type Building } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 
-const STYLE_COLORS = [0xd9c9b0, 0xe8d8c3, 0xc9b8a3, 0xbfb3a6, 0xe3c9a6];
 const SIGN_COLORS = ["#c8102e", "#1a3c8c", "#2e8b57", "#f2b134", "#7b2cbf"];
 
 export function City() {
@@ -24,51 +23,85 @@ export function City() {
       <Landmarks />
       <Trees count={quality === "low" ? 60 : quality === "medium" ? 140 : 240} />
       <StreetLights />
+      <Furniture />
       <WorldBounds />
     </group>
   );
 }
 
 function Ground() {
+  const tex = useMemo(() => { const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#8f8d6c"; x.fillRect(0, 0, 256, 256); for (let i = 0; i < 2600; i++) { x.fillStyle = `rgba(${60 + Math.random() * 60},${70 + Math.random() * 50},${30 + Math.random() * 30},${0.12 + Math.random() * 0.2})`; x.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 3); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(90, 90); t.colorSpace = THREE.SRGBColorSpace; return t; }, []);
   return (
     <RigidBody type="fixed" colliders={false}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}><planeGeometry args={[WORLD_SIZE + 400, WORLD_SIZE + 400]} /><meshStandardMaterial color="#8a8f6a" roughness={1} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}><planeGeometry args={[WORLD_SIZE + 400, WORLD_SIZE + 400]} /><meshStandardMaterial map={tex} roughness={1} /></mesh>
       <CuboidCollider args={[WORLD_SIZE, 0.5, WORLD_SIZE]} position={[0, -0.5, 0]} />
     </RigidBody>
   );
 }
 
+const asphaltTex = (() => { let t: THREE.Texture | null = null; return () => { if (t) return t; const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d")!; x.fillStyle = "#3b3b40"; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 1800; i++) { x.fillStyle = `rgba(${40 + Math.random() * 50},${40 + Math.random() * 50},${44 + Math.random() * 50},0.35)`; x.fillRect(Math.random() * 128, Math.random() * 128, 1.5, 1.5); } t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; }; })();
+const paveTex = (() => { let t: THREE.Texture | null = null; return () => { if (t) return t; const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#a39c8e"; x.fillRect(0, 0, 64, 64); x.strokeStyle = "#8a8275"; x.lineWidth = 2; x.strokeRect(1, 1, 30, 30); x.strokeRect(33, 1, 30, 30); x.strokeRect(1, 33, 30, 30); x.strokeRect(33, 33, 30, 30); t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; }; })();
+
 function Road({ a, b, w, name }: { a: [number, number]; b: [number, number]; w: number; name?: string }) {
   const horizontal = a[1] === b[1]; const len = Math.hypot(b[0] - a[0], b[1] - a[1]); const cx = (a[0] + b[0]) / 2, cz = (a[1] + b[1]) / 2;
   const dashes = useMemo(() => { const n = Math.floor(len / 8); return Array.from({ length: n }, (_, i) => -len / 2 + 4 + i * 8); }, [len]);
+  const road = useMemo(() => { const t = asphaltTex().clone(); t.needsUpdate = true; t.repeat.set(len / 6, w / 6); return t; }, [len, w]);
+  const pave = useMemo(() => { const t = paveTex().clone(); t.needsUpdate = true; t.repeat.set(len / 2, 1.5); return t; }, [len]);
+  // zebra crossings at every intersection with a crossing road
+  const crossings = useMemo(() => ROADS.filter(r => (r.a[1] === r.b[1]) !== horizontal).map(r => horizontal ? r.a[0] - cx : r.a[1] - cz).filter(x => Math.abs(x) < len / 2 - 5), [horizontal, cx, cz, len]);
   return (
     <group position={[cx, 0.02, cz]} rotation={[0, horizontal ? 0 : Math.PI / 2, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[len, w]} /><meshStandardMaterial color="#3a3a3e" roughness={0.95} /></mesh>
-      {/* pavements */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, w / 2 + 1.5]}><planeGeometry args={[len, 3]} /><meshStandardMaterial color="#9a9488" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, -w / 2 - 1.5]}><planeGeometry args={[len, 3]} /><meshStandardMaterial color="#9a9488" /></mesh>
-      {dashes.map((x, i) => <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, 0]}><planeGeometry args={[4, 0.25]} /><meshBasicMaterial color="#e8e8d8" /></mesh>)}
-      {name && <Text position={[-len / 2 + 20, 3.2, w / 2 + 2.2]} rotation={[0, Math.PI, 0]} fontSize={1.1} color="#ffffff" outlineWidth={0.05} outlineColor="#0b0b0d" anchorX="center">{name}</Text>}
-      {name && <mesh position={[-len / 2 + 20, 1.6, w / 2 + 2.2]}><cylinderGeometry args={[0.06, 0.06, 3.2]} /><meshStandardMaterial color="#444" /></mesh>}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[len, w]} /><meshStandardMaterial map={road} roughness={0.95} /></mesh>
+      {[1, -1].map(sg => <group key={sg}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.12, sg * (w / 2 + 1.6)]} receiveShadow><planeGeometry args={[len, 3.2]} /><meshStandardMaterial map={pave} roughness={0.9} /></mesh>
+        <mesh position={[0, 0.07, sg * (w / 2 + 0.08)]}><boxGeometry args={[len, 0.14, 0.18]} /><meshStandardMaterial color="#cfc8ba" /></mesh>{/* kerb */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, sg * (w / 2 - 0.3)]}><planeGeometry args={[len, 0.12]} /><meshBasicMaterial color="#d9d2b4" /></mesh>{/* edge line */}
+      </group>)}
+      {dashes.map((x, i) => <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, 0]}><planeGeometry args={[3.5, 0.22]} /><meshBasicMaterial color="#e8e2c6" /></mesh>)}
+      {crossings.map((x, i) => <group key={"z" + i}>{Array.from({ length: Math.floor(w / 1.2) }, (_, k) => <mesh key={k} rotation={[-Math.PI / 2, 0, 0]} position={[x + (horizontal ? 0 : 0) + 9, 0.035, -w / 2 + 0.9 + k * 1.2]}><planeGeometry args={[2.2, 0.6]} /><meshBasicMaterial color="#efe9d2" /></mesh>)}</group>)}
+      {name && <Text position={[-len / 2 + 20, 3.2, w / 2 + 2.2]} rotation={[0, Math.PI, 0]} fontSize={1.0} color="#ffffff" outlineWidth={0.05} outlineColor="#0b0b0d" anchorX="center">{name}</Text>}
+      {name && <><mesh position={[-len / 2 + 20, 1.6, w / 2 + 2.2]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[-len / 2 + 20, 3.2, w / 2 + 2.2]}><boxGeometry args={[7.5, 1.3, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh></>}
     </group>
   );
 }
 
+/** Per-building facade texture: window grid by floors, ground-floor shutters/shopfront, AC units, grime. Cached by key. */
+const facadeCache = new Map<string, THREE.Texture>();
+function facadeTexture(style: number, floors: number, cols: number, shop: boolean): THREE.Texture {
+  const key = `${style}-${floors}-${cols}-${shop ? 1 : 0}`; const hit = facadeCache.get(key); if (hit) return hit;
+  const W = 64 * cols, H = 48 * floors; const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d")!;
+  const base = ["#d9c9b0", "#e8d8c3", "#c9b8a3", "#bfb3a6", "#e3c9a6"][style]; x.fillStyle = base; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < W * H / 40; i++) { x.fillStyle = `rgba(60,40,20,${Math.random() * 0.08})`; x.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+  for (let f = 0; f < floors; f++) { const y0 = H - (f + 1) * 48; // floor f from ground
+    x.fillStyle = "rgba(0,0,0,0.12)"; x.fillRect(0, y0 + 46, W, 2); // slab line
+    for (let k = 0; k < cols; k++) { const x0 = k * 64;
+      if (f === 0 && shop) { x.fillStyle = ["#c8102e", "#1a3c8c", "#2e8b57", "#7b2cbf", "#f2b134"][(k + style) % 5]; x.fillRect(x0 + 4, y0 + 2, 56, 12); x.fillStyle = "#6b6f7a"; x.fillRect(x0 + 8, y0 + 16, 48, 30); x.fillStyle = "rgba(255,255,255,0.08)"; for (let s = 0; s < 6; s++) x.fillRect(x0 + 8, y0 + 18 + s * 5, 48, 1); }
+      else { x.fillStyle = "#2b3550"; x.fillRect(x0 + 16, y0 + 10, 32, 26); x.fillStyle = "rgba(140,190,255,0.35)"; x.fillRect(x0 + 18, y0 + 12, 13, 10); x.fillStyle = "#e9e2d2"; x.fillRect(x0 + 14, y0 + 36, 36, 3); x.fillStyle = base; x.fillRect(x0 + 31, y0 + 10, 2, 26);
+        if ((k * 7 + f * 3 + style) % 5 === 0) { x.fillStyle = "#cfd3d8"; x.fillRect(x0 + 50, y0 + 20, 10, 8); x.fillStyle = "#777"; x.fillRect(x0 + 52, y0 + 22, 6, 4); } // AC unit
+        if ((k + f) % 3 === 1 && f > 0) { x.fillStyle = "rgba(0,0,0,0.18)"; x.fillRect(x0 + 10, y0 + 38, 44, 8); x.fillStyle = "#8a7a66"; x.fillRect(x0 + 10, y0 + 40, 44, 2); } // balcony rail
+      } } }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; facadeCache.set(key, t); return t;
+}
+
 function Buildings({ list }: { list: Building[] }) {
-  const groups = useMemo(() => { const g: Record<number, Building[]> = {}; for (const b of list) (g[b.style] ??= []).push(b); return g; }, [list]);
-  const windowTex = useMemo(() => { const c = document.createElement("canvas"); c.width = 64; c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "#0000"; x.clearRect(0, 0, 64, 64); x.fillStyle = "rgba(40,50,70,0.85)"; x.fillRect(12, 12, 16, 20); x.fillRect(36, 12, 16, 20); x.fillRect(12, 40, 16, 20); x.fillRect(36, 40, 16, 20); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; }, []);
+  const items = useMemo(() => list.map(b => { const floors = Math.max(2, Math.round(b.h / 3.2)); const cols = Math.max(2, Math.round(b.w / 4)); const shop = !!b.sign || b.style % 2 === 0;
+    const front = facadeTexture(b.style, floors, cols, shop); const side = facadeTexture(b.style, floors, Math.max(2, Math.round(b.d / 4)), false);
+    const roof = new THREE.MeshStandardMaterial({ color: 0x7a736a, roughness: 1 }); const mf = new THREE.MeshStandardMaterial({ map: front, roughness: 0.9 }); const ms = new THREE.MeshStandardMaterial({ map: side, roughness: 0.9 });
+    return { b, mats: [ms, ms, roof, roof, mf, mf] as THREE.Material[], floors }; }), [list]);
   return (
     <group>
-      {Object.entries(groups).map(([style, bs]) => <InstancedBuildings key={style} color={STYLE_COLORS[Number(style)]} list={bs} tex={windowTex} />)}
+      {items.map(({ b, mats, floors }, i) => <group key={i} position={[b.p[0], 0, b.p[1]]}>
+        <mesh position={[0, b.h / 2, 0]} material={mats} castShadow receiveShadow><boxGeometry args={[b.w, b.h, b.d]} /></mesh>
+        <mesh position={[0, b.h + 0.3, 0]}><boxGeometry args={[b.w + 0.3, 0.6, b.d + 0.3]} /><meshStandardMaterial color="#b9ad99" /></mesh>{/* parapet */}
+        {i % 2 === 0 && <mesh position={[b.w * 0.25, b.h + 1.1, -b.d * 0.2]}><cylinderGeometry args={[0.7, 0.7, 1.2, 10]} /><meshStandardMaterial color="#111" /></mesh>}{/* water tank */}
+        {i % 3 === 0 && <mesh position={[-b.w * 0.25, b.h + 0.9, b.d * 0.2]}><boxGeometry args={[1.6, 0.6, 1.2]} /><meshStandardMaterial color="#6a7280" /></mesh>}
+        {b.sign && <mesh position={[0, 3.1, b.p[1] > 0 ? -b.d / 2 - 0.6 : b.d / 2 + 0.6]} rotation={[0.25 * (b.p[1] > 0 ? -1 : 1), 0, 0]}><boxGeometry args={[Math.min(b.w - 1, 8), 0.06, 1.4]} /><meshStandardMaterial color={["#c8102e", "#2e8b57", "#f2b134", "#1a3c8c"][floors % 4]} /></mesh>}{/* awning */}
+      </group>)}
       <RigidBody type="fixed" colliders={false}>
         {list.map((b, i) => <CuboidCollider key={i} args={[b.w / 2, b.h / 2, b.d / 2]} position={[b.p[0], b.h / 2, b.p[1]]} />)}
       </RigidBody>
     </group>
   );
-}
-function InstancedBuildings({ color, list, tex }: { color: number; list: Building[]; tex: THREE.Texture }) {
-  const ref = useMemo(() => { const m = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color, roughness: 0.9, map: tex }), list.length); const o = new THREE.Object3D(); list.forEach((b, i) => { o.position.set(b.p[0], b.h / 2, b.p[1]); o.scale.set(b.w, b.h, b.d); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.instanceMatrix.needsUpdate = true; m.castShadow = true; m.receiveShadow = true; return m; }, [color, list, tex]);
-  return <primitive object={ref} />;
 }
 function Signs({ list }: { list: Building[] }) {
   const lang = useStore(s => s.settings.lang);
@@ -139,4 +172,16 @@ function StreetLights() {
 function WorldBounds() {
   const h = WORLD_SIZE / 2;
   return <RigidBody type="fixed" colliders={false}><CuboidCollider args={[h, 20, 1]} position={[0, 10, h]} /><CuboidCollider args={[h, 20, 1]} position={[0, 10, -h - 40]} /><CuboidCollider args={[1, 20, h + 40]} position={[h, 10, 0]} /><CuboidCollider args={[1, 20, h + 40]} position={[-h, 10, 0]} /></RigidBody>;
+}
+
+function Furniture() {
+  const spots = useMemo(() => { const out: { p: [number, number]; r: number; kind: "bench" | "stall" | "bin" }[] = [];
+    for (const l of LANDMARKS) if (l.kind === "park") for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; out.push({ p: [l.p[0] + Math.cos(a) * (l.r - 6), l.p[1] + Math.sin(a) * (l.r - 6)], r: -a + Math.PI / 2, kind: "bench" }); }
+    for (const r of ROADS) { const len = Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]); for (let d = 40; d < len; d += 70) { const x = r.a[0] + (r.b[0] - r.a[0]) * d / len, z = r.a[1] + (r.b[1] - r.a[1]) * d / len; const h = r.a[1] === r.b[1]; out.push({ p: h ? [x, z - r.w / 2 - 2.4] : [x - r.w / 2 - 2.4, z], r: h ? 0 : Math.PI / 2, kind: d % 140 === 40 ? "stall" : "bin" }); } }
+    return out; }, []);
+  return <group>{spots.map((s, i) => <group key={i} position={[s.p[0], 0, s.p[1]]} rotation={[0, s.r, 0]}>
+    {s.kind === "bench" && <><mesh position={[0, 0.45, 0]} castShadow><boxGeometry args={[1.8, 0.08, 0.5]} /><meshStandardMaterial color="#8b5a2b" /></mesh><mesh position={[0, 0.75, -0.22]}><boxGeometry args={[1.8, 0.5, 0.06]} /><meshStandardMaterial color="#8b5a2b" /></mesh>{[-0.7, 0.7].map(x => <mesh key={x} position={[x, 0.22, 0]}><boxGeometry args={[0.08, 0.45, 0.45]} /><meshStandardMaterial color="#333" /></mesh>)}</>}
+    {s.kind === "bin" && <mesh position={[0, 0.45, 0]}><cylinderGeometry args={[0.28, 0.24, 0.9, 10]} /><meshStandardMaterial color="#2e7d4f" /></mesh>}
+    {s.kind === "stall" && <><mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[1.8, 1, 1]} /><meshStandardMaterial color="#5a7fb8" /></mesh><mesh position={[0, 1.95, 0]}><boxGeometry args={[2.2, 0.06, 1.6]} /><meshStandardMaterial color="#f2b134" /></mesh>{[-0.9, 0.9].map(x => <mesh key={x} position={[x, 1.45, 0.6]}><cylinderGeometry args={[0.03, 0.03, 1.1]} /><meshStandardMaterial color="#333" /></mesh>)}{[-0.7, 0.7].map(x => <mesh key={x} position={[x, 0.2, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.2, 0.2, 0.1, 10]} /><meshStandardMaterial color="#111" /></mesh>)}</>}
+  </group>)}</group>;
 }

@@ -17,9 +17,10 @@ class NetClient {
   }
   private open() {
     const st = useStore.getState();
+    st.set({ loadStage: "connecting" });
     try { this.ws = new WebSocket(WS_URL); } catch { st.set({ screen: "error", errorText: `Could not open a connection to ${WS_URL}` }); return; }
     this.ws.onopen = () => {
-      this.retry = 0;
+      this.retry = 0; useStore.getState().set({ loadStage: "auth" });
       this.send({ t: "hello", v: PROTOCOL_VERSION, token: st.token, guestName: st.name || undefined, appearance: st.appearance, lang: st.settings.lang });
       this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), 3000);
     };
@@ -27,7 +28,7 @@ class NetClient {
     this.ws.onclose = (ev) => {
       clearInterval(this.pingTimer); useStore.getState().set({ connected: false });
       if (ev.code === 4003 || ev.code === 4005 || ev.code === 4006) { useStore.getState().set({ screen: "error", errorText: ev.reason === "replaced" ? "You signed in from another tab." : "You were removed from the server." }); this.wantOpen = false; return; }
-      if (this.wantOpen) { const delay = Math.min(8000, 500 * 2 ** this.retry++); useStore.getState().toast(`Reconnecting in ${Math.round(delay / 1000)}s…`, "error"); setTimeout(() => this.wantOpen && this.open(), delay); }
+      if (this.wantOpen) { if (this.retry >= 6 && useStore.getState().screen === "loading") { useStore.getState().set({ screen: "error", errorText: "The game server did not answer. It may be asleep or offline." }); this.wantOpen = false; return; } const delay = Math.min(8000, 500 * 2 ** this.retry++); useStore.getState().toast(`Reconnecting in ${Math.round(delay / 1000)}s…`, "error"); setTimeout(() => this.wantOpen && this.open(), delay); }
     };
     this.ws.onerror = () => { /* onclose follows */ };
   }
@@ -44,8 +45,8 @@ class NetClient {
   private handle(m: S2C) {
     const s = useStore.getState();
     switch (m.t) {
-      case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); this.send({ t: "join", room: this.room }); break;
-      case "joined": { const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
+      case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
+      case "joined": { const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
       case "snapshot": { const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
         const vehicles = { ...s.vehicles }; for (const v of m.vehicles) { vehicles[v.id] = v; if (v.driver !== s.selfId) { const b = vehicleBuf.get(v.id) ?? []; b.push({ t: now, p: v.p, q: v.q, v: v.v }); if (b.length > 6) b.shift(); vehicleBuf.set(v.id, b); } }
         // self correction: if server disagrees strongly, snap (handled in controller via players[selfId])

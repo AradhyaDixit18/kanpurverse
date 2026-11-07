@@ -8,11 +8,13 @@ import { playerPos, playerYaw } from "../game/Player";
 import { input, touchPress, once } from "../game/input";
 import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
+import { vehicleTelemetry } from "../game/Vehicles";
+import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help">(null);
+  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory">(null);
   const [showChat, setShowChat] = useState(false);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -21,6 +23,7 @@ export function HUD() {
       if (e.code === "KeyM") setPanel(p => p === "map" ? null : "map"); if (e.code === "Tab") { e.preventDefault(); setPanel(p => p === "social" ? null : "social"); }
       if (e.code === "Enter" || e.code === "KeyT") { setShowChat(true); if (document.pointerLockElement) document.exitPointerLock(); }
       if (e.code === "F1") { e.preventDefault(); setPanel(p => p === "help" ? null : "help"); }
+      if (e.code === "KeyI") setPanel(p => p === "inventory" ? null : "inventory");
     };
     window.addEventListener("keydown", k);
     const shop = () => setPanel("shop"); const garage = () => setPanel("garage"); window.addEventListener("kv:shop", shop); window.addEventListener("kv:garage", garage);
@@ -36,7 +39,7 @@ export function HUD() {
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
       {/* top-left stats */}
       <div className="hud-stats">
-        <div className="hud-brand">KANPUR<span>VERSE</span></div>
+        <Logo size={14} />
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · {clock(s.worldTime)}</div>
       </div>
@@ -44,6 +47,7 @@ export function HUD() {
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
       {s.nearby && !s.dialogue && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
+      {s.inVehicle && s.seat === "driver" && <Speedo />}
       {s.inVehicle && <div className="hud-vehicle">{t("W/S drive · A/D steer · Space brake · H horn · F exit", "W/S चलाओ · A/D मोड़ो · Space ब्रेक · H हॉर्न · F बाहर")}</div>}
       {/* subtitles */}
       {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && <div className="roman">{sub.roman}</div>}</div>}
@@ -59,6 +63,7 @@ export function HUD() {
     </div>
   );
 }
+function Speedo() { const [v, setV] = useState(0); useEffect(() => { const i = setInterval(() => setV(Math.round(vehicleTelemetry.speed * 3.6)), 100); return () => clearInterval(i); }, []); return <div className="hud-speedo"><b>{v}</b><small>km/h</small><div className="speedo-bar" style={{ width: Math.min(100, v / 1.3) + "%" }} /></div>; }
 const clock = (t: number) => { const h = Math.floor(t * 24), mm = Math.floor((t * 24 - h) * 60); return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`; };
 const dist = (p: [number, number]) => Math.round(Math.hypot(p[0] - playerPos.x, p[1] - playerPos.z));
 
@@ -120,7 +125,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
   </>;
 }
 
-function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help") => void }) {
+function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory") => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   return <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
     <div className="modal-card">
@@ -129,6 +134,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
           <button className="btn btn-accent" onClick={close}>{t("Resume", "जारी रखो")}</button>
           <button className="btn" onClick={() => open("map")}>{t("Map", "नक्शा")}</button>
           <button className="btn" onClick={() => open("social")}>{t("Players & party", "खिलाड़ी और पार्टी")}</button>
+          <button className="btn" onClick={() => open("inventory")}>{t("Inventory & character", "इन्वेंटरी और किरदार")}</button>
           <button className="btn" onClick={() => open("settings")}>{t("Settings", "सेटिंग्स")}</button>
           <button className="btn" onClick={() => open("help")}>{t("Controls & help", "कंट्रोल और मदद")}</button>
           {s.mission && <button className="btn" onClick={() => { net.send({ t: "mission.abandon" }); close(); }}>{t("Abandon mission", "मिशन छोड़ो")}</button>}
@@ -144,6 +150,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
         <button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
       {kind === "social" && <SocialPanel close={close} />}
       {kind === "shop" && <ShopPanel close={close} />}
+      {kind === "inventory" && <ShopPanel close={close} inventory />}
       {kind === "garage" && <GaragePanel close={close} />}
     </div>
   </div>;
@@ -175,11 +182,12 @@ function SocialPanel({ close }: { close: () => void }) {
     <button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 
-function ShopPanel({ close }: { close: () => void }) {
+function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolean }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const equip = (slot: string, value: number) => { const a = { ...s.appearance, [slot]: value } as typeof s.appearance; s.set({ appearance: a }); s.saveLocal(); net.send({ t: "profile.update", appearance: a }); };
-  return <><h2>{t("Naveen Market", "नवीन मार्केट")} · 🪙 {s.profile?.coins}</h2><div className="shop">
-    {SHOP_ITEMS.map(it => { const owned = s.profile?.unlocked.includes(it.id); return <div key={it.id} className="shop-item"><b>{t(it.name, it.nameHi)}</b><span>{owned ? t("Owned", "आपका") : `${it.price} 🪙`}</span>
+  const items = inventory ? SHOP_ITEMS.filter(i => s.profile?.unlocked.includes(i.id)) : SHOP_ITEMS;
+  return <><h2>{inventory ? t("Inventory", "इन्वेंटरी") : t("Naveen Market", "नवीन मार्केट")} · 🪙 {s.profile?.coins}</h2>{inventory && <p className="muted">{t("Basic outfits are always available in Character. Items bought at Naveen Market appear here.", "बेसिक कपड़े हमेशा किरदार में हैं। नवीन मार्केट से खरीदी चीज़ें यहाँ दिखेंगी।")}</p>}{inventory && items.length === 0 && <p>{t("Nothing yet — earn coins from missions and visit Naveen Market.", "अभी कुछ नहीं — मिशन से सिक्के कमाओ और नवीन मार्केट जाओ।")}</p>}<div className="shop">
+    {items.map(it => { const owned = s.profile?.unlocked.includes(it.id); return <div key={it.id} className="shop-item"><b>{t(it.name, it.nameHi)}</b><span>{owned ? t("Owned", "आपका") : `${it.price} 🪙`}</span>
       {owned ? (it.slot === "top" || it.slot === "accessory") ? <button className="btn-sm" onClick={() => equip(it.slot, it.value)}>{t("Wear", "पहनो")}</button> : <span className="muted">✓</span> : <button className="btn-sm accent" onClick={() => { net.send({ t: "shop.buy", item: it.id }); sfx.coin(); }}>{t("Buy", "खरीदो")}</button>}</div>; })}
   </div><p className="muted">{t("Coins come from missions only. No real money anywhere in KanpurVerse.", "सिक्के सिर्फ़ मिशन से मिलते हैं। कानपुरवर्स में असली पैसा कहीं नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }

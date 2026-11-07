@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { LANDMARKS, MISSIONS } from "@kanpurverse/shared";
+import { Logo, Skyline } from "../src/ui/Brand";
 
 export default function Landing() {
   return (
     <main className="landing">
-      <header className="l-hero">
-        <div className="l-logo">KANPUR<span>VERSE</span></div>
+      <header className="l-hero"><Skyline />
+        <Logo size={44} />
         <h1>Apna shehar, apni duniya.</h1>
         <p className="l-sub">A free, browser-based multiplayer open world inspired by Kanpur. Walk Mall Road, drive an auto past Moti Jheel, talk to Kanpuriya NPCs in their own voice, and explore with friends. No download, no account.</p>
         <div className="l-cta"><Link className="btn btn-accent big" href="/play">Play now</Link><a className="btn" href="#how">How it works</a></div>

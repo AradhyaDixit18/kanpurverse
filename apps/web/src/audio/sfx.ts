@@ -6,6 +6,7 @@ let ctx: AudioContext | null = null; let master: GainNode; let musicGain: GainNo
 function ac() { if (!ctx) { ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)(); master = ctx.createGain(); master.connect(ctx.destination); musicGain = ctx.createGain(); musicGain.connect(master); } if (ctx.state === "suspended") ctx.resume(); return ctx; }
 export function unlockAudio() { ac(); if (!musicStarted) startMusic(); }
 function vol() { return useStore.getState().settings.sfx; }
+function amb() { return useStore.getState().settings.ambience; }
 
 function blip(freq: number, dur = 0.08, type: OscillatorType = "sine", gain = 0.2) {
   const c = ac(); const o = c.createOscillator(); const g = c.createGain(); o.type = type; o.frequency.value = freq; g.gain.value = gain * vol(); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur); o.connect(g); g.connect(master); o.start(); o.stop(c.currentTime + dur);
@@ -21,7 +22,7 @@ export const sfx = {
     if (!on && !engineOsc) return;
     const c = ac();
     if (on && !engineOsc) { engineOsc = c.createOscillator(); engineGain = c.createGain(); engineOsc.type = "sawtooth"; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 400; engineOsc.connect(f); f.connect(engineGain); engineGain.connect(master); engineGain.gain.value = 0; engineOsc.start(); }
-    if (engineOsc && engineGain) { engineOsc.frequency.setTargetAtTime(on ? 40 + speed * 4 : 30, c.currentTime, 0.1); engineGain.gain.setTargetAtTime(on ? (0.05 + Math.min(0.1, speed * 0.004)) * vol() : 0, c.currentTime, 0.15); }
+    if (engineOsc && engineGain) { engineOsc.frequency.setTargetAtTime(on ? 40 + speed * 4 : 30, c.currentTime, 0.1); engineGain.gain.setTargetAtTime(on ? (0.05 + Math.min(0.1, speed * 0.004)) * amb() : 0, c.currentTime, 0.15); }
     if (!on && engineOsc) { const o = engineOsc; engineOsc = null; setTimeout(() => { try { o.stop(); } catch { /* already */ } }, 500); }
   },
 };

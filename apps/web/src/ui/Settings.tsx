@@ -12,7 +12,9 @@ export function SettingsPanel() {
     <Row label={t("NPC voice", "एनपीसी आवाज़")}><input type="checkbox" checked={st.voice} onChange={e => set({ voice: e.target.checked })} /></Row>
     <Row label={t("Test voice", "आवाज़ सुनो")}><button className="btn-sm" type="button" onClick={() => { const l = linesFor(st.lang).find(x => x.id === "guide_babloo.greet_1"); if (l) speak(l, "guide_babloo"); }}>▶</button></Row>
     <Row label={t("Music", "संगीत")}><input type="range" min={0} max={1} step={0.05} value={st.music} onChange={e => set({ music: +e.target.value })} /></Row>
-    <Row label={t("Sound effects & voice volume", "ध्वनि और आवाज़")}><input type="range" min={0} max={1} step={0.05} value={st.sfx} onChange={e => set({ sfx: +e.target.value })} /></Row>
+    <Row label={t("Dialogue volume", "संवाद की आवाज़")}><input type="range" min={0} max={1} step={0.05} value={st.dialogue} onChange={e => set({ dialogue: +e.target.value })} /></Row>
+    <Row label={t("Environment sounds", "माहौल की आवाज़ें")}><input type="range" min={0} max={1} step={0.05} value={st.ambience} onChange={e => set({ ambience: +e.target.value })} /></Row>
+    <Row label={t("Sound effects", "ध्वनि प्रभाव")}><input type="range" min={0} max={1} step={0.05} value={st.sfx} onChange={e => set({ sfx: +e.target.value })} /></Row>
     <Row label={t("Graphics quality", "ग्राफ़िक्स")}><select value={st.quality} onChange={e => set({ quality: e.target.value as never })}><option value="low">{t("Low (phones)", "कम (फ़ोन)")}</option><option value="medium">{t("Medium", "मध्यम")}</option><option value="high">{t("High", "उच्च")}</option></select></Row>
     <Row label={t("Camera sensitivity", "कैमरा संवेदनशीलता")}><input type="range" min={0.3} max={2.5} step={0.1} value={st.sensitivity} onChange={e => set({ sensitivity: +e.target.value })} /></Row>
     <Row label={t("Invert camera Y", "कैमरा Y उल्टा")}><input type="checkbox" checked={st.invertY} onChange={e => set({ invertY: e.target.checked })} /></Row>
