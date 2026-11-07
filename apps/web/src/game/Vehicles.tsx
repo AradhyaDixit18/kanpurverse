@@ -32,6 +32,8 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
     if (isDriver) {
       pollKeys(); const paused = s.paused || !!s.dialogue;
       const fwd = paused ? 0 : input.fwd, st = paused ? 0 : input.right; const brake = input.jump && !paused;
+      // feedback from the physics step: if a wall/car stopped us, the commanded speed follows the real velocity (speedo stays honest)
+      { const lv = rb.linvel(); const actual = lv.x * Math.sin(yaw.current) + lv.z * Math.cos(yaw.current); if (Math.abs(actual) < Math.abs(speed.current) - 2) speed.current = THREE.MathUtils.lerp(speed.current, actual, 0.6); }
       // smooth throttle: accelerate toward target, natural drag, strong handbrake
       const drag = 0.9 + Math.abs(speed.current) * 0.06; const target = fwd > 0 ? spec.max : fwd < 0 ? -spec.max * 0.4 : 0;
       if (fwd !== 0 && !brake) speed.current += Math.sign(target - speed.current) * spec.accel * dt * (Math.abs(speed.current) < Math.abs(target) ? 1 : 0.5); else speed.current -= Math.sign(speed.current) * Math.min(Math.abs(speed.current), (brake ? 22 : drag) * dt);
