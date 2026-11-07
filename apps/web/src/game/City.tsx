@@ -1,6 +1,7 @@
 "use client";
 /** Procedural Kanpur-inspired district: roads, instanced buildings with signs, landmarks, lake, ghat, trees, street lights. Static colliders via Rapier. */
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
@@ -118,7 +119,8 @@ function Landmarks() {
   return <group>{LANDMARKS.map(l => {
     const label = <group position={[l.p[0], 9, l.p[1]]}><Text fontSize={2.2} color="#ffd23f" outlineWidth={0.1} outlineColor="#0b0b0d" anchorX="center">{lang === "english" ? l.name : l.nameHi}</Text></group>;
     switch (l.kind) {
-      case "lake": return <group key={l.id}><mesh position={[l.p[0], 0.05, l.p[1]]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[l.r, 48]} /><meshStandardMaterial color="#2f6f8f" roughness={0.2} metalness={0.3} /></mesh>
+      case "lake": return <group key={l.id}><Water position={[l.p[0], 0.05, l.p[1]]} shape="circle" size={l.r} color="#2b6b8c" />
+        <mesh position={[l.p[0], 0.04, l.p[1]]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[l.r, l.r + 2.5, 48]} /><meshStandardMaterial color="#c9b79c" /></mesh>{/* promenade */}
         <RigidBody type="fixed" colliders={false}><CuboidCollider args={[l.r * 0.72, 1, l.r * 0.72]} position={[l.p[0], -0.4, l.p[1]]} /></RigidBody>{label}</group>;
       case "park": return <mesh key={l.id} position={[l.p[0], 0.03, l.p[1]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><circleGeometry args={[l.r, 40]} /><meshStandardMaterial color="#5f8f4a" /></mesh>;
       case "mall": return <group key={l.id}><RigidBody type="fixed"><mesh position={[l.p[0], 14, l.p[1]]} castShadow><boxGeometry args={[l.r * 1.6, 28, l.r * 1.2]} /><meshStandardMaterial color="#d7dde6" metalness={0.4} roughness={0.3} /></mesh></RigidBody>
@@ -136,7 +138,7 @@ function Landmarks() {
         <RigidBody type="fixed" colliders={false}><CuboidCollider args={[120, 10, 5]} position={[l.p[0], 5, l.p[1] + 28]} /></RigidBody>
         {/* decorative train */}
         <group position={[l.p[0] - 30, 1.5, l.p[1] + 24]}>{Array.from({ length: 5 }, (_, i) => <mesh key={i} position={[i * 14, 0, 0]}><boxGeometry args={[13, 3.2, 3]} /><meshStandardMaterial color={i === 0 ? "#c8102e" : "#1a3c8c"} /></mesh>)}</group></group>;
-      case "ghat": return <group key={l.id}><mesh position={[0, 0.02, -300]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[800, 120]} /><meshStandardMaterial color="#3b7a9a" roughness={0.15} metalness={0.3} /></mesh>
+      case "ghat": return <group key={l.id}><Water position={[0, 0.02, -300]} shape="plane" size={800} depth={120} color="#3a7f9f" />
         {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0, 0.12 + i * 0.35, -241 - i * 1.2]} receiveShadow><boxGeometry args={[520, 0.35, 1.2]} /><meshStandardMaterial color="#c9b79c" /></mesh>)}
         <RigidBody type="fixed" colliders={false}><CuboidCollider args={[400, 2, 1]} position={[0, 1, -248]} /></RigidBody>
         {[-120, -40, 40, 120].map(x => <mesh key={x} position={[x, 3, -244]}><cylinderGeometry args={[0.3, 0.3, 6]} /><meshStandardMaterial color="#8b5a2b" /></mesh>)}{label}</group>;
@@ -184,4 +186,13 @@ function Furniture() {
     {s.kind === "bin" && <mesh position={[0, 0.45, 0]}><cylinderGeometry args={[0.28, 0.24, 0.9, 10]} /><meshStandardMaterial color="#2e7d4f" /></mesh>}
     {s.kind === "stall" && <><mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[1.8, 1, 1]} /><meshStandardMaterial color="#5a7fb8" /></mesh><mesh position={[0, 1.95, 0]}><boxGeometry args={[2.2, 0.06, 1.6]} /><meshStandardMaterial color="#f2b134" /></mesh>{[-0.9, 0.9].map(x => <mesh key={x} position={[x, 1.45, 0.6]}><cylinderGeometry args={[0.03, 0.03, 1.1]} /><meshStandardMaterial color="#333" /></mesh>)}{[-0.7, 0.7].map(x => <mesh key={x} position={[x, 0.2, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.2, 0.2, 0.1, 10]} /><meshStandardMaterial color="#111" /></mesh>)}</>}
   </group>)}</group>;
+}
+
+/** Animated water: scrolling procedural ripple normal map on a reflective standard material. */
+function Water({ position, shape, size, depth = size, color }: { position: [number, number, number]; shape: "circle" | "plane"; size: number; depth?: number; color: string }) {
+  const tex = useMemo(() => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d")!; x.fillStyle = "#8080ff"; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 900; i++) { const r = 2 + Math.random() * 6; const g = x.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, `rgba(${110 + Math.random() * 40},${110 + Math.random() * 40},255,0.5)`); g.addColorStop(1, "rgba(128,128,255,0)"); x.save(); x.translate(Math.random() * 128, Math.random() * 128); x.fillStyle = g; x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2); x.fill(); x.restore(); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(size / 10, depth / 10); return t; }, [size, depth]);
+  const tex2 = useMemo(() => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(size / 16, depth / 16); return t; }, [tex, size, depth]);
+  const m = useRef<THREE.MeshStandardMaterial>(null);
+  useFrame((_, dt) => { tex.offset.x += dt * 0.02; tex.offset.y += dt * 0.013; tex2.offset.x -= dt * 0.01; });
+  return <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>{shape === "circle" ? <circleGeometry args={[size, 48]} /> : <planeGeometry args={[size, depth]} />}<meshStandardMaterial ref={m} color={color} roughness={0.12} metalness={0.55} normalMap={tex} normalScale={new THREE.Vector2(0.35, 0.35)} transparent opacity={0.94} /></mesh>;
 }
