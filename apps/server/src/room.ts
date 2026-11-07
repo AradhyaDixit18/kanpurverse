@@ -8,7 +8,7 @@ import {
 import type { Storage, PlayerDoc } from "./storage";
 import { log } from "./log";
 
-const DAY_LENGTH_SEC = 20 * 60;   // one in-game day = 20 real minutes
+const IST_OFFSET_MS = 5.5 * 3600 * 1000; // Kanpur is UTC+5:30, no DST
 const TELEPORT_TOLERANCE = 2.5;   // metres of slack per check on top of max speed
 const CHAT_WINDOW_MS = 10_000, CHAT_MAX_PER_WINDOW = 5;
 
@@ -40,7 +40,8 @@ export class Room {
     }
     this.tick = setInterval(() => this.broadcastSnapshot(), 1000 / TICK_RATE);
   }
-  get time() { return ((Date.now() - this.createdAt) / 1000 / DAY_LENGTH_SEC + 0.3) % 1; }  // start at ~morning
+  /** World clock = real Kanpur (IST) time of day, 0..1. Day/night in the game matches the actual sky over Kanpur. */
+  get time() { return ((Date.now() + IST_OFFSET_MS) % 86400000) / 86400000; }
   get full() { return this.players.size >= this.maxPlayers; }
   isEmpty() { return this.players.size === 0; }
   destroy() { if (this.tick) clearInterval(this.tick); }

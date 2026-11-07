@@ -136,8 +136,7 @@ function Landmarks() {
         <mesh position={[l.p[0], 9, l.p[1] + 1.8]}><boxGeometry args={[40, 4, 0.3]} /><meshStandardMaterial color="#ffd23f" /></mesh>
         <Text position={[l.p[0], 9, l.p[1] + 1.6]} rotation={[0, Math.PI, 0]} fontSize={2.6} color="#0b0b0d" anchorX="center" anchorY="middle">{lang === "english" ? "KANPUR CENTRAL" : "कानपुर सेंट्रल"}</Text>
         <RigidBody type="fixed" colliders={false}><CuboidCollider args={[120, 10, 5]} position={[l.p[0], 5, l.p[1] + 28]} /></RigidBody>
-        {/* decorative train */}
-        <group position={[l.p[0] - 30, 1.5, l.p[1] + 24]}>{Array.from({ length: 5 }, (_, i) => <mesh key={i} position={[i * 14, 0, 0]}><boxGeometry args={[13, 3.2, 3]} /><meshStandardMaterial color={i === 0 ? "#c8102e" : "#1a3c8c"} /></mesh>)}</group></group>;
+        </group>;
       case "ghat": return <group key={l.id}><Water position={[0, 0.02, -300]} shape="plane" size={800} depth={120} color="#3a7f9f" />
         {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0, 0.12 + i * 0.35, -241 - i * 1.2]} receiveShadow><boxGeometry args={[520, 0.35, 1.2]} /><meshStandardMaterial color="#c9b79c" /></mesh>)}
         <RigidBody type="fixed" colliders={false}><CuboidCollider args={[400, 2, 1]} position={[0, 1, -248]} /></RigidBody>

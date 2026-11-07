@@ -10,7 +10,7 @@ export function Logo({ size = 48 }: { size?: number }) {
 export function Skyline() {
   return <div className="skyline" aria-hidden>
     <div className="sky-glow" /><div className="sun" />
-    <svg className="sky-svg" viewBox="0 0 1600 400" preserveAspectRatio="xMidYEnd slice">
+    <svg className="sky-svg" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice">
       <g className="layer far" fill="#2a1a24">
         <rect x="0" y="300" width="1600" height="100" /><rect x="60" y="230" width="60" height="80" /><rect x="140" y="250" width="90" height="60" /><rect x="260" y="200" width="40" height="110" /><rect x="330" y="240" width="120" height="70" />
         <path d="M520 310V250l25-30 25 30v60z" /><rect x="600" y="220" width="70" height="90" /><rect x="700" y="260" width="140" height="50" /><rect x="880" y="190" width="50" height="120" /><rect x="960" y="240" width="100" height="70" />

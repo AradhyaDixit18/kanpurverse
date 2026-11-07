@@ -41,7 +41,7 @@ export function HUD() {
       <div className="hud-stats">
         <Logo size={14} />
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
-        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · {clock(s.worldTime)}</div>
+        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {clock(s.worldTime)} {t("Kanpur", "कानपुर")}</div>
       </div>
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}

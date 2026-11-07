@@ -15,7 +15,11 @@ export function CharacterCreator({ onDone }: { onDone: () => void }) {
   const save = () => { const v = isValidName(name.trim()); if (!v.ok) { setErr(v.reason!); sfx.error(); return; } s.set({ appearance: a, name: name.trim() }); s.saveLocal(); sfx.ui(); onDone(); };
   const random = () => { const r = (n: number) => Math.floor(Math.random() * n); setA({ body: Math.random() < 0.5 ? "m" : "f", skin: r(6), hair: r(6), hairColor: r(5), top: r(5), bottom: r(6), shoes: r(4), accessory: r(4) }); sfx.ui(); };
   return <div className="screen creator">
-    <div className="creator-preview"><Canvas camera={{ position: [0, 1.6, 3.2], fov: 40 }} shadows><ambientLight intensity={0.8} /><directionalLight position={[3, 5, 4]} intensity={2} castShadow /><group position={[0, -0.9, 0]}><Avatar appearance={a} anim={anim} /></group><mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]} receiveShadow><circleGeometry args={[1.2, 32]} /><meshStandardMaterial color="#2a2b30" /></mesh><OrbitControls enablePan={false} target={[0, 0.1, 0]} minDistance={2} maxDistance={5} /></Canvas>
+    <div className="creator-preview"><Canvas camera={{ position: [0, 1.4, 3.4], fov: 38 }} shadows><color attach="background" args={["#15131a"]} /><ambientLight intensity={0.55} /><hemisphereLight args={["#ffd9c0", "#2a2030", 0.6]} /><spotLight position={[2.5, 5, 3]} angle={0.5} penumbra={0.6} intensity={40} castShadow color="#fff2e0" /><spotLight position={[-3, 3, -2]} angle={0.6} penumbra={0.8} intensity={14} color="#ff5a3c" /><pointLight position={[0, 1, -2.5]} intensity={6} color="#3d8bff" />
+            <group position={[0, -0.9, 0]}><Avatar appearance={a} anim={anim} /></group>
+            <mesh position={[0, -0.97, 0]} receiveShadow><cylinderGeometry args={[1.25, 1.35, 0.14, 48]} /><meshStandardMaterial color="#2a2b33" metalness={0.4} roughness={0.5} /></mesh>
+            <mesh position={[0, -0.895, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[1.15, 1.25, 48]} /><meshBasicMaterial color="#ff5a3c" /></mesh>
+            <OrbitControls enablePan={false} target={[0, 0.15, 0]} minDistance={2} maxDistance={5} autoRotate autoRotateSpeed={0.6} /></Canvas>
       <div className="anim-row">{(["idle", "walk", "wave", "dance", "celebrate"] as AnimState[]).map(x => <button key={x} className={`btn-sm ${anim === x ? "accent" : ""}`} onClick={() => setAnim(x)}>{x}</button>)}</div></div>
     <div className="creator-form">
       <h1>{t("Create your character", "अपना किरदार बनाओ")}</h1>

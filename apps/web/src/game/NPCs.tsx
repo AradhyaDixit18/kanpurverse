@@ -28,7 +28,7 @@ function Crowd({ n }: { n: number }) {
 }
 function Walker({ w }: { w: { road: typeof ROADS[number]; h: boolean; off: number; len: number; start: number; speed: number; dir: number; app: Appearance } }) {
   const g = useRef<THREE.Group>(null);
-  useFrame(() => { if (!g.current) return; const t = useStore.getState().worldTime * 1200; const d = (w.start + t * w.speed) % (w.len * 2); const fwd = d < w.len; const s = fwd ? d : w.len * 2 - d; const dir = (fwd ? 1 : -1) * w.dir;
+  useFrame(() => { if (!g.current) return; const t = useStore.getState().worldTime * 86400; const d = (w.start + t * w.speed) % (w.len * 2); const fwd = d < w.len; const s = fwd ? d : w.len * 2 - d; const dir = (fwd ? 1 : -1) * w.dir;
     const x = w.h ? w.road.a[0] + (w.dir > 0 ? s : w.len - s) : w.road.a[0] + w.off, z = w.h ? w.road.a[1] + w.off : w.road.a[1] + (w.dir > 0 ? s : w.len - s);
     g.current.position.set(x, 0, z); g.current.rotation.y = w.h ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI); });
   return <group ref={g}><Avatar appearance={w.app} anim="walk" /></group>;

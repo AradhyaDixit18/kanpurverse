@@ -18,7 +18,7 @@ export function Traffic() {
   return <>{cars.map((c, i) => <Car key={i} car={c} />)}</>;
 }
 
-const DAY_SEC = 20 * 60;
+const DAY_SEC = 86400;
 function Car({ car }: { car: Car }) {
   const g = useRef<THREE.Group>(null); const r = ROADS[car.road]; const len = Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]); const horizontal = r.a[1] === r.b[1];
   const laneOff = (r.w / 4) * car.lane;

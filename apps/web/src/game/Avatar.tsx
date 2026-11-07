@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoundedBox } from "@react-three/drei";
 import type { Appearance, AnimState } from "@kanpurverse/shared";
 
 export const SKIN = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0xa5673f, 0x8d5524, 0x5c3a21];
@@ -77,23 +78,23 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
     <group scale={scale}>
       <group ref={refs.body}>
         {/* torso */}
-        <mesh position={[0, 1.17, 0]} material={mats.top} castShadow><boxGeometry args={[torsoW, 0.56, 0.26, 2, 2, 2]} /></mesh>
-        <mesh position={[0, 1.42, 0]} material={mats.top}><boxGeometry args={[torsoW + 0.08, 0.1, 0.28]} /></mesh>{/* shoulders */}
-        {appearance.top === 5 && <mesh position={[0, 0.84, 0]} material={mats.top}><boxGeometry args={[hipW + 0.1, 0.22, 0.3]} /></mesh>}{/* kurta hem */}
-        {appearance.top === 6 && <mesh position={[0, 1.2, 0.135]} material={mats.topDark}><boxGeometry args={[0.16, 0.3, 0.01]} /></mesh>}{/* jersey stripe */}
-        {appearance.top === 7 && <mesh position={[0, 1.2, 0.135]} material={mats.topDark}><boxGeometry args={[0.06, 0.5, 0.01]} /></mesh>}{/* jacket zip */}
+        <RoundedBox position={[0, 1.17, 0]} material={mats.top} castShadow args={[torsoW, 0.56, 0.26]} radius={0.045} smoothness={3} />
+        <RoundedBox position={[0, 1.42, 0]} material={mats.top} args={[torsoW + 0.08, 0.1, 0.28]} radius={0.045} smoothness={3} />{/* shoulders */}
+        {appearance.top === 5 && <RoundedBox position={[0, 0.84, 0]} material={mats.top} args={[hipW + 0.1, 0.22, 0.3]} radius={0.045} smoothness={3} />}{/* kurta hem */}
+        {appearance.top === 6 && <RoundedBox position={[0, 1.2, 0.135]} material={mats.topDark} args={[0.16, 0.3, 0.01]} radius={0.045} smoothness={3} />}{/* jersey stripe */}
+        {appearance.top === 7 && <RoundedBox position={[0, 1.2, 0.135]} material={mats.topDark} args={[0.06, 0.5, 0.01]} radius={0.045} smoothness={3} />}{/* jacket zip */}
         <mesh position={[0, 1.48, 0]} material={mats.skin}><cylinderGeometry args={[0.07, 0.08, 0.1, 10]} /></mesh>{/* neck */}
         {/* hips */}
-        <mesh position={[0, 0.84, 0]} material={mats.bottom}><boxGeometry args={[hipW, 0.16, 0.26]} /></mesh>
+        <RoundedBox position={[0, 0.84, 0]} material={mats.bottom} args={[hipW, 0.16, 0.26]} radius={0.045} smoothness={3} />
         {/* head */}
         <group ref={refs.head} position={[0, 1.7, 0]}>
-          <mesh material={mats.skin} castShadow><boxGeometry args={[0.3, 0.33, 0.3, 2, 2, 2]} /></mesh>
-          <mesh position={[0, 0.135, -0.015]} material={mats.hair}><boxGeometry args={[0.33, appearance.hair === 0 ? 0.05 : appearance.hair === 3 ? 0.24 : 0.13, appearance.hair === 4 ? 0.35 : 0.33]} /></mesh>
-          {appearance.hair !== 0 && <mesh position={[0, 0.02, -0.14]} material={mats.hair}><boxGeometry args={[0.32, 0.22, 0.06]} /></mesh>}
-          {appearance.hair === 2 && <mesh position={[0, -0.12, -0.19]} material={mats.hair}><boxGeometry args={[0.2, 0.42, 0.08]} /></mesh>}
-          {appearance.hair === 5 && <mesh position={[0, -0.04, 0.1]} material={mats.hair}><boxGeometry args={[0.22, 0.1, 0.12]} /></mesh>}
+          <RoundedBox material={mats.skin} castShadow args={[0.3, 0.33, 0.3]} radius={0.1} smoothness={4} />
+          <RoundedBox position={[0, 0.135, -0.015]} material={mats.hair} args={[0.33, appearance.hair === 0 ? 0.05 : appearance.hair === 3 ? 0.24 : 0.13, appearance.hair === 4 ? 0.35 : 0.33]} radius={0.045} smoothness={3} />
+          {appearance.hair !== 0 && <RoundedBox position={[0, 0.02, -0.14]} material={mats.hair} args={[0.32, 0.22, 0.06]} radius={0.045} smoothness={3} />}
+          {appearance.hair === 2 && <RoundedBox position={[0, -0.12, -0.19]} material={mats.hair} args={[0.2, 0.42, 0.08]} radius={0.045} smoothness={3} />}
+          {appearance.hair === 5 && <RoundedBox position={[0, -0.04, 0.1]} material={mats.hair} args={[0.22, 0.1, 0.12]} radius={0.045} smoothness={3} />}
           {[-0.07, 0.07].map(x => <group key={x}><mesh position={[x, 0.03, 0.152]} material={mats.white}><boxGeometry args={[0.06, 0.05, 0.01]} /></mesh><mesh position={[x + 0.01, 0.03, 0.158]} material={mats.eye}><boxGeometry args={[0.03, 0.04, 0.01]} /></mesh></group>)}
-          <mesh position={[0, -0.02, 0.155]} material={mats.skin}><boxGeometry args={[0.05, 0.07, 0.03]} /></mesh>{/* nose */}
+          <RoundedBox position={[0, -0.02, 0.155]} material={mats.skin} args={[0.05, 0.07, 0.03]} radius={0.045} smoothness={3} />{/* nose */}
           <mesh position={[0, -0.09, 0.152]}><boxGeometry args={[0.08, 0.015, 0.01]} /><meshBasicMaterial color="#7a3b3b" /></mesh>{/* mouth */}
           {appearance.accessory === 1 && <mesh position={[0, 0.03, 0.165]} material={mats.acc}><boxGeometry args={[0.3, 0.075, 0.03]} /></mesh>}
           {appearance.accessory === 2 && <><mesh position={[0, 0.2, 0.02]} material={mats.acc}><boxGeometry args={[0.34, 0.08, 0.36]} /></mesh><mesh position={[0, 0.17, 0.22]} material={mats.acc}><boxGeometry args={[0.3, 0.02, 0.14]} /></mesh></>}
@@ -102,19 +103,19 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
         {/* arms: upper + forearm pivots */}
         {([["lArm", "lFore", -1], ["rArm", "rFore", 1]] as const).map(([a, f, sx]) => (
           <group key={a} ref={refs[a]} position={[sx * (torsoW / 2 + 0.08), 1.42, 0]}>
-            <mesh position={[0, -0.15, 0]} material={mats.top}><boxGeometry args={[0.13, 0.3, 0.13]} /></mesh>
+            <RoundedBox position={[0, -0.15, 0]} material={mats.top} args={[0.13, 0.3, 0.13]} radius={0.045} smoothness={3} />
             <group ref={refs[f]} position={[0, -0.3, 0]}>
               <mesh position={[0, -0.13, 0]} material={appearance.top === 7 || appearance.top === 5 ? mats.top : mats.skin}><boxGeometry args={[0.12, 0.26, 0.12]} /></mesh>
-              <mesh position={[0, -0.3, 0]} material={mats.skin}><boxGeometry args={[0.11, 0.1, 0.09]} /></mesh>
+              <RoundedBox position={[0, -0.3, 0]} material={mats.skin} args={[0.11, 0.1, 0.09]} radius={0.045} smoothness={3} />
             </group>
           </group>))}
         {/* legs: thigh + shin pivots */}
         {([["lLeg", "lShin", -1], ["rLeg", "rShin", 1]] as const).map(([l, s, sx]) => (
           <group key={l} ref={refs[l]} position={[sx * 0.12, 0.78, 0]}>
-            <mesh position={[0, -0.18, 0]} material={mats.bottom}><boxGeometry args={[0.17, 0.36, 0.18]} /></mesh>
+            <RoundedBox position={[0, -0.18, 0]} material={mats.bottom} args={[0.17, 0.36, 0.18]} radius={0.045} smoothness={3} />
             <group ref={refs[s]} position={[0, -0.36, 0]}>
-              <mesh position={[0, -0.17, 0]} material={mats.bottom}><boxGeometry args={[0.15, 0.34, 0.16]} /></mesh>
-              <mesh position={[0, -0.37, 0.04]} material={mats.shoe}><boxGeometry args={[0.17, 0.09, 0.27]} /></mesh>
+              <RoundedBox position={[0, -0.17, 0]} material={mats.bottom} args={[0.15, 0.34, 0.16]} radius={0.045} smoothness={3} />
+              <RoundedBox position={[0, -0.37, 0.04]} material={mats.shoe} args={[0.17, 0.09, 0.27]} radius={0.045} smoothness={3} />
             </group>
           </group>))}
       </group>

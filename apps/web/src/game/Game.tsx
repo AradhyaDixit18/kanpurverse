@@ -11,6 +11,7 @@ import { RemotePlayers } from "./Remote";
 import { Sky } from "./Sky";
 import { MissionMarkers } from "./Missions";
 import { Traffic } from "./Traffic";
+import { Railway } from "./Railway";
 import * as THREE from "three";
 import { bindInput } from "./input";
 import { useStore } from "../state/store";
@@ -24,7 +25,7 @@ export function Game() {
     <Canvas shadows={quality !== "low"} dpr={quality === "high" ? [1, 2] : [0.75, 1.25]} camera={{ fov: 60, near: 0.1, far: 900, position: [0, 4, 10] }} gl={{ antialias: quality !== "low", powerPreference: "high-performance" }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
       <Suspense fallback={null}>
         <Physics gravity={[0, -18, 0]} timeStep="vary">
-          <Sky /><City /><Player /><NPCs /><Vehicles /><Traffic /><RemotePlayers /><MissionMarkers />
+          <Sky /><City /><Player /><NPCs /><Vehicles /><Traffic /><Railway /><RemotePlayers /><MissionMarkers />
         </Physics>
       </Suspense>
       <Bind /><Fps /><AdaptiveDpr pixelated />

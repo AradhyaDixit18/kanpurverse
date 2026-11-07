@@ -12,6 +12,7 @@ export interface Landmark { id: string; name: string; nameHi: string; p: [number
 export interface Building { p: [number, number]; w: number; d: number; h: number; style: number; sign?: string; signHi?: string }
 
 export const WORLD_SIZE = 520;                       // playable square, centred at origin
+export const RAIL_Z = 190;                           // east–west railway line (level crossings at every N–S road)
 
 export const ROADS: RoadSeg[] = [
   // Mall Road (east–west spine) and parallel avenues
@@ -73,6 +74,7 @@ export function generateBuildings(seed = 7): Building[] {
     for (let k = 0; k < n; k++) {
       const w = 10 + rnd() * 14, d = 10 + rnd() * 12;
       const px = x0 + w / 2 + rnd() * Math.max(1, x1 - x0 - w), pz = z0 + d / 2 + rnd() * Math.max(1, z1 - z0 - d);
+      if (Math.abs(pz - RAIL_Z) < d / 2 + 7) continue; // railway corridor
       if (out.some(b => Math.abs(b.p[0] - px) < (b.w + w) / 2 + 2 && Math.abs(b.p[1] - pz) < (b.d + d) / 2 + 2)) continue;
       const h = 6 + Math.floor(rnd() * 4) * 3.2 + (rnd() < 0.15 ? 12 : 0);
       const sg = rnd() < 0.55 ? signs[Math.floor(rnd() * signs.length)] : undefined;
