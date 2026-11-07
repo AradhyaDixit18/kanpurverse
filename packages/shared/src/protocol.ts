@@ -72,7 +72,8 @@ export type S2C =
   | { t: "toast"; text: string; kind?: "info" | "reward" | "error" }
   | { t: "social"; event: string; from?: string; name?: string; party?: string[] }
   | { t: "error"; code: string; message: string }
-  | { t: "pong"; at: number; serverTime: number };
+  | { t: "pong"; at: number; serverTime: number }
+  | { t: "correct"; p: Vec3; reason: string };
 
 export interface PlayerProfile {
   name: string; appearance: Appearance; lang: Language; level: number; xp: number; coins: number;

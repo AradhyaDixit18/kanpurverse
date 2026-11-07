@@ -9,6 +9,8 @@ export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8787";
 export const remoteBuf = new Map<string, { t: number; p: [number, number, number]; ry: number; anim: string }[]>();
 export const vehicleBuf = new Map<string, { t: number; p: [number, number, number]; q: [number, number, number, number]; v: number }[]>();
 export let serverOffset = 0; // serverTime - clientTime
+/** Last authoritative position correction from the server (consumed by the player controller). */
+export const correction: { p: [number, number, number] | null; at: number } = { p: null, at: 0 };
 
 class NetClient {
   ws?: WebSocket; seq = 0; room = "kanpur-1"; private pingTimer?: ReturnType<typeof setInterval>; private retry = 0; private wantOpen = false; private lastStateSend = 0;
@@ -66,6 +68,7 @@ class NetClient {
       case "social": if (m.event === "party.invite") s.set({ invites: [...s.invites, { from: m.from!, name: m.name! }] }); else if (m.event === "party.update") s.set({ party: m.party ?? [] }); else if (m.event === "friend.added") s.toast(`${m.name} added you as a friend`); break;
       case "error": if (m.code === "rate" || m.code === "too_far" || m.code === "occupied" || m.code === "need_vehicle" || m.code === "coins" || m.code === "locked" || m.code === "busy" || m.code === "owned") s.toast(m.message, "error"); else if (m.code === "full" || m.code === "bad_name" || m.code === "banned") s.set({ screen: "error", errorText: m.message }); else console.warn("server error", m); break;
       case "pong": s.set({ ping: Math.round(performance.now() - m.at) }); break;
+      case "correct": correction.p = m.p; correction.at = performance.now(); break;
     }
   }
 }

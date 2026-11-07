@@ -79,19 +79,19 @@ export class Room {
   /** Movement validation: speed cap per elapsed time, world bounds, sane Y. Rejections snap the client back. */
   onState(pl: Player, p: Vec3, ry: number, anim: AnimState, seq: number) {
     if (seq <= pl.lastSeq) return; pl.lastSeq = seq;
-    const now = Date.now(); const dt = pl.lastStateAt ? Math.min(2, (now - pl.lastStateAt) / 1000) : 0.05; pl.lastStateAt = now;
+    const now = Date.now(); const dt = pl.lastStateAt ? Math.min(2, (now - pl.lastStateAt) / 1000) : 0.25; // measured since the last ACCEPTED state
     if (pl.vehicle && pl.seat === "driver") { const v = this.vehicles.get(pl.vehicle)!; pl.p = [...v.p] as Vec3; pl.ry = ry; pl.anim = "drive"; return; }
     if (pl.vehicle && pl.seat === "passenger") { const v = this.vehicles.get(pl.vehicle)!; pl.p = [...v.p] as Vec3; pl.anim = "sit"; return; }
     const half = WORLD_SIZE / 2 + 5;
     if (!p.every(Number.isFinite) || Math.abs(p[0]) > half || Math.abs(p[2]) > half || p[1] < -5 || p[1] > 80) return this.reject(pl, "bounds");
     const d = Math.hypot(p[0] - pl.p[0], p[2] - pl.p[2]);
     if (d > MAX_PLAYER_SPEED * dt + TELEPORT_TOLERANCE) return this.reject(pl, "speed");
-    pl.p = p; pl.ry = ry; pl.anim = anim;
+    pl.lastStateAt = now; pl.p = p; pl.ry = ry; pl.anim = anim;
     this.checkMissionProgress(pl);
   }
   private reject(pl: Player, why: string) {
     pl.violations++;
-    pl.send({ t: "snapshot", time: this.time, players: [pl.snapshot()], vehicles: [], ack: pl.lastSeq });
+    pl.send({ t: "correct", p: pl.p, reason: why });
     if (pl.violations % 20 === 0) log.warn("movement rejections", { id: pl.id, why, n: pl.violations });
   }
 

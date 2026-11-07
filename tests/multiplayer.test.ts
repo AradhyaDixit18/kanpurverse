@@ -114,3 +114,13 @@ describe("multiplayer", () => {
     expect(await closed).toBe(4004);
   });
 });
+
+describe("reconciliation", () => {
+  it("a rejected hop sends a correction and the player can keep moving afterwards (no permanent desync)", async () => {
+    const a = new Client(port); await a.connect(); await a.hello("Hopper"); a.send({ t: "join", room: "recon" }); await a.wait(m => m.t === "joined"); a.inbox.length = 0;
+    a.state([-4, 1, 14]); const c = await a.wait(m => m.t === "correct"); expect(c.p[0]).toBeCloseTo(-10, 1);
+    await new Promise(r => setTimeout(r, 300)); a.state([-8, 1, 14]); // 2 m from the authoritative spot after 300 ms: must be accepted
+    const snap = await a.wait(m => m.t === "snapshot" && m.players[0].p[0] === -8); expect(snap.players[0].p[0]).toBe(-8);
+    a.close();
+  });
+});

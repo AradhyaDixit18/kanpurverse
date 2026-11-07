@@ -9,7 +9,7 @@ import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
 import { useStore } from "../state/store";
-import { net } from "../net/client";
+import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
 import { npcPositions } from "./refs";
 
@@ -74,6 +74,8 @@ export function Player() {
     probe(s, np);
     if ((once("KeyE") || once("KeyF")) && !paused) interact(s);
     // server correction (if server snapped us back)
+    // reconciliation: an explicit server correction always wins (snap, then keep predicting from there)
+    if (correction.p) { const c = correction.p; correction.p = null; rb.setNextKinematicTranslation({ x: c[0], y: c[1] + 0.95, z: c[2] }); playerPos.set(c[0], c[1], c[2]); vel.current.x = 0; vel.current.z = 0; }
     const self = s.selfId ? s.players[s.selfId] : undefined;
     if (self && Math.hypot(self.p[0] - np.x, self.p[2] - np.z) > 6) { rb.setNextKinematicTranslation({ x: self.p[0], y: self.p[1] + 0.95, z: self.p[2] }); playerPos.set(self.p[0], self.p[1], self.p[2]); }
     if (anim.current !== animState) setAnimState(anim.current);
