@@ -35,12 +35,15 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     for (const w of geo.water) if (Math.abs(w.pts[0][0]) < 6000) get(mid(w.pts)).water.push(w); for (const p of geo.parks) get(mid(p.pts)).parks.push(p); for (const p of geo.platforms) get(mid(p.pts)).platforms.push(p);
     return m;
   }, [geo]);
+  // Textures are loaded ONCE here (suspending at the Canvas root boundary) and passed down, so a Tile never suspends:
+  // a suspended tile re-runs its heavy geometry useMemo on every retry and never commits (v0.5.1 "empty city" bug).
+  const tex: TileTex = { asphalt: useTex("/tex/asphalt/color.jpg", 1), asphaltN: useTex("/tex/asphalt/normal.jpg", 1, false), pave: useTex("/tex/pavement/color.jpg", 1), grass: useTex("/tex/grass/color.jpg", 1), concrete: useTex("/tex/concrete/color.jpg", 1), plasterN: useTex("/tex/plaster/normal.jpg", 1, false) };
   const [active, setActive] = useState<string[]>([]); const [near, setNear] = useState<string[]>([]); const last = useRef("");
   useFrame(() => { const k = tileKey(playerPos.x, playerPos.z); if (k === last.current) return; last.current = k; const [tx, tz] = k.split(",").map(Number); const a: string[] = [], n: string[] = [];
     const R = quality === "low" ? 1 : LOAD_R; for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const kk = `${tx + dx},${tz + dz}`; if (tiles.has(kk)) { a.push(kk); if (Math.abs(dx) <= COLLIDE_R && Math.abs(dz) <= COLLIDE_R) n.push(kk); } } setActive(a); setNear(n); if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tiles", k, a.length, n.length); });
   return <group name="osm-city">
     <GroundPlane />
-    {active.map(k => <Boundary key={k} name={"tile " + k}><Suspense fallback={null}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} /></Suspense></Boundary>)}
+    {active.map(k => <Boundary key={k} name={"tile " + k}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} tex={tex} /></Boundary>)}
     <Crossings geo={geo} />
     <Stations geo={geo} />
     <OsmTrain geo={geo} />
@@ -104,8 +107,9 @@ function shopfrontTex() { const key = 99; const hit = facadeCache.get(key); if (
   x.fillStyle = "#c8102e"; x.fillRect(8, 8, 240, 44); x.fillStyle = "#fff"; x.font = "bold 26px sans-serif"; x.fillText("दुकान", 20, 40); x.fillStyle = "#2a2f3a"; x.fillRect(16, 64, 224, 180); x.fillStyle = "rgba(255,220,150,0.45)"; x.fillRect(24, 72, 208, 150); for (const [k, col] of ["#c8102e", "#2e8b57", "#f2b134", "#3d8bff"].entries()) { x.fillStyle = col; x.fillRect(36 + k * 50, 120, 36, 36); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
 
-function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; buildings: GeoData["buildings"]; rails: GeoData["rails"]; water: GeoData["water"]; parks: GeoData["parks"]; platforms: GeoData["platforms"] }; collide: boolean }) {
-  const asphalt = useTex("/tex/asphalt/color.jpg", 1); const asphaltN = useTex("/tex/asphalt/normal.jpg", 1, false); const pave = useTex("/tex/pavement/color.jpg", 1); const grass = useTex("/tex/grass/color.jpg", 1); const concrete = useTex("/tex/concrete/color.jpg", 1); const plasterN = useTex("/tex/plaster/normal.jpg", 1, false);
+type TileTex = { asphalt: THREE.Texture; asphaltN: THREE.Texture; pave: THREE.Texture; grass: THREE.Texture; concrete: THREE.Texture; plasterN: THREE.Texture };
+function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: GeoData["roads"]; buildings: GeoData["buildings"]; rails: GeoData["rails"]; water: GeoData["water"]; parks: GeoData["parks"]; platforms: GeoData["platforms"] }; collide: boolean }) {
+  const { asphalt, asphaltN, pave, grass, concrete, plasterN } = tex;
   const quality = useStore(s => s.settings.quality); const lang = useStore(s => s.settings.lang);
   const geo = useMemo(() => {
     const road = merge(t.roads.map(r => ribbon(r.pts, r.w, 0.06))); const pavement = merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, 0.03, 4)));
@@ -149,9 +153,9 @@ function Tile({ id, t, collide }: { id: string; t: { roads: GeoData["roads"]; bu
     {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} castShadow receiveShadow><meshStandardMaterial map={facadeTex(s.style)} normalMap={plasterN} normalScale={new THREE.Vector2(0.25, 0.25)} roughness={0.92} /></mesh><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
     {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]}><meshStandardMaterial map={shopfrontTex()} roughness={0.9} polygonOffset polygonOffsetFactor={-1} /></mesh>}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
-    {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} /></mesh>{p.name && <Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text>}</group>)}
+    {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     <Trees pts={trees} />
-    {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></group>; })}
+    {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Suspense fallback={null}><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></Suspense></group>; })}
     {collide && <RigidBody type="fixed" colliders={false}>{geo.boxes.map((b, i) => <CuboidCollider key={i} args={[b.w / 2, b.h / 2, b.d / 2]} position={[b.x, b.h / 2, b.z]} />)}</RigidBody>}
   </group>;
 }
@@ -181,8 +185,8 @@ function Stations({ geo }: { geo: GeoData }) {
     <mesh position={[0, 12.6, 0]}><boxGeometry args={[44, 1.2, 18]} /><meshStandardMaterial color="#8a2a1e" /></mesh>
     {[-15, 15].map(x => <mesh key={x} position={[x, 15, 0]}><boxGeometry args={[6, 5, 6]} /><meshStandardMaterial color="#b43a2a" /></mesh>)}
     <mesh position={[0, 8, 7.2]}><boxGeometry args={[30, 3, 0.3]} /><meshStandardMaterial color="#ffd23f" /></mesh>
-    <Text position={[0, 8, 7.4]} fontSize={1.8} color="#0b0b0d" anchorX="center" anchorY="middle">{(lang === "english" ? s.name : (s.nameHi ?? s.name))?.toUpperCase()}</Text>
+    <Suspense fallback={null}><Text position={[0, 8, 7.4]} fontSize={1.8} color="#0b0b0d" anchorX="center" anchorY="middle">{(lang === "english" ? s.name : (s.nameHi ?? s.name))?.toUpperCase()}</Text></Suspense>
   </group>)}</>;
 }
 
-function Attribution() { return <Text position={[0, 0.5, 0]} fontSize={0.001} color="#000">© OpenStreetMap contributors (ODbL)</Text>; }
+function Attribution() { return <Suspense fallback={null}><Text position={[0, 0.5, 0]} fontSize={0.001} color="#000">© OpenStreetMap contributors (ODbL)</Text></Suspense>; }

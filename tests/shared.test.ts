@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { ANCHORS, GEO_WORLD_SIZE, ll, toLatLon } from "../packages/shared/src/geo";
 import { DialogueFile, VOICE_PROFILES, pickLine, isValidName, maskProfanity, stripPII, generateBuildings, LANDMARKS, MISSIONS, NPCS, levelFromXp, C2S, ROADS } from "../packages/shared/src/index";
 
 const load = (l: string) => DialogueFile.parse(JSON.parse(readFileSync(new URL(`../assets/dialogues/${l}.json`, import.meta.url), "utf8")));
@@ -51,4 +52,9 @@ describe("server origin allow-list", () => {
     expect(originAllowed("http://localhost:3000")).toBe(true); expect(originAllowed("https://kanpurverse-abc123-aradhu74s-projects.vercel.app")).toBe(true);
     expect(originAllowed("https://evil.com")).toBe(false); expect(originAllowed("https://vercel.app.evil.com")).toBe(false);
   });
+});
+
+describe("geo anchors", () => {
+  it("ll/toLatLon round-trip within a metre", () => { const [x, z] = ll(26.4775, 80.3365); const [lat, lon] = toLatLon(x, z); expect(Math.abs(lat - 26.4775)).toBeLessThan(0.00002); expect(Math.abs(lon - 80.3365)).toBeLessThan(0.00002); });
+  it("every anchor is inside the world and labelled with a source", () => { for (const a of Object.values(ANCHORS)) { expect(Math.abs(a.p[0])).toBeLessThan(GEO_WORLD_SIZE / 2); expect(Math.abs(a.p[1])).toBeLessThan(GEO_WORLD_SIZE / 2); expect(["osm", "approx"]).toContain(a.source); } });
 });

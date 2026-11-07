@@ -109,7 +109,9 @@ def main():
             elif tags.get("name") and (tags.get("amenity") or tags.get("shop") or tags.get("tourism")): pois.append({"id": e["id"], "name": tags["name"], "nameHi": tags.get("name:hi"), "kind": tags.get("amenity") or tags.get("shop") or tags.get("tourism"), "p": p})
         elif e["type"] == "relation" and tags.get("natural") == "water":
             for m in e.get("members", []):
-                if m.get("role") == "outer" and m.get("geometry"): water.append({"id": e["id"], "name": tags.get("name"), "pts": simplify([proj(g["lat"], g["lon"]) for g in m["geometry"]]), "river": False})
+                if m.get("role") == "outer" and m.get("geometry"):
+                    pts = clip_rect(simplify([proj(g["lat"], g["lon"]) for g in m["geometry"]]))
+                    if len(pts) >= 4: water.append({"id": e["id"], "name": tags.get("name"), "pts": pts, "river": False})
     out = {"source": "OpenStreetMap contributors, ODbL 1.0", "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "bbox": BBOX, "center": CENTER, "axes": "+x east, +z south, metres",
            "roads": roads, "rails": rails, "platforms": platforms, "buildings": buildings, "water": water, "parks": parks, "pois": pois, "places": places, "crossings": crossings, "stations": stations}
     OUT.parent.mkdir(parents=True, exist_ok=True); OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -119,5 +121,40 @@ def main():
     AUDIT.write_text(json.dumps(prov, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"wrote {OUT} ({OUT.stat().st_size // 1024} kB)"); print(json.dumps(prov["counts"])); print("named roads:", len(named)); print("stations:", prov["stations"])
 
+def clip_rect(pts, lim=5000.0):
+    """Sutherland-Hodgman clip of a polygon to the square [-lim, lim]^2 (keeps the Ganga relation's ring local)."""
+    def clip_edge(poly, inside, inter):
+        out = []
+        for i, cur in enumerate(poly):
+            prev = poly[i - 1]
+            if inside(cur):
+                if not inside(prev): out.append(inter(prev, cur))
+                out.append(cur)
+            elif inside(prev): out.append(inter(prev, cur))
+        return out
+    def ix(a, b, k, v):  # intersection of segment a-b with line coord[k] == v
+        t = (v - a[k]) / ((b[k] - a[k]) or 1e-9); return [round(a[0] + (b[0] - a[0]) * t, 2), round(a[1] + (b[1] - a[1]) * t, 2)]
+    poly = [list(p) for p in pts]
+    for k, v, sign in ((0, -lim, 1), (0, lim, -1), (1, -lim, 1), (1, lim, -1)):
+        if not poly: break
+        poly = clip_edge(poly, lambda p, k=k, v=v, s=sign: (p[k] - v) * s >= 0, lambda a, b, k=k, v=v: ix(a, b, k, v))
+    return poly
+
+def check() -> int:
+    """Validate an existing extract: counts, bbox, finite coordinates, closed polygons. Exit 1 on failure."""
+    import math
+    g = json.loads(OUT.read_text(encoding="utf-8")); bad = []
+    for k in ("roads", "rails", "buildings", "water", "parks"):
+        for f in g[k]:
+            for x, z in f["pts"]:
+                if not (math.isfinite(x) and math.isfinite(z)) or abs(x) > 20000 or abs(z) > 20000: bad.append(f"{k}#{f['id']} coordinate {x},{z}")
+            if k in ("buildings", "water", "parks") and len(f["pts"]) < 4: bad.append(f"{k}#{f['id']} has {len(f['pts'])} points")
+    if len(g["roads"]) < 500 or len(g["rails"]) < 20 or len(g["crossings"]) < 5: bad.append("counts too low: " + json.dumps({k: len(g[k]) for k in ("roads", "rails", "crossings")}))
+    if not any((s.get("name") or "").startswith("Kanpur") for s in g["stations"]): bad.append("no Kanpur railway station")
+    for b in bad[:20]: print("FAIL", b)
+    print("OK" if not bad else f"{len(bad)} problems", "—", OUT, {k: len(g[k]) for k in ("roads", "rails", "buildings", "crossings", "stations")})
+    return 1 if bad else 0
+
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(check() if "--check" in sys.argv else (main() or 0))

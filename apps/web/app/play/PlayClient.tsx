@@ -10,7 +10,8 @@ const Game = dynamic(() => { useStore.getState().set({ loadProgress: 5 }); const
 export default function PlayClient() {
   const screen = useStore(s => s.screen); const [mounted, setMounted] = useState(false); const [webgl, setWebgl] = useState(true);
   useEffect(() => { setMounted(true); useStore.getState().set({ screen: "menu" }); try { const c = document.createElement("canvas"); setWebgl(!!(c.getContext("webgl2") || c.getContext("webgl"))); } catch { setWebgl(false); } }, []);
-  if (!mounted) return <LoadingScreen />;
+  // Language-neutral splash before mount: the real LoadingScreen reads the persisted language, which the server cannot know (hydration #418).
+  if (!mounted) return <div className="screen center" suppressHydrationWarning><div className="logo">KANPUR<span>VERSE</span></div><div className="muted">…</div></div>;
   if (!webgl) return <div className="screen center"><div className="logo">KANPUR<span>VERSE</span></div><h2>WebGL is not available</h2><p className="muted">Enable hardware acceleration in your browser, or try Brave/Chrome/Safari on a newer device.</p></div>;
   if (screen === "menu" || screen === "character") return <MainMenu />;
   if (screen === "loading") return <LoadingScreen />;
