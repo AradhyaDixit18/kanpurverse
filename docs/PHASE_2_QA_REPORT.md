@@ -46,3 +46,7 @@ Physical mobile/device QA, forced network-drop/reconnect, city-wide contact/navi
 COMPLETED AND VERIFIED: `npm run verify` passed **127/127 tests across ten suites**, typecheck, lint (the same two inherited warnings), and production build. Evidence: `work/phase2/final-verify.log`. `/play` first-load JS is approximately 152kB from the build report, not total game assets. `git diff --check` passed.
 
 Commits: [safety/ground e8028a8](https://github.com/AradhyaDixit18/kanpurverse/commit/e8028a8) and [visible seats / compatibility ac5a34e](https://github.com/AradhyaDixit18/kanpurverse/commit/ac5a34ea3cb0af463f7275b23a19ff4faa54779e). Public CI/preview build state is recorded separately after push; no production merge is authorized or performed.
+
+## Remote code verification
+
+COMPLETED AND VERIFIED for revision `017477f50bb22fa05bf57e6409e3e050ec534895`: [GitHub CI passed](https://github.com/AradhyaDixit18/kanpurverse/actions/runs/42406883286) with the 127-test code revision, and [Vercel frontend preview build completed](https://vercel.com/aradhu74s-projects/kanpurverse/ACp4ot53rNnFgEU5NhxbWJDn2ejG). These statuses do not certify matched-backend public gameplay; that remains BLOCKED as described above. Production main remains `4ae52721a94ebeca70705552db8a588954a8caa6` (git ls-remote verified).

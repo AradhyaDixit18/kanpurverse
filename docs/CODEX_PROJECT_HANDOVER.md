@@ -64,3 +64,9 @@ See KV-001 through KV-017 for changes and limited verification scope. New findin
 Geometry follow-up (8 Nov): three failing baseline geometry tests confirmed inward building-wall normals for either polygon winding and downward road-joint normals. `worldGeometry.ts` now preserves the original footprint/UV/material pipeline with corrected winding. `tests/world-geometry.test.ts` verifies the fix; full suite now contains 73 tests.
 
 GitHub owner Keychain internet-password metadata lookup returned no accessible matching entry; no password/token contents requested. This is not proof that all residual Keychain items are absent. Detailed npm audit returned 14 advisories (8 moderate, 4 high, 2 critical), which supersedes the install-time count of 13.
+
+## Phase 2 continuation — 8 November 2026
+
+Audit/plan and requested topic reports now exist under docs/PHASE_2_*.md and the vehicle/NPC/city/progression/UI reports. Safety milestone e8028a8 and visible-seat/compatibility milestone ac5a34e retain the prior repairs. Current regression total is 127; GitHub CI run 42406883286 and Vercel frontend build succeeded for code revision 017477f. The full Phase 2 scope remains incomplete.
+
+Actual two-origin/two-identity browser fixture confirmed a shared hatchback ride, visible seats, steering/braking, rejected moving/blocked exits and grounded exits. It uncovered a reproducible 0.2791m penetration caused by the giant ground cuboid; nine streamed 128m ground colliders fix the numerical contact issue. Original frames/WebM are in docs/screenshots/phase2. New clients require an advertised exit capability before vehicle entry, preventing unsafe use against the old production backend. A matching public backend preview has not been certified; no production config, database, plan or service changed. See PHASE_2_QA_REPORT.md for limitations and evidence.
