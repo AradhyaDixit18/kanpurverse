@@ -2,6 +2,7 @@
 /** NPC pedestrians & shopkeepers: path-following, player-facing when near, idle barks with subtitles. */
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
 import { NPCS, type NpcDef, type Appearance, type AnimState, type DialogueLine } from "@kanpurverse/shared";
 import { roadsNear, getRoads, segPoint, segYaw, roadsVersion, onRoadsChange, type Seg } from "./roads";
@@ -33,7 +34,7 @@ function Crowd({ n }: { n: number }) {
 }
 function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: number; dir: number; app: Appearance } }) {
   const g = useRef<THREE.Group>(null);
-  useFrame(() => { if (!g.current) return; const t = useStore.getState().worldTime * 86400; const d = (w.start + t * w.speed) % (w.seg.len * 2); const fwd = d < w.seg.len; const s = fwd ? d : w.seg.len * 2 - d; const forward = (fwd ? 1 : -1) * w.dir > 0;
+  useFrame(() => { if (!g.current) return; const t = renderWorldTime.v * 86400; const d = (w.start + t * w.speed) % (w.seg.len * 2); const fwd = d < w.seg.len; const s = fwd ? d : w.seg.len * 2 - d; const forward = (fwd ? 1 : -1) * w.dir > 0;
     const [x, z] = segPoint(w.seg, w.dir > 0 ? s : w.seg.len - s, w.off); g.current.position.set(x, 0, z); g.current.rotation.y = segYaw(w.seg, forward); });
   return <group ref={g}><Avatar appearance={w.app} anim="walk" /></group>;
 }

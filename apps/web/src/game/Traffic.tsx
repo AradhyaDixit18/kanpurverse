@@ -3,6 +3,7 @@
  * client sees the same traffic with zero network cost. Purely visual (no collisions with players — they stay in lanes). */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
 import { type VehicleKind } from "@kanpurverse/shared";
 import { getRoads, roadsNear, segPoint, segYaw, roadsVersion, onRoadsChange, type Seg } from "./roads";
@@ -27,7 +28,7 @@ const DAY_SEC = 86400;
 function Car({ car }: { car: Car }) {
   const g = useRef<THREE.Group>(null); const hold = useRef<{ x: number; z: number } | null>(null); const stopped = useRef(false); const r = car.seg; const laneOff = (r.w / 4) * car.lane;
   useFrame(() => {
-    if (!g.current) return; const t = useStore.getState().worldTime * DAY_SEC;
+    if (!g.current) return; const t = renderWorldTime.v * DAY_SEC;
     const d = (car.offset + t * car.speed) % (r.len * 2); const fwd = d < r.len; const s = fwd ? d : r.len * 2 - d; // ping-pong along the segment
     const [x, z] = segPoint(r, s, laneOff * (fwd ? 1 : -1)); const yaw = segYaw(r, fwd);
     const ahead = ((playerPos.x - x) * r.dx + (playerPos.z - z) * r.dz) * (fwd ? 1 : -1); const lateral = Math.abs((playerPos.x - x) * r.nx + (playerPos.z - z) * r.nz);

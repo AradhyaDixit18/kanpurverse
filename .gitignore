@@ -13,3 +13,6 @@ assets/audio/dialogues/*.mp3
 
 # Local takeover backups and diagnostic artifacts
 work/
+
+# Incremental TypeScript cache is generated per machine
+*.tsbuildinfo

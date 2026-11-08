@@ -1,0 +1,5 @@
+import { it, expect } from "vitest";
+import fs from "node:fs";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+it("decodes the original GLB with finite geometry, normals, UVs and metric floor origin",async()=>{const b=fs.readFileSync(new URL('../apps/web/public/models/architecture/kv_shophouse_reference_lod0.glb',import.meta.url));expect(b.readUInt32LE(0)).toBe(0x46546c67);expect(b.readUInt32LE(4)).toBe(2);expect(b.readUInt32LE(8)).toBe(b.length);const buffer=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);const {scene}=await new GLTFLoader().parseAsync(buffer,'');let meshes=0;scene.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){meshes++;for(const attribute of ['position','normal','uv']){const a=m.geometry.getAttribute(attribute);expect(a).toBeDefined();expect(Array.from(a.array).every(Number.isFinite)).toBe(true);}}});expect(meshes).toBe(6);const bounds=new THREE.Box3().setFromObject(scene);expect(bounds.min.y).toBeCloseTo(0);expect(bounds.max.y).toBeCloseTo(7.16);expect(bounds.max.x-bounds.min.x).toBeLessThan(11);});

@@ -98,6 +98,7 @@ export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kin
   const tyre = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 }), []); const rim = useMemo(() => new THREE.MeshStandardMaterial({ color: 0xc9ccd1, metalness: 0.8, roughness: 0.3 }), []);
   const brake = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x6b0c1b, emissive: 0xc8102e, emissiveIntensity: 0.4 }), []);
   const head = useMemo(() => new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2cc, emissiveIntensity: 1.2 }), []);
+  useEffect(() => () => { for (const m of [paint, trim, glass, tyre, rim, brake, head]) m.dispose(); }, [paint, trim, glass, tyre, rim, brake, head]);
   const wheels = useRef<THREE.Group[]>([]); const fronts = useRef<THREE.Group[]>([]); const spin = useRef(0);
   useFrame((_, dt) => {
     const sp = state?.current?.speed ?? (wheelSpin && !stoppedRef?.current ? 8 : 0); spin.current += sp * dt / R;

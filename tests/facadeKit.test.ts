@@ -1,0 +1,6 @@
+import { expect, it } from "vitest";
+import { facadeParts } from "../apps/web/src/game/facadeKit";
+const pts:[number,number][]=[[-4,-3],[4,-3],[4,3],[-4,3],[-4,-3]];
+it("adds deterministic metric relief without moving source footprint",()=>{const input={pts,h:6.4,style:1,shop:true};const before=JSON.stringify(input),a=facadeParts([input]);expect(facadeParts([input])).toEqual(a);expect(JSON.stringify(input)).toBe(before);expect(a.glass.length).toBeGreaterThan(0);for(const part of Object.values(a).flat()){expect(part.size.every(n=>Number.isFinite(n)&&n>0)).toBe(true);expect(part.p.every(Number.isFinite)).toBe(true);} expect(a.trim.some(p=>p.p[1]>6.4)).toBe(true);});
+it("handles either ring winding identically in coverage and exterior position",()=>{for(const poly of [pts,[...pts].reverse()]){const a=facadeParts([{pts:poly,h:6.4,style:0,shop:false}]);a.glass.forEach(p=>expect(Math.abs(p.p[0])>4||Math.abs(p.p[2])>3).toBe(true));expect(a.glass).toHaveLength(16);}});
+it("keeps shop ground-floor window panels clear for the shop bay",()=>{const a=facadeParts([{pts,h:6.4,style:2,shop:true}]);expect(a.glass.every(p=>p.p[1]>3.2)).toBe(true);expect(a.shade.some(p=>p.p[1]===2.85)).toBe(true);});

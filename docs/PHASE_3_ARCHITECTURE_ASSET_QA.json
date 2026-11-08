@@ -1,0 +1,34 @@
+{
+  "asset": "apps/web/public/models/architecture/kv_shophouse_reference_lod0.glb",
+  "bytes": 169336,
+  "triangles": 1234,
+  "meshCount": 6,
+  "bounds": {
+    "min": [
+      -5.074999809265137,
+      -2.3841858265427618e-08,
+      -4.010000228881836
+    ],
+    "max": [
+      5.010000228881836,
+      7.159999847412109,
+      4.074999809265137
+    ]
+  },
+  "creator": "Velto Studios / KanpurVerse",
+  "licence": "MIT; original generated geometry",
+  "units": "metres",
+  "up": "Y",
+  "forward": "+Z",
+  "origin": "floor centre",
+  "source": "scripts/assets/export-architecture.ts + facadeKit.ts",
+  "collision": "separate; visual reference only",
+  "geographicAccuracy": "original modular reference, not a real business or surveyed building",
+  "uv": "All surfaces have UV0; procedural colour + vertex-colour materials",
+  "lod": "LOD0 reference only; runtime city uses distance-bounded instancing and a far atlas",
+  "rig": "not applicable",
+  "topology": "triangles, finite positions/normals/UVs checked on browser-compatible GLTFLoader decode",
+  "status": "COMPLETED AND VERIFIED for GLTFLoader decode, metric bounds and browser reference inspection; not art-approved as finished enterable architecture",
+  "evidence": "docs/screenshots/phase3/architecture-glb.png",
+  "limitations": "No Blender roundtrip or Khronos Validator run; no KTX2; closed shell reference, not an enterable building"
+}

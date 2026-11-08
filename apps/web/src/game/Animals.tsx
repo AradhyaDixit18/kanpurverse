@@ -2,6 +2,7 @@
 /** Street life: cows that wander and sit, stray dogs that trot, pigeon flocks circling, crows on wires. Deterministic on the shared clock. */
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
 import { LANDMARKS, SPAWN_POINT } from "@kanpurverse/shared";
 import { getRoads, roadsNear, segPoint, segYaw, type Seg } from "./roads";
@@ -29,7 +30,7 @@ export function Animals() {
 function Cow({ p, color, phase, sits }: { p: [number, number]; color: string; phase: number; sits: boolean }) {
   const g = useRef<THREE.Group>(null); const legs = useRef<THREE.Group[]>([]); const head = useRef<THREE.Group>(null); const tail = useRef<THREE.Mesh>(null);
   useFrame(() => {
-    const t = useStore.getState().worldTime * 86400 + phase; if (!g.current) return;
+    const t = renderWorldTime.v * 86400 + phase; if (!g.current) return;
     const dPlayer = Math.hypot(playerPos.x - p[0], playerPos.z - p[1]);
     if (sits) { g.current.position.set(p[0], 0.15, p[1]); g.current.rotation.y = phase; legs.current.forEach(l => { if (l) l.rotation.x = 1.4; }); if (head.current) head.current.rotation.y = Math.sin(t * 0.3) * 0.3; }
     else { const r = 6; const a = t * 0.08; const wobble = Math.sin(t * 0.5) > 0.6; // walk in a slow loop, pause often
@@ -55,7 +56,7 @@ function Cow({ p, color, phase, sits }: { p: [number, number]; color: string; ph
 
 function Dog({ seg, side, start, speed, color }: { seg: Seg; side: number; start: number; speed: number; color: string }) {
   const g = useRef<THREE.Group>(null); const legs = useRef<THREE.Mesh[]>([]); const len = seg.len; const off = (seg.w / 2 + 2.2) * side;
-  useFrame(() => { const t = useStore.getState().worldTime * 86400; if (!g.current) return; const d = (start + t * speed) % (len * 2); const fwd = d < len; const s = fwd ? d : len * 2 - d; const resting = Math.floor(t / 40 + start) % 4 === 0; const ss = resting ? Math.min(s, len - 1) : s;
+  useFrame(() => { const t = renderWorldTime.v * 86400; if (!g.current) return; const d = (start + t * speed) % (len * 2); const fwd = d < len; const s = fwd ? d : len * 2 - d; const resting = Math.floor(t / 40 + start) % 4 === 0; const ss = resting ? Math.min(s, len - 1) : s;
     const [x, z] = segPoint(seg, ss, off); g.current.position.set(x, resting ? 0.2 : 0.42, z); g.current.rotation.y = segYaw(seg, fwd);
     legs.current.forEach((l, i) => { if (l) l.rotation.x = resting ? 1.3 : Math.sin(t * 9 + i * 1.5) * 0.6; }); });
   return <group ref={g}>
@@ -71,7 +72,7 @@ function Dog({ seg, side, start, speed, color }: { seg: Seg; side: number; start
 function Pigeons({ count, center }: { count: number; center: [number, number] }) {
   const mesh = useMemo(() => { const g = new THREE.BufferGeometry(); const v = new Float32Array([-0.35, 0, 0, 0, 0.05, 0.15, 0, 0, -0.12, 0.35, 0, 0, 0, 0.05, 0.15, 0, 0, -0.12]); g.setAttribute("position", new THREE.BufferAttribute(v, 3)); g.computeVertexNormals(); const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: 0x6b6f78, side: THREE.DoubleSide }), count); m.frustumCulled = false; return m; }, [count]);
   const o = useMemo(() => new THREE.Object3D(), []);
-  useFrame(() => { const t = useStore.getState().worldTime * 86400; const landed = Math.floor(t / 25) % 3 === 0; for (let i = 0; i < count; i++) { const a = t * 0.9 + i * 0.5, r = 10 + (i % 5) * 2; const flap = Math.sin(t * 14 + i) * 0.5;
+  useFrame(() => { const t = renderWorldTime.v * 86400; const landed = Math.floor(t / 25) % 3 === 0; for (let i = 0; i < count; i++) { const a = t * 0.9 + i * 0.5, r = 10 + (i % 5) * 2; const flap = Math.sin(t * 14 + i) * 0.5;
       if (landed) { o.position.set(center[0] + Math.cos(i * 1.7) * 6, 0.15, center[1] + Math.sin(i * 2.3) * 6); o.rotation.set(0, i, 0); o.scale.setScalar(0.8); } else { o.position.set(center[0] + Math.cos(a) * r, 8 + Math.sin(t * 0.7 + i) * 2 + (i % 3), center[1] + Math.sin(a) * r); o.rotation.set(0, -a + Math.PI / 2, flap); o.scale.setScalar(1); }
       o.updateMatrix(); mesh.setMatrixAt(i, o.matrix); } mesh.instanceMatrix.needsUpdate = true; });
   return <primitive object={mesh} />;

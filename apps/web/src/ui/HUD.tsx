@@ -1,5 +1,6 @@
 "use client";
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
+import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOP_ITEMS, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
@@ -15,7 +16,7 @@ import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
-  const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
+  const s = useStore(useShallow(s => ({ settings:s.settings, profile:s.profile, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
   const [showChat, setShowChat] = useState(false);
   useEffect(() => {
@@ -37,7 +38,7 @@ export function HUD() {
   const sub = s.subtitle && s.subtitle.until > Date.now() ? s.subtitle : undefined;
   const [, tick] = useState(0); useEffect(() => { const i = setInterval(() => tick(x => x + 1), 250); return () => clearInterval(i); }, []);
   const m = s.mission; const left = m?.def.timeLimitSec ? Math.max(0, m.def.timeLimitSec - (Date.now() - m.startedAt) / 1000) : undefined;
-  const online = Object.keys(s.players).length;
+  const online = s.online;
 
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
@@ -47,7 +48,7 @@ export function HUD() {
       <div className="hud-stats">
         <Logo size={14} />
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
-        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {clock(s.worldTime)} {t("Kanpur", "कानपुर")}</div>
+        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
       </div>
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}

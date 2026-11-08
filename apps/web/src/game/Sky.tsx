@@ -2,6 +2,7 @@
 /** Day/night: gradient sky dome (shader), sun/moon discs, drifting clouds, fog + lights keyed to the server world clock. */
 import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
 import { useStore } from "../state/store";
 import { playerPos } from "./Player";
@@ -36,7 +37,7 @@ export function Sky() {
   const clouds = useMemo(() => Array.from({ length: quality === "low" ? 10 : 22 }, (_, i) => ({ x: (i * 97) % 700 - 350, z: (i * 61) % 700 - 350, y: 120 + (i * 13) % 40, s: 28 + (i * 7) % 30, o: 0.5 + (i % 3) * 0.12 })), [quality]);
 
   useFrame(() => {
-    const t = useStore.getState().worldTime; const a = t * Math.PI * 2 - Math.PI / 2; const elev = Math.sin(a); const w = phase(t);
+    const t = renderWorldTime.v; const a = t * Math.PI * 2 - Math.PI / 2; const elev = Math.sin(a); const w = phase(t);
     const dir = new THREE.Vector3(Math.cos(a) * 0.8, Math.max(-0.3, elev), 0.5).normalize();
     uniforms.sunDir.value.copy(dir); mix("top", w, uniforms.top.value); mix("horizon", w, uniforms.horizon.value); mix("sun", w, uniforms.sunColor.value); uniforms.sunGlow.value = w.dawn + w.dusk + 0.4 * w.day; uniforms.stars.value = w.night * 0.9;
     const fogC = mix("fog", w, tmp.c); (scene.fog as THREE.Fog | null)?.color.copy(fogC);
@@ -63,6 +64,6 @@ export function Sky() {
 
 function Clouds({ items }: { items: { x: number; z: number; y: number; s: number; o: number }[] }) {
   const g = useRef<THREE.Group>(null);
-  useFrame((_, dt) => { if (!g.current) return; g.current.position.x += dt * 1.2; if (g.current.position.x > 350) g.current.position.x = -350; const n = useStore.getState().worldTime; const night = n < 0.22 || n > 0.78; g.current.children.forEach(c => { const m = (c as THREE.Mesh).material as THREE.MeshStandardMaterial; m.color.set(night ? "#2a3150" : "#ffffff"); }); });
+  useFrame((_, dt) => { if (!g.current) return; g.current.position.x += dt * 1.2; if (g.current.position.x > 350) g.current.position.x = -350; const n = renderWorldTime.v; const night = n < 0.22 || n > 0.78; g.current.children.forEach(c => { const m = (c as THREE.Mesh).material as THREE.MeshStandardMaterial; m.color.set(night ? "#2a3150" : "#ffffff"); }); });
   return <group ref={g}>{items.map((c, i) => <mesh key={i} position={[c.x, c.y, c.z]} scale={[c.s, c.s * 0.35, c.s * 0.7]}><sphereGeometry args={[1, 10, 8]} /><meshStandardMaterial color="#ffffff" transparent opacity={c.o} roughness={1} flatShading /></mesh>)}</group>;
 }

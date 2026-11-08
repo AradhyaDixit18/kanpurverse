@@ -1,4 +1,5 @@
 "use client";
+import { visualClock } from "../game/syncedClock";
 /** WebSocket client with reconnect, latency measurement and store wiring. Remote entities are interpolated in the renderer. */
 import { PROTOCOL_VERSION, VEHICLE_EXIT_CAPABILITY, MISSIONS, type C2S, type S2C, type PlayerSnapshot, type VehicleSnapshot, type AnimState } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
@@ -74,8 +75,8 @@ class NetClient {
     const s = useStore.getState();
     switch (m.t) {
       case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true, serverCapabilities: m.capabilities ?? [] }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
-      case "joined": { remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
-      case "snapshot": { const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
+      case "joined": { visualClock.sync(m.time, performance.now(), true); remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
+      case "snapshot": { visualClock.sync(m.time, performance.now()); const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
         const vehicles = { ...s.vehicles }; for (const v of m.vehicles) { vehicles[v.id] = v; if (v.driver !== s.selfId) { const b = vehicleBuf.get(v.id) ?? []; b.push({ t: now, p: v.p, q: v.q, v: v.v }); if (b.length > 6) b.shift(); vehicleBuf.set(v.id, b); } }
         // self correction: if server disagrees strongly, snap (handled in controller via players[selfId])
         s.set({ players, vehicles, worldTime: m.time }); break; }
