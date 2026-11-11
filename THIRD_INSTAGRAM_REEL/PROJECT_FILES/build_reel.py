@@ -92,7 +92,7 @@ if '--preview' in sys.argv:
  for i,im in enumerate(frames):sheet.paste(im,((i%4)*270,(i//4)*480))
  sheet.save(R/'REPORTS/final_contact.jpg',quality=90);sys.exit()
 reader=subprocess.Popen([FF,'-v','error','-i',str(TMP/'base.mp4'),'-vf','tpad=stop_mode=clone:stop_duration=1,fps=30','-t','51','-f','rawvideo','-pix_fmt','rgb24','-'],stdout=subprocess.PIPE)
-enc=subprocess.Popen([FF,'-v','error','-y','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(TMP/'mix.wav'),'-map','0:v','-map','1:a','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-t','51','-movflags','+faststart',str(R/'EXPORTS/KanpurVerse_Part2_StreetLife_1080x1920.mp4')],stdin=subprocess.PIPE)
+enc=subprocess.Popen([FF,'-v','error','-y','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(TMP/'mix.wav'),'-map','0:v','-map','1:a','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p','-c:a','aac','-ar','48000','-ac','2','-b:a','128k','-t','51','-movflags','+faststart',str(R/'EXPORTS/KanpurVerse_Part2_Instagram.mp4')],stdin=subprocess.PIPE)
 for i in range(1530):
  data=reader.stdout.read(W*H*3)
  if len(data)<W*H*3:raise RuntimeError(f'Source ended at frame {i}')

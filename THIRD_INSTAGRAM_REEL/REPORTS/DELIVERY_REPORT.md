@@ -46,7 +46,7 @@ NPC mood, area cleanliness and stains are local simulation and reset on reload; 
 
 ## B. Reel production
 
-Final filename: `KanpurVerse_Part2_StreetLife_1080x1920.mp4` under THIRD_INSTAGRAM_REEL/EXPORTS. Duration target and final validation: **51 seconds**, 1080×1920, 9:16, 30 FPS, H.264/AAC. Measured values and full decode checks are in REPORTS/media-validation.json.
+Final filename: `KanpurVerse_Part2_Instagram.mp4` under THIRD_INSTAGRAM_REEL/EXPORTS. Duration target and final validation: **51 seconds**, 1080×1920, 9:16, 30 FPS, H.264/AAC, 48 kHz stereo at 128 kbps. Measured values and full decode checks are in REPORTS/media-validation.json.
 
 Hindi narration is complete in VOICEOVER/KanpurVerse_Part2_Hindi_Aligned.mp3. Burned Hindi subtitles and standalone SRT are complete in SUBTITLES. Phrase boundaries are generated and measured, rather than guessed scene splits. The cover is COVER/KanpurVerse_Part2_Cover.jpg. Caption and ten relevant hashtags are in CAPTION. Actual recorded feature frames are in REPORTS/verified_frame_*.jpg.
 
@@ -54,7 +54,7 @@ New feature footage is real recorded gameplay. City/rail/driving montage also us
 
 ## C. Publishing and repository ownership
 
-The official Instagram profile and logged-in creation controls were verified. Publication status and the actual verified post link are recorded in REPORTS/PUBLISHING_STATUS.md. Upload/composer state alone is not treated as publication.
+The reel was **published and verified** on @velto_studios: https://www.instagram.com/velto_studios/reel/DfmRWX2PaXq/. The official profile showed the new fourth post; opening it confirmed owner and caption. Screenshot: REPORTS/publishing-proof.jpg. Full publication evidence is in REPORTS/PUBLISHING_STATUS.md.
 
 GitHub repository transfer to `velto-studios` was requested through the owner account. The API still showed `AradhyaDixit18/kanpurverse` at the last ownership check; completed transfer is not claimed. The terminal was switched from its unexpectedly active Rad2005-wq account to the repository owner AradhyaDixit18. A Velto Studios CLI credential was not present. The user confirmed that any unfinished transfer should not hold up the other deliverables. Source branch push status is recorded in FEATURES/GITHUB_STATUS.md.
 

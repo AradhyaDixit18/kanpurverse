@@ -2,7 +2,7 @@
 Date: 11 November 2026, Asia/Kolkata. Studio: Velto Studios.
 
 ## Deliverables
-- Final video: `EXPORTS/KanpurVerse_Part2_StreetLife_1080x1920.mp4` — target 51.000 seconds; H.264, 1080×1920, 9:16, 30 FPS; AAC audio. See `media-validation.json` for measured final values.
+- Final video: `EXPORTS/KanpurVerse_Part2_Instagram.mp4` — target 51.000 seconds; H.264, 1080×1920, 9:16, 30 FPS; AAC audio, 48 kHz stereo at 128 kbps. See `media-validation.json` for measured final values.
 - Cover: `COVER/KanpurVerse_Part2_Cover.jpg`, 1080×1920.
 - Narration: `VOICEOVER/KanpurVerse_Part2_Hindi_Aligned.mp3`, Hindi male hm_omega, generated offline with the existing Kokoro assets. Same voice identity as the previous reel.
 - Hindi captions: `SUBTITLES/KanpurVerse_Part2_hi.srt` plus JSON; burned into MP4. Cues follow measured individually generated spoken phrases rather than evenly estimated scene timing. No independent human phonetic listening review is claimed.
@@ -28,3 +28,8 @@ Final publishing outcome is recorded separately in `PUBLISHING_STATUS.md`; an op
 
 ## Limits
 Gameplay is a playable development branch, not a verified public-server deployment. Personal inventory/civic score is server-owned; NPC moods, cleanliness and stains are client-local. No municipal-worker role, physical controller support, recorded voices for all new NPC lines, or full all-mission/device regression run was added or claimed. See FEATURES/Testing_Reports/PLAYTEST.md for complete validation boundaries.
+
+Final upload uses the corrected 48 kHz stereo AAC export. The earlier 96 kHz master stalled in Instagram processing and is retained only as an intermediate. AI narration is disclosed in the caption and the Instagram AI label is enabled; footage is actual gameplay.
+
+## Verified result
+Published: https://www.instagram.com/velto_studios/reel/DfmRWX2PaXq/. Live owner/caption and profile entry verified; publishing-proof.jpg saved. World/map data attribution: © OpenStreetMap contributors (ODbL), as used by the existing KanpurVerse game.
