@@ -107,6 +107,7 @@ export class NetClient {
         else if (m.status === "checkpoint") { s.set({ mission: s.mission && { ...s.mission, index: m.index ?? s.mission.index + 1 } }); s.toast(`Checkpoint ${m.index}/${def.checkpoints.length}`); }
         else if (m.status === "completed") { s.set({ mission: undefined }); s.toast(`${def.name} complete! +${m.reward?.coins} coins, +${m.reward?.xp} XP`, "reward"); }
         else { s.set({ mission: undefined }); s.toast(`${def.name} failed — time's up`, "error"); } break; }
+      case "street.action": useStore.getState().set({ streetAction: { action: m.action, at: performance.now() } }); break;
       case "profile": s.set({ profile: m.profile }); break;
       case "toast": s.toast(m.text, m.kind); break;
       case "social": if (m.event === "party.invite") s.set({ invites: [...s.invites, { from: m.from!, name: m.name! }] }); else if (m.event === "party.update") s.set({ party: m.party ?? [] }); else if (m.event === "friend.added") s.toast(`${m.name} added you as a friend`); break;

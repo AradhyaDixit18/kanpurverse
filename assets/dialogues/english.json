@@ -448,6 +448,13 @@
       "text": "Lovely evening today.",
       "emotion": "warm",
       "voice": "english_female"
+    },
+    {
+      "id": "paan_chacha.greet_1",
+      "npc": "paan_chacha",
+      "category": "shop",
+      "text": "Welcome to Nukkad Paan, our fictional street shop. What would you like?",
+      "emotion": "warm"
     }
   ]
 }

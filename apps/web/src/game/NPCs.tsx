@@ -14,6 +14,7 @@ import { useStore } from "../state/store";
 import { useDialogueLines } from "./dialogueData";
 import { speak } from "../audio/voice";
 
+import { streetRuntime } from "./streetRuntime";
 import { npcPositions } from "./refs";
 export { npcPositions };
 
@@ -56,7 +57,11 @@ function NPC({ def }: { def: NpcDef }) {
     const active=dPlayer<110; motion.enable(active); if(!active)return;
     const talking = s.dialogue?.npc === def.id;
     const face = (yaw: number) => { if (!g.current) return; let d = yaw - g.current.rotation.y; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; g.current.rotation.y += d * (1 - Math.exp(-dt * 8)); };
-    if (talking || dPlayer < 3.5) { // face the player, greet with a wave once
+    const mood = streetRuntime.moods.get(def.id); const reacting = !!mood && performance.now() < mood.until;
+    if (reacting && mood.leaving) {
+      const away = new THREE.Vector2(p.x-playerPos.x,p.z-playerPos.z).normalize(); p.x += away.x * dt * 1.4; p.z += away.y * dt * 1.4; face(Math.atan2(away.x,away.y)); if(anim!=="walk")setAnim("walk");
+    } else if (reacting) { face(Math.atan2(playerPos.x-p.x,playerPos.z-p.z)); const want = mood.anger > 0 ? "talk" : "laugh"; if(anim!==want)setAnim(want);
+    } else if (talking || dPlayer < 3.5) { // face the player, greet with a wave once
       face(Math.atan2(playerPos.x - p.x, playerPos.z - p.z));
       const want: AnimState = talking ? "talk" : (performance.now() - greetAt.current < 1800 ? "wave" : "idle");
       if (!talking && dPlayer < 3.5 && performance.now() - greetAt.current > 15000) greetAt.current = performance.now();

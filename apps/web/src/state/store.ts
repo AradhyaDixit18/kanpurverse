@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { DEFAULT_APPEARANCE, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
 
 export type Quality = "low" | "medium" | "high";
-export interface Settings { langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
+export interface Settings { cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
 export interface ChatMsg { from: string; name: string; text: string; at: number; system?: boolean }
 export interface Subtitle { speaker: string; text: string; roman?: string; until: number }
 export interface MissionState { def: MissionDef; index: number; startedAt: number; status: "started" | "completed" | "failed" }
@@ -17,12 +17,13 @@ interface Store {
   connected: boolean; serverCapabilities: string[]; selfId?: string; profile?: PlayerProfile; players: Record<string, PlayerSnapshot>; vehicles: Record<string, VehicleSnapshot>; worldTime: number;
   chat: ChatMsg[]; subtitle?: Subtitle; toasts: { id: number; text: string; kind: string }[]; mission?: MissionState; party: string[]; invites: { from: string; name: string }[];
   dialogue?: { npc: string; lineId: string }; nearby?: { kind: "npc" | "vehicle" | "landmark" | "checkpoint"; id: string; label: string };
+  streetAction?: { action: "consume" | "spit"; at: number };
   paused: boolean; ping: number; fps: number; inVehicle?: string; seat?: "driver" | "passenger"; vehicleTransition?: "entering" | "exiting"; errorText?: string; loadStage?: "engine" | "connecting" | "auth" | "joining" | "done"; loadProgress?: number;
   set: (p: Partial<Store>) => void; saveLocal: () => void; toast: (text: string, kind?: string) => void; pushChat: (m: ChatMsg) => void;
   setSettings: (s: Partial<Settings>) => void;
 }
 
-const DEFAULT_SETTINGS: Settings = { lang: "kanpuriya", subtitles: true, voice: true, music: 0.45, sfx: 0.8, ambience: 0.6, dialogue: 1, quality: "medium", sensitivity: 1, invertY: false, largeText: false, reduceMotion: false, colorblind: false, showFps: false,
+const DEFAULT_SETTINGS: Settings = { cleanLanguage: true, lang: "kanpuriya", subtitles: true, voice: true, music: 0.45, sfx: 0.8, ambience: 0.6, dialogue: 1, quality: "medium", sensitivity: 1, invertY: false, largeText: false, reduceMotion: false, colorblind: false, showFps: false,
   touch: typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0) };
 
 export const useStore = create<Store>((set, get) => {

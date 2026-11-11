@@ -26,7 +26,7 @@ export const Appearance = z.object({
 export type Appearance = z.infer<typeof Appearance>;
 
 export const AnimState = z.enum(["idle", "walk", "run", "sprint", "jump", "fall", "sit", "wave", "dance", "laugh",
-  "celebrate", "talk", "highfive", "drive", "punch"]);
+  "celebrate", "talk", "highfive", "drive", "punch", "packet", "openpacket", "consume", "spit"]);
 export type AnimState = z.infer<typeof AnimState>;
 
 export const Language = z.enum(["kanpuriya", "hindi", "english"]);
@@ -49,6 +49,8 @@ export const C2S = z.discriminatedUnion("t", [
   z.object({ t: z.literal("profile.update"), appearance: Appearance.optional(), lang: Language.optional() }),
   z.object({ t: z.literal("social"), action: z.enum(["friend.add", "friend.remove", "block", "unblock", "mute", "unmute", "report", "party.invite", "party.leave", "party.accept"]), target: z.string(), reason: z.string().max(200).optional() }),
   z.object({ t: z.literal("shop.buy"), item: z.string().max(40) }),
+  z.object({ t: z.literal("street.consume") }),
+  z.object({ t: z.literal("street.spit") }),
   z.object({ t: z.literal("ping"), at: z.number() }),
 ]);
 export type C2S = z.infer<typeof C2S>;
@@ -68,6 +70,7 @@ export type S2C =
   | { t: "emote"; id: string; anim: AnimState }
   | { t: "vehicle.update"; vehicle: VehicleSnapshot }
   | { t: "mission.update"; id: string; status: "started" | "checkpoint" | "completed" | "failed"; index?: number; reward?: { coins: number; xp: number } }
+  | { t: "street.action"; action: "consume" | "spit" }
   | { t: "profile"; profile: PlayerProfile }
   | { t: "toast"; text: string; kind?: "info" | "reward" | "error" }
   | { t: "social"; event: string; from?: string; name?: string; party?: string[] }
@@ -76,6 +79,7 @@ export type S2C =
   | { t: "correct"; p: Vec3; reason: string };
 
 export interface PlayerProfile {
+  inventory?: { gutka: number }; civic?: number;
   name: string; appearance: Appearance; lang: Language; level: number; xp: number; coins: number;
   missionsCompleted: string[]; unlocked: string[]; friends: string[]; blocked: string[]; playtimeSec: number;
 }

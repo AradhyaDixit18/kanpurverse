@@ -3,7 +3,7 @@ import type { WebSocket } from "ws";
 import {
   type S2C, type PlayerSnapshot, type VehicleSnapshot, type PlayerProfile, type AnimState, type Vec3, type Appearance, type Language,
   MAX_PLAYER_SPEED, MAX_VEHICLE_SPEED, VEHICLE_SPAWNS, VEHICLE_HEIGHT, MISSIONS, SPAWN_POINT, WORLD_SIZE, TICK_RATE,
-  vehicleExitCandidates,
+  vehicleExitCandidates, STREET, PAAN_VENDOR, NPCS,
   maskProfanity, stripPII, hasBlockedWord, levelFromXp,
 } from "@kanpurverse/shared";
 import type { Storage, PlayerDoc } from "./storage";
@@ -20,10 +20,11 @@ export class Player {
   id: string; name: string; p: Vec3 = [...SPAWN_POINT] as Vec3; ry = 0; anim: AnimState = "idle"; appearance: Appearance; lang: Language;
   vehicle?: string; seat?: "driver" | "passenger"; lastStateAt = 0; lastSeq = -1; profile: PlayerProfile; doc: PlayerDoc;
   chatTimes: number[] = []; muted = new Set<string>(); mission?: MissionRun; party: Set<string> = new Set(); violations = 0; joinedAt = Date.now();
+  consumeUntil = 0; spitReady = false; lastSpit = 0;
   lastChat: string[] = []; invites = new Set<string>();
   constructor(public ws: WebSocket, doc: PlayerDoc) {
     this.id = doc._id; this.name = doc.name; this.appearance = doc.appearance; this.lang = doc.lang; this.doc = doc;
-    this.profile = { name: doc.name, appearance: doc.appearance, lang: doc.lang, level: doc.level, xp: doc.xp, coins: doc.coins, missionsCompleted: doc.missionsCompleted, unlocked: doc.unlocked, friends: doc.friends, blocked: doc.blocked, playtimeSec: doc.playtimeSec };
+    this.profile = { inventory: { gutka: Math.max(0, Math.min(STREET.maxPackets, Math.floor(doc.inventory?.gutka ?? 0))) }, civic: doc.civic ?? 100, name: doc.name, appearance: doc.appearance, lang: doc.lang, level: doc.level, xp: doc.xp, coins: doc.coins, missionsCompleted: doc.missionsCompleted, unlocked: doc.unlocked, friends: doc.friends, blocked: doc.blocked, playtimeSec: doc.playtimeSec };
   }
   send(m: S2C) { if (this.ws.readyState === this.ws.OPEN) this.ws.send(JSON.stringify(m)); }
   snapshot(): PlayerSnapshot { return { id: this.id, name: this.name, p: this.p, ry: this.ry, anim: this.anim, appearance: this.appearance, vehicle: this.vehicle, seat: this.seat, level: this.profile.level }; }
@@ -73,7 +74,7 @@ export class Room {
     log.info("leave", { room: this.name, id: pl.id, n: this.players.size });
   }
   persist(pl: Player) {
-    Object.assign(pl.doc, { name: pl.name, appearance: pl.appearance, lang: pl.lang, level: pl.profile.level, xp: pl.profile.xp, coins: pl.profile.coins,
+    Object.assign(pl.doc, { inventory: pl.profile.inventory, civic: pl.profile.civic, name: pl.name, appearance: pl.appearance, lang: pl.lang, level: pl.profile.level, xp: pl.profile.xp, coins: pl.profile.coins,
       missionsCompleted: pl.profile.missionsCompleted, unlocked: pl.profile.unlocked, friends: pl.profile.friends, blocked: pl.profile.blocked, playtimeSec: pl.doc.playtimeSec });
     this.storage.putPlayer(pl.doc).catch(e => log.error("persist failed", { e: String(e) }));
   }
@@ -115,6 +116,7 @@ export class Room {
 
   enterVehicle(pl: Player, id: string, seat: "driver" | "passenger") {
     const v = this.vehicles.get(id); if (!v) return pl.send({ t: "error", code: "no_vehicle", message: "No such vehicle" });
+    if (Date.now() < pl.consumeUntil) return;
     // Validate the target before releasing a current seat: failed transfers are atomic.
     if (pl.vehicle === id && pl.seat === seat) return;
     if (Math.hypot(v.p[0] - pl.p[0], v.p[2] - pl.p[2]) > 6) return pl.send({ t: "error", code: "too_far", message: "Get closer to the vehicle" });
@@ -206,10 +208,37 @@ export class Room {
   }
 
   buy(pl: Player, itemId: string, items: { id: string; price: number; slot: string; value: number }[]) {
+    if (itemId === "gutka") return this.buyGutka(pl);
     const it = items.find(i => i.id === itemId); if (!it) return pl.send({ t: "error", code: "no_item", message: "Unknown item" });
     if (pl.profile.unlocked.includes(it.id)) return pl.send({ t: "error", code: "owned", message: "Already owned" });
     if (pl.profile.coins < it.price) return pl.send({ t: "error", code: "coins", message: "Not enough coins" });
     pl.profile.coins -= it.price; pl.profile.unlocked.push(it.id); pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "toast", text: "Purchased!", kind: "reward" }); this.persist(pl);
+  }
+
+  private streetError(pl: Player, message: string) { pl.send({ t: "toast", text: message, kind: "error" }); }
+  buyGutka(pl: Player) {
+    const vendor = NPCS.find(n => n.id === PAAN_VENDOR)!;
+    if (pl.vehicle || Date.now() < pl.consumeUntil || Math.hypot(pl.p[0] - vendor.path[0][0], pl.p[2] - vendor.path[0][1]) > 5) return this.streetError(pl, "नुक्कड़ पान चाचा के पास पैदल आओ।");
+    const inventory = pl.profile.inventory ??= { gutka: 0 };
+    if (inventory.gutka >= STREET.maxPackets) return this.streetError(pl, "झोला भर गया — 30 पैकेट की सीमा।");
+    if (pl.profile.coins < STREET.price) return this.streetError(pl, "सिक्के कम हैं। मिशन से कमाओ।");
+    pl.profile.coins -= STREET.price; inventory.gutka++;
+    pl.send({ t: "profile", profile: pl.profile }); this.persist(pl);
+  }
+  consumeGutka(pl: Player) {
+    if (pl.vehicle || Date.now() < pl.consumeUntil || pl.spitReady) return this.streetError(pl, "पहले मौजूदा काम पूरा करो।");
+    const inventory = pl.profile.inventory ??= { gutka: 0 };
+    if (inventory.gutka <= 0) return this.streetError(pl, "Gutka खत्म — नुक्कड़ पान चाचा से खरीदो।");
+    inventory.gutka--; pl.consumeUntil = Date.now() + STREET.consumeMs; pl.spitReady = true;
+    pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "street.action", action: "consume" }); this.persist(pl);
+  }
+  spitGutka(pl: Player) {
+    const now = Date.now();
+    if (pl.vehicle || now < pl.consumeUntil || !pl.spitReady || now - pl.lastSpit < STREET.spitCooldownMs) return this.streetError(pl, "अभी थूकने के लिए तैयार नहीं।");
+    pl.spitReady = false; pl.lastSpit = now;
+    // Personal civic score is authoritative; geometric area cleanliness is a local simulation.
+    pl.profile.civic = Math.max(0, (pl.profile.civic ?? 100) - STREET.penalty);
+    pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "street.action", action: "spit" }); this.persist(pl);
   }
 
   social(pl: Player, action: string, target: string, reason?: string) {

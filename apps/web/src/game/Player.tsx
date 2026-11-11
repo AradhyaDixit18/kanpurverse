@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { RigidBody, CapsuleCollider, useRapier, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, type AnimState } from "@kanpurverse/shared";
+import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, STREET, type AnimState } from "@kanpurverse/shared";
 import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
@@ -27,6 +27,7 @@ export function Player() {
   const body = useRef<RapierRigidBody>(null); const vis = useRef<THREE.Group>(null);
   const { rapier, world } = useRapier(); const { camera, gl, scene } = useThree();
   const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const wasGrounded = useRef(true); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
+  const lastStreet = useRef(useStore.getState().streetAction?.at ?? -1);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
   const appearance = useStore(s => s.appearance); const name = useStore(s => s.name); const inVehicle = useStore(s => s.inVehicle);
   const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
@@ -36,7 +37,13 @@ export function Player() {
   useBeforePhysicsStep(() => {
     const dt = world.timestep; const s = useStore.getState(); const rb = body.current; const c = controller.current; if (!rb || !c) return;
     pollKeys();
-    const paused = s.paused || !!s.dialogue; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
+    const consumePressed = once("KeyG"), spitPressed = once("KeyV");
+    const action = s.streetAction; const elapsed = action ? performance.now() - action.at : Infinity;
+    const consuming = action?.action === "consume" && elapsed < STREET.consumeMs;
+    const spitting = action?.action === "spit" && elapsed < 450;
+    if (action?.action === "spit" && lastStreet.current !== action.at) { lastStreet.current = action.at; window.dispatchEvent(new CustomEvent("kv:spit")); }
+    if (consuming && lastStreet.current !== action?.at) { lastStreet.current = action!.at; sfx.packet(); vel.current = { x: 0, z: 0 }; }
+    const paused = s.paused || !!s.dialogue || consuming || spitting; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
     // camera orbit
     const look = consumeLook(); if (!paused) { camYaw.v -= look.dx * 0.0025 * s.settings.sensitivity; camYaw.pitch = THREE.MathUtils.clamp(camYaw.pitch + look.dy * 0.0025 * sens, -0.6, 1.1); }
     camYaw.dist = THREE.MathUtils.clamp(camYaw.dist + consumeZoom() * 0.6, 2.5, 12);
@@ -70,6 +77,7 @@ export function Player() {
       placeCharacter(world, rb, p);
       vel.current.x = 0; vel.current.z = 0; vy.current = 0;
     }
+    if (!paused && grounded.current) { if (consumePressed) net.send({ t: "street.consume" }); else if (spitPressed) net.send({ t: "street.spit" }); }
     // movement relative to camera yaw
     let mx = 0, mz = 0; const fwd = paused ? 0 : input.fwd, right = paused ? 0 : input.right;
     if (fwd || right) { const len = Math.hypot(fwd, right) || 1; const f = fwd / len, r = right / len; const cy = camYaw.v; mx = -Math.sin(cy) * f + Math.cos(cy) * r; mz = -Math.cos(cy) * f - Math.sin(cy) * r; }
@@ -92,7 +100,7 @@ export function Player() {
     // animation state
     const now = performance.now();
     const movingVis = Math.hypot(vel.current.x, vel.current.z) > 0.4;
-    if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
+    if (consuming) anim.current = elapsed < 650 ? "packet" : elapsed < 1250 ? "openpacket" : "consume"; else if (spitting) anim.current = "spit"; else if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
     if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); if (speed >= RUN) puff(playerPos.x, playerPos.y, playerPos.z, speed === SPRINT ? 1 : 0.6); } }
     if (grounded.current && !wasGrounded.current) { puff(playerPos.x, playerPos.y, playerPos.z, 1.4); sfx.step(); } wasGrounded.current = grounded.current;
     if (vis.current) { vis.current.position.copy(playerPos); const prev = vis.current.rotation.y; vis.current.rotation.y = lerpAngle(prev, playerYaw.v, 1 - Math.exp(-dt * 12)); let dyaw = vis.current.rotation.y - prev; while (dyaw > Math.PI) dyaw -= 2 * Math.PI; while (dyaw < -Math.PI) dyaw += 2 * Math.PI; vis.current.rotation.z = THREE.MathUtils.lerp(vis.current.rotation.z, turnLean(dyaw, dt, Math.hypot(vel.current.x, vel.current.z)), 1 - Math.exp(-dt * 12)); }

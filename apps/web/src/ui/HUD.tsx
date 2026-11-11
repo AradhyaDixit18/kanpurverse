@@ -22,6 +22,7 @@ export function HUD() {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
+      if (e.code === "Escape" && useStore.getState().dialogue) return;
       if (e.code === "Escape") { setPanel(p => p ? null : "pause"); if (document.pointerLockElement) document.exitPointerLock(); }
       if (e.code === "KeyM") setPanel(p => p === "map" ? null : "map"); if (e.code === "Tab") { e.preventDefault(); setPanel(p => p === "social" ? null : "social"); }
       if (e.code === "Enter" || e.code === "KeyT") { setShowChat(true); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -50,6 +51,7 @@ export function HUD() {
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
       </div>
+      {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
@@ -218,7 +220,7 @@ function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolea
   return <><h2>{inventory ? t("Inventory", "इन्वेंटरी") : t("Naveen Market", "नवीन मार्केट")} · 🪙 {s.profile?.coins}</h2>{inventory && <p className="muted">{t("Basic outfits are always available in Character. Items bought at Naveen Market appear here.", "बेसिक कपड़े हमेशा किरदार में हैं। नवीन मार्केट से खरीदी चीज़ें यहाँ दिखेंगी।")}</p>}{inventory && items.length === 0 && <p>{t("Nothing yet — earn coins from missions and visit Naveen Market.", "अभी कुछ नहीं — मिशन से सिक्के कमाओ और नवीन मार्केट जाओ।")}</p>}<div className="shop">
     {items.map(it => { const owned = s.profile?.unlocked.includes(it.id); return <div key={it.id} className="shop-item"><b>{t(it.name, it.nameHi)}</b><span>{owned ? t("Owned", "आपका") : `${it.price} 🪙`}</span>
       {owned ? (it.slot === "top" || it.slot === "accessory") ? <button className="btn-sm" onClick={() => equip(it.slot, it.value)}>{t("Wear", "पहनो")}</button> : <span className="muted">✓</span> : <button className="btn-sm accent" onClick={() => { net.send({ t: "shop.buy", item: it.id }); sfx.coin(); }}>{t("Buy", "खरीदो")}</button>}</div>; })}
-  </div><p className="muted">{t("Coins come from missions only. No real money anywhere in KanpurVerse.", "सिक्के सिर्फ़ मिशन से मिलते हैं। कानपुरवर्स में असली पैसा कहीं नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  </div>{inventory && <p>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0} · G से सेवन · V से थूकना · नुक्कड़ पान चाचा, मॉल रोड</p>}<p className="muted">{t("Coins come from missions only. No real money anywhere in KanpurVerse.", "सिक्के सिर्फ़ मिशन से मिलते हैं। कानपुरवर्स में असली पैसा कहीं नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 function GaragePanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;

@@ -1,4 +1,5 @@
 export * from "./protocol";
+export * from "./streetLife";
 export * from "./world";
 export * from "./dialogue";
 export * from "./moderation";

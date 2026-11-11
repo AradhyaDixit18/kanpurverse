@@ -88,6 +88,8 @@ export async function startServer(opts: { port?: number; storage?: Storage; exit
           case "mission.abandon": return room.abandon(player);
           case "profile.update": { if (m.appearance) player.appearance = m.appearance; if (m.lang) player.lang = m.lang; player.profile.appearance = player.appearance; player.profile.lang = player.lang; room.persist(player); return send({ t: "profile", profile: player.profile }); }
           case "social": return room.social(player, m.action, m.target, m.reason);
+          case "street.consume": return room.consumeGutka(player);
+          case "street.spit": return room.spitGutka(player);
           case "shop.buy": return room.buy(player, m.item, SHOP_ITEMS);
         }
       } catch (e) { log.error("handler error", { e: String(e), t: (m as { t: string }).t }); send({ t: "error", code: "internal", message: "Server error" }); }

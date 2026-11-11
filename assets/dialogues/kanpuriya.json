@@ -448,6 +448,14 @@
       "text": "आज शाम का मौसम तो बढ़िया है।",
       "emotion": "warm",
       "roman": "Aaj shaam ka mausam to badhiya hai."
+    },
+    {
+      "id": "paan_chacha.greet_1",
+      "npc": "paan_chacha",
+      "category": "shop",
+      "text": "आओ गुरु! नुक्कड़ की काल्पनिक पान दुकान में स्वागत है। क्या चाहिए?",
+      "emotion": "warm",
+      "roman": "Aao guru! Nukkad ki kalpanik paan dukaan mein swagat hai. Kya chahiye?"
     }
   ]
 }

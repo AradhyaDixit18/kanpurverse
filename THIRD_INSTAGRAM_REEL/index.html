@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KanpurVerse Part 2 — Velto Studios</title><style>body{background:#0b0b0d;color:#eee;font:17px system-ui;margin:40px auto;padding:0 24px;max-width:1050px}h1{font-size:44px}b,a{color:#ffd23f}video{width:min(100%,405px);border-radius:20px;border:1px solid #666}main{display:flex;gap:40px;flex-wrap:wrap}nav{display:grid;gap:18px}p{line-height:1.6;max-width:650px}pre{white-space:pre-wrap;font:15px/1.6 system-ui;background:#17171c;padding:24px;border-radius:12px}img{max-width:300px}a{overflow-wrap:anywhere}</style><p>VELTO STUDIOS / DEV DIARY 02</p><h1>KANPUR<span style="color:#e8273b">VERSE</span> — PART 2</h1><p>Actual street-life gameplay from the new development branch. 51 seconds, Hindi narration, 1080×1920.</p><main><video controls preload="metadata" poster="COVER/KanpurVerse_Part2_Cover.jpg" src="EXPORTS/KanpurVerse_Part2_StreetLife_1080x1920.mp4"></video><nav><a href="http://localhost:3000/play">Play the local update</a><a href="EXPORTS/KanpurVerse_Part2_StreetLife_1080x1920.mp4" download>Download final MP4</a><a href="COVER/KanpurVerse_Part2_Cover.jpg" download>Reel cover</a><a href="VOICEOVER/KanpurVerse_Part2_Hindi_Aligned.mp3" download>Hindi voiceover MP3</a><a href="SUBTITLES/KanpurVerse_Part2_hi.srt" download>Hindi subtitles SRT</a><a href="CAPTION/instagram_caption.txt">Caption and hashtags</a><a href="REPORTS/PRODUCTION_REPORT.md">Production report</a><a href="REPORTS/DELIVERY_REPORT.md">Full development and delivery report</a><a href="REPORTS/PUBLISHING_STATUS.md">Publishing status</a><a href="REPORTS/final_contact.jpg">Visual contact sheet</a></nav></main><h2>Production details</h2><pre># KanpurVerse — Part 2 production report
+Date: 11 November 2026, Asia/Kolkata. Studio: Velto Studios.
+
+## Deliverables
+- Final video: `EXPORTS/KanpurVerse_Part2_StreetLife_1080x1920.mp4` — target 51.000 seconds; H.264, 1080×1920, 9:16, 30 FPS; AAC audio. See `media-validation.json` for measured final values.
+- Cover: `COVER/KanpurVerse_Part2_Cover.jpg`, 1080×1920.
+- Narration: `VOICEOVER/KanpurVerse_Part2_Hindi_Aligned.mp3`, Hindi male hm_omega, generated offline with the existing Kokoro assets. Same voice identity as the previous reel.
+- Hindi captions: `SUBTITLES/KanpurVerse_Part2_hi.srt` plus JSON; burned into MP4. Cues follow measured individually generated spoken phrases rather than evenly estimated scene timing. No independent human phonetic listening review is claimed.
+- Caption and hashtags: `CAPTION/instagram_caption.txt`, `CAPTION/hashtags.txt`.
+- Feature screenshots: selected actual recorded frames in `REPORTS/verified_frame_*.jpg`.
+- Source/edit decisions: `PROJECT_FILES/build_reel.py`, `edit_decisions.json`, narration scripts, shaping helper and original audio generators. Intermediate renders retained under `PROJECT_FILES/render`.
+
+## Continuity and evidence
+Previous package: `VeltoStudios/Third_Instagram_Reel_KanpurVerse`, read-only. Its production script, cover, fonts, voice timing, published caption and raw gameplay were inspected. Part 2 retains charcoal #0b0b0d, red #e8273b, gold #ffd23f and Mukta typography. Original Velto horizontal white logo is used on the cover. Font OFL is included.
+
+New feature footage is from the actual modified browser game recorded on 11 November. Takes show real packet purchasing, the procedural consumption sequence, civic-score changes, NPC reactions and Hindi conversations. Recorder overlays copy the current inventory and dialogue; they are not pixel-identical HTML screen recordings. No AI-generated city or fake feature scene appears.
+
+City/rail/driving montage shots also reuse real gameplay recorded for the previous package. Copies are retained under RAW_FOOTAGE/previous; originals were not overwritten. `edit_decisions.json` names source files, in points and durations. No real community comments are fabricated. Narration says “हमारे नए आइडियाज़”; the caption explicitly labels this as a development preview, not a public release.
+
+## Audio and typography
+Madhur Hindi neural audition succeeded; Swara audition hit a service rate limit. The existing offline hm_omega voice was selected for brand continuity and reproducibility. Original synthesized instrumental bed and understated UI/packet/spit sounds were created for this edit. Narration is foregrounded; final loudness/peak measurement is saved with media validation.
+
+The first text renderer lacked RAQM and a native FreeType glyph route crashed. Those intermediate outputs were rejected and retained, not published. The final renderer uses HarfBuzz shaping with fontTools outlines and aggdraw, with visual QA of Devanagari and mixed Latin runs. Captions, title and CTA remain inside portrait safe areas. The contact sheet is `final_contact.jpg`.
+
+## Publishing
+Official profile verified in Chrome: https://www.instagram.com/velto_studios/ (Velto Studios | Digital Products), logged-in Edit profile and creation controls present. Previous KanpurVerse reel verified: https://www.instagram.com/velto_studios/reel/Dfhogr1Pp5W/.
+Final publishing outcome is recorded separately in `PUBLISHING_STATUS.md`; an opened composer or successful upload alone is not treated as publication.
+
+## Limits
+Gameplay is a playable development branch, not a verified public-server deployment. Personal inventory/civic score is server-owned; NPC moods, cleanliness and stains are client-local. No municipal-worker role, physical controller support, recorded voices for all new NPC lines, or full all-mission/device regression run was added or claimed. See FEATURES/Testing_Reports/PLAYTEST.md for complete validation boundaries.
+</pre>

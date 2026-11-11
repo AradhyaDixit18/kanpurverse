@@ -95,6 +95,7 @@ export const NPCS: NpcDef[] = [
   { id: "guide_babloo", name: "Babloo Bhaiya", nameHi: "बबलू भैया", role: "guide", voice: "male_local", path: [[462, -336]], speed: 0, appearanceSeed: 1 },
   { id: "chai_munna", name: "Munna Chaiwala", nameHi: "मुन्ना चायवाला", role: "cafe", voice: "shopkeeper", path: [[452, -316]], speed: 0, appearanceSeed: 2 },
   { id: "auto_raju", name: "Raju Auto", nameHi: "राजू ऑटो", role: "auto", voice: "auto_driver", path: [[502, -320]], speed: 0, appearanceSeed: 3 },
+  { id: "paan_chacha", name: "Nukkad Paan Chacha", nameHi: "नुक्कड़ पान चाचा", role: "shopkeeper", voice: "shopkeeper", path: [[480, -326]], speed: 0, appearanceSeed: 81 },
   { id: "shop_gupta", name: "Gupta ji", nameHi: "गुप्ता जी", role: "shopkeeper", voice: "shopkeeper", path: [[-150, -440]], speed: 0, appearanceSeed: 4 },
   { id: "police_singh", name: "Singh Saheb", nameHi: "सिंह साहब", role: "police", voice: "police", path: [[532, -338]], speed: 0, appearanceSeed: 5 },
   { id: "ped_priya", name: "Priya", nameHi: "प्रिया", role: "pedestrian", voice: "female_young", path: [[-980, -830], [-1020, -840], [-1060, -810], [-1040, -770], [-1000, -780]], speed: 1.2, appearanceSeed: 6 },

@@ -12,6 +12,8 @@ function blip(freq: number, dur = 0.08, type: OscillatorType = "sine", gain = 0.
   const c = ac(); const o = c.createOscillator(); const g = c.createGain(); o.type = type; o.frequency.value = freq; g.gain.value = gain * vol(); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur); o.connect(g); g.connect(master); o.start(); o.stop(c.currentTime + dur);
 }
 export const sfx = {
+  packet: () => { blip(1800, .08, "triangle", .06); setTimeout(() => blip(2200, .07, "triangle", .05), 90); },
+  spit: () => blip(260, .12, "triangle", .07),
   ui: () => blip(880, 0.06), back: () => blip(440, 0.08), coin: () => { blip(1318, 0.1, "square", 0.12); setTimeout(() => blip(1760, 0.15, "square", 0.12), 80); },
   checkpoint: () => { blip(660, 0.1, "triangle"); setTimeout(() => blip(990, 0.15, "triangle"), 100); }, error: () => blip(160, 0.2, "sawtooth", 0.15),
   horn: () => { const c = ac(); const g = c.createGain(); g.gain.value = 0.25 * vol(); g.connect(master); for (const f of [392, 494]) { const o = c.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); o.start(); o.stop(c.currentTime + 0.4); } g.gain.setValueAtTime(0.25 * vol(), c.currentTime + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.45); },

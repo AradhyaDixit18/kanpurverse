@@ -5,6 +5,7 @@ import { useStore } from "../../src/state/store";
 import { EngineBoundary } from "../../src/ui/EngineBoundary";
 import { MainMenu, LoadingScreen, ErrorScreen } from "../../src/ui/Menu";
 import { loadGameEngine } from "../../src/game/engineLoader";
+import { StreetCapture } from "../../src/game/qa/StreetCapture";
 import { ReviewControls } from "../../src/game/qa/ReviewControls";
 const HUD = dynamic(() => import("../../src/ui/HUD").then(m => m.HUD), { ssr: false });
 
@@ -19,5 +20,5 @@ export default function PlayClient() {
   if (screen === "menu" || screen === "character") return <MainMenu />;
   if (screen === "loading") return <LoadingScreen />;
   if (screen === "error") return <ErrorScreen />;
-  return <><EngineBoundary><Game /></EngineBoundary><HUD />{process.env.NODE_ENV === "development" && <ReviewControls />}</>;
+  return <><EngineBoundary><Game /></EngineBoundary><HUD />{process.env.NODE_ENV === "development" && <><ReviewControls /><StreetCapture /></>}</>;
 }

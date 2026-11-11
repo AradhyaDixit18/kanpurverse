@@ -1,0 +1,58 @@
+{
+  "duration": 51.0,
+  "scenes": [
+    {
+      "scene": 1,
+      "start": 0,
+      "end": 5.8,
+      "text": "पिछली रील में पूछा था, कानपुर को गेम में क्या-क्या देखना चाहिए? अब देखो पार्ट टू!",
+      "raw_duration": 6.08,
+      "tempo": 1.0780141843971631
+    },
+    {
+      "scene": 2,
+      "start": 5.8,
+      "end": 11.0,
+      "text": "हमारे नए आइडियाज़ से, कानपुरवर्स में आ रहा है थोड़ा और कनपुरिया अंदाज़!",
+      "raw_duration": 5.888,
+      "tempo": 1.1682539682539683
+    },
+    {
+      "scene": 3,
+      "start": 11.0,
+      "end": 23.2,
+      "text": "नुक्कड़ की पान दुकान पर जाओ, सिक्कों से पैकेट खरीदो। गुटखा वाला गेमप्ले भी तैयार! लेकिन सड़क पर थूका, तो नागरिक स्कोर घटेगा। आसपास के लोग भी टोकेंगे!",
+      "raw_duration": 11.669333333333332,
+      "tempo": 0.9692137320044297
+    },
+    {
+      "scene": 4,
+      "start": 23.2,
+      "end": 35.6,
+      "text": "और अब एन पी सी से सिर्फ हेलो नहीं। का गुरु, बड़ी जल्दी में हो? मज़ेदार कनपुरिया जवाब, नाराज़गी, और माफ़ी से बात सँभालना। साफ़ भाषा का विकल्प भी है!",
+      "raw_duration": 11.264,
+      "tempo": 0.9202614379084967
+    },
+    {
+      "scene": 5,
+      "start": 35.6,
+      "end": 43.1,
+      "text": "ये अर्ली बिल्ड है, बस शुरुआत है। आगे के फीचर्स और मिशन्स को आकार देने में, आपके आइडियाज़ काम आएँगे।",
+      "raw_duration": 7.8933333333333335,
+      "tempo": 1.075386012715713
+    },
+    {
+      "scene": 6,
+      "start": 43.1,
+      "end": 51.0,
+      "text": "अगला फीचर क्या होना चाहिए? कमेंट करो! कानपुरवर्स, वेल्टो स्टूडियोज़ की तरफ़ से। शहर हमारा, बनाएँगे मिलकर!",
+      "raw_duration": 8.298666666666668,
+      "tempo": 1.0721791559000862
+    }
+  ],
+  "auditions": {
+    "hi-IN-MadhurNeural": true,
+    "hi-IN-SwaraNeural": "429, message='Invalid response status', url='wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=c1e99c18e2b3439aa6dbee40a6421c56&Sec-MS-GEC=2C7EEDA6508224B8FB034AA2FDEEDA610BF846A4A9F7AF34D46AA4BFCE6B068A&Sec-MS-GEC-Version=1-140.0.3485.14'"
+  },
+  "voice": "hm_omega offline Kokoro; same as previous reel"
+}

@@ -5,7 +5,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useStore } from "../../state/store";
 import { playerPos } from "../refs";
 import { summarizeFrames, type FrameSample } from "./frameStats";
-export function saveBlob(blob: Blob, name: string) { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
+export function saveBlob(blob: Blob, name: string) { void fetch(`/api/dev/street-capture?kind=${name.endsWith('.json') ? 'json' : 'png'}`, { method: 'POST', body: blob }).then(r => r.json()).then(data => window.dispatchEvent(new CustomEvent('kv:profile-status', { detail: `Saved ${data.file}` }))).catch(() => window.dispatchEvent(new CustomEvent('kv:profile-status', { detail: 'Capture save failed' }))); }
+
 export function FrameProbe() {
   const { gl, scene, camera } = useThree();
   const run = useRef<{ start: number; last: number; samples: FrameSample[] } | null>(null);

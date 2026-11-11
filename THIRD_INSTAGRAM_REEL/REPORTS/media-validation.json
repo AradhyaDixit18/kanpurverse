@@ -1,0 +1,21 @@
+{
+  "file": "KanpurVerse_Part2_StreetLife_1080x1920.mp4",
+  "duration_seconds": 51.0,
+  "frames": 1530,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "aspect": "9:16",
+  "video_codec": "H.264",
+  "pixel_format": "yuv420p",
+  "audio_codec": "AAC",
+  "full_decode_exit_code": 0,
+  "integrated_loudness_lufs": -15.0,
+  "loudness_range_lu": 1.8,
+  "true_peak_dbfs": -1.0,
+  "subtitle_cues": 17,
+  "subtitles_within_duration": true,
+  "bytes": 28932290,
+  "sha256": "98d788de2fb885408d1c3fa3072154b015b3ae56869a7933963751131a9609e9",
+  "validation": "Full ffmpeg decode + EBU R128; 1530 decoded frames at 30 fps, no decoding errors."
+}

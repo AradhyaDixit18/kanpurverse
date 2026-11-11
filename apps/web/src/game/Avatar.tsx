@@ -28,6 +28,10 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
     case "fall": p.ll = -0.2; p.rl = 0.1; p.lk = 0.5; p.rk = 0.4; p.la = [-1.6, 0.9]; p.ra = [-1.6, -0.9]; break;
     case "sit": p.ll = -1.55; p.rl = -1.55; p.lk = 1.5; p.rk = 1.5; p.la = [-0.45, 0.1]; p.ra = [-0.45, -0.1]; p.le = 0.8; p.re = 0.8; p.by = -0.42; break;
     case "drive": p.ll = -1.35; p.rl = -1.35; p.lk = 1.1; p.rk = 1.1; p.la = [-1.25, 0.25]; p.ra = [-1.25, -0.25]; p.le = 0.5; p.re = 0.5; p.by = -0.42; break;
+    case "packet": p.ra = [-.35,-.1]; p.re = 1.4; p.hx = .2; break;
+    case "openpacket": p.la = [-.8,-.25]; p.ra = [-.8,.25]; p.le = 1.5; p.re = 1.5; p.hx = .15; break;
+    case "consume": p.ra = [-1.6,.45]; p.re = 2.1; p.hx = -.15; break;
+    case "spit": p.brx = .18; p.hx = .25; break;
     case "wave": p.ra = [-2.9, -0.3 + Math.sin(T * 9) * 0.35]; p.re = 0.5; p.hy = 0.15; break;
     case "dance": { const s = Math.sin(T * 7), c = Math.cos(T * 7); p.la = [-1.4 + s, 0.9 + s * 0.4]; p.ra = [-1.4 - s, -0.9 + s * 0.4]; p.le = 1.2; p.re = 1.2; p.ll = s * 0.35; p.rl = -s * 0.35; p.lk = Math.abs(c) * 0.4; p.rk = Math.abs(s) * 0.4; p.by = Math.abs(s) * 0.1; p.bry = Math.sin(T * 3.5) * 0.35; p.hy = -Math.sin(T * 3.5) * 0.3; break; }
     case "laugh": p.la = [-0.35, 0.2]; p.ra = [-0.35, -0.2]; p.le = 1.4; p.re = 1.4; p.hx = -0.22 + Math.sin(T * 12) * 0.08; p.brx = -0.1; p.by = Math.abs(Math.sin(T * 12)) * 0.02; break;
@@ -132,6 +136,7 @@ function DetailedAvatar({ appearance, anim, name, scale = 1, nameColor = "#fff" 
             <group ref={refs[f]} position={[0, -0.3, 0]}>
               <mesh position={[0, -0.13, 0]} material={appearance.top === 7 || appearance.top === 5 ? mats.top : mats.skin}><boxGeometry args={[0.12, 0.26, 0.12]} /></mesh>
               <RoundedBox position={[0, -0.3, 0]} material={mats.skin} args={[0.11, 0.1, 0.09]} radius={0.045} smoothness={3} />
+              {sx === 1 && ["packet", "openpacket", "consume"].includes(anim) && <mesh position={[0,-.33,.04]} rotation={[0,0,anim === "openpacket" ? .5 : 0]}><boxGeometry args={[.12,.17,.025]}/><meshStandardMaterial color="#c4a46c" roughness={.9}/></mesh>}
             </group>
           </group>))}
         {/* legs: thigh + shin pivots */}
