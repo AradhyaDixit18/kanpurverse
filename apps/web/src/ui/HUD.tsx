@@ -1,5 +1,6 @@
 "use client";
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
+import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOP_ITEMS, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
@@ -15,12 +16,13 @@ import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
-  const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
+  const s = useStore(useShallow(s => ({ settings:s.settings, profile:s.profile, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
   const [showChat, setShowChat] = useState(false);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
+      if (e.code === "Escape" && useStore.getState().dialogue) return;
       if (e.code === "Escape") { setPanel(p => p ? null : "pause"); if (document.pointerLockElement) document.exitPointerLock(); }
       if (e.code === "KeyM") setPanel(p => p === "map" ? null : "map"); if (e.code === "Tab") { e.preventDefault(); setPanel(p => p === "social" ? null : "social"); }
       if (e.code === "Enter" || e.code === "KeyT") { setShowChat(true); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -37,7 +39,7 @@ export function HUD() {
   const sub = s.subtitle && s.subtitle.until > Date.now() ? s.subtitle : undefined;
   const [, tick] = useState(0); useEffect(() => { const i = setInterval(() => tick(x => x + 1), 250); return () => clearInterval(i); }, []);
   const m = s.mission; const left = m?.def.timeLimitSec ? Math.max(0, m.def.timeLimitSec - (Date.now() - m.startedAt) / 1000) : undefined;
-  const online = Object.keys(s.players).length;
+  const online = s.online;
 
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
@@ -47,8 +49,9 @@ export function HUD() {
       <div className="hud-stats">
         <Logo size={14} />
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
-        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {clock(s.worldTime)} {t("Kanpur", "कानपुर")}</div>
+        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
       </div>
+      {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
@@ -121,6 +124,8 @@ function cmd(t: string) {
   if (map[c]) net.send({ t: "social", action: map[c] as never, target: target.id, reason: rest.slice(1).join(" ") || undefined });
 }
 
+const TouchButton = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button aria-label={label === "⏏" ? "Exit vehicle" : label === "🛑" ? "Brake" : label === "⤒" ? "Jump" : label} className={`tbtn ${cls}`} onClick={() => touchPress(code)} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
+
 function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat: () => void; onMap: () => void }) {
   const base = useRef<HTMLDivElement>(null); const knob = useRef<HTMLDivElement>(null); const joyId = useRef<number | null>(null); const lookId = useRef<number | null>(null); const last = useRef({ x: 0, y: 0 });
   const nearby = useStore(s => s.nearby); const inVehicle = useStore(s => s.inVehicle);
@@ -132,14 +137,14 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
     el.addEventListener("touchstart", start, { passive: true }); el.addEventListener("touchmove", move, { passive: true }); el.addEventListener("touchend", end); el.addEventListener("touchcancel", end);
     return () => { el.removeEventListener("touchstart", start); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", end); el.removeEventListener("touchcancel", end); };
   }, []);
-  const B = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button className={`tbtn ${cls}`} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.jump = true; }} onTouchEnd={() => { if (code === "Space") input.jump = false; }}>{label}</button>;
+
   return <>
     <div ref={base} className="joy"><div ref={knob} className="joy-knob" /></div>
     <div className="tbtns">
-      {nearby && <B code="KeyE" label={inVehicle ? "⏏" : "E"} cls="big accent" />}
-      {!inVehicle && <B code="Space" label="⤒" cls="big" />}
-      {inVehicle && <B code="KeyH" label="📯" />}{inVehicle && <B code="Space" label="🛑" />}
-      <B code="Digit1" label="👋" />
+      {(nearby || inVehicle) && <TouchButton code="KeyE" label={inVehicle ? "⏏" : "E"} cls="big accent" />}
+      {!inVehicle && <TouchButton code="Space" label="⤒" cls="big" />}
+      {inVehicle && <TouchButton code="KeyH" label="📯" />}{inVehicle && <TouchButton code="Space" label="🛑" />}
+      <TouchButton code="Digit1" label="👋" />
     </div>
     <div className="tbar"><button className="tbtn" onClick={onPause}>☰</button><button className="tbtn" onClick={onMap}>🗺</button><button className="tbtn" onClick={onChat}>💬</button></div>
   </>;
@@ -215,7 +220,7 @@ function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolea
   return <><h2>{inventory ? t("Inventory", "इन्वेंटरी") : t("Naveen Market", "नवीन मार्केट")} · 🪙 {s.profile?.coins}</h2>{inventory && <p className="muted">{t("Basic outfits are always available in Character. Items bought at Naveen Market appear here.", "बेसिक कपड़े हमेशा किरदार में हैं। नवीन मार्केट से खरीदी चीज़ें यहाँ दिखेंगी।")}</p>}{inventory && items.length === 0 && <p>{t("Nothing yet — earn coins from missions and visit Naveen Market.", "अभी कुछ नहीं — मिशन से सिक्के कमाओ और नवीन मार्केट जाओ।")}</p>}<div className="shop">
     {items.map(it => { const owned = s.profile?.unlocked.includes(it.id); return <div key={it.id} className="shop-item"><b>{t(it.name, it.nameHi)}</b><span>{owned ? t("Owned", "आपका") : `${it.price} 🪙`}</span>
       {owned ? (it.slot === "top" || it.slot === "accessory") ? <button className="btn-sm" onClick={() => equip(it.slot, it.value)}>{t("Wear", "पहनो")}</button> : <span className="muted">✓</span> : <button className="btn-sm accent" onClick={() => { net.send({ t: "shop.buy", item: it.id }); sfx.coin(); }}>{t("Buy", "खरीदो")}</button>}</div>; })}
-  </div><p className="muted">{t("Coins come from missions only. No real money anywhere in KanpurVerse.", "सिक्के सिर्फ़ मिशन से मिलते हैं। कानपुरवर्स में असली पैसा कहीं नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  </div>{inventory && <p>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0} · G से सेवन · V से थूकना · नुक्कड़ पान चाचा, मॉल रोड</p>}<p className="muted">{t("Coins come from missions only. No real money anywhere in KanpurVerse.", "सिक्के सिर्फ़ मिशन से मिलते हैं। कानपुरवर्स में असली पैसा कहीं नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 function GaragePanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;

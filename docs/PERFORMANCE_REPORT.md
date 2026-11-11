@@ -36,3 +36,16 @@ Device: MacBook (Apple Silicon), Brave, 1470×867 CSS px at DPR 2, quality **Med
 - 4.6 k meshes is high for a scene at 60 FPS mainly because props, crowd and animals are separate meshes; instancing those is the next win for Low-tier devices.
 - The 777 kB 3D chunk could be cut by ~200 kB by dropping `@react-three/postprocessing` on Low and lazy-loading the vehicle meshes.
 - `Text` labels (troika) cost a font load (~200 kB) and one draw each; they are already suspended independently so they never block a tile.
+
+
+## Phase 2 measurement status — 8 November 2026
+
+PARTIALLY IMPLEMENTED. Earlier measurements above remain historical. Fresh 73-test baseline/build passed; no new representative FPS, frame-time distribution, memory, draw-call, loading or multiplayer throughput measurements yet. No 60 FPS achievement claimed. Exit safety uses a 50-metre coarse server polygon index queried only on requests; runtime costs still require measurement. See PHASE_2_QA_REPORT.md for identified browser/hardware conditions when sampled.
+
+### Scoped browser observation
+
+Local development integration scene, 1280×720 in-app browser, Low quality, one hatchback, two procedural avatars and simple walls/ground: HUD generally showed 59–60 FPS while settled, and 0–6ms local ping; transient lower samples occurred during hot reload. These are sampled counters, not a frame-time distribution or average, and are not representative of the complete city or ordinary-device performance. Heap, draw-call totals, asset/load timings and city AI/physics budgets were not measured in this milestone. The fixture WebM records actual driving; no 60 FPS product target is declared achieved.
+
+## Phase 3 measured continuation — 8 November 2026
+
+PARTIALLY IMPLEMENTED. Current raw summaries/screenshots: docs/screenshots/phase3; methodology and table in PHASE_3_QA_REPORT.md. Actual city, 1280×720 CSS, foreground development build, single game tab. Final Medium stationary:60.05FPS, median16.7ms/p95 20.5ms/p99 25.7ms/max30.1ms, 731.8 full-pass calls,214835 triangles,941 geometry resources. Intake Medium:59.90FPS,p95 23.9ms,1110.6 calls,156503 triangles,3693 geometries. More architectural detail now fits lower submission/resource counts. Hardware/clock/traffic variation and single samples limit comparison; no low-end/phone60FPS claim. Low and High sample results and buffer sizes retained separately. Final actual walking:59.84FPS,p95 19.9ms,p99 27.4ms,max64.5ms,2 frames>33.34ms in20s. Remaining streaming/rebuild stalls need further work; no eliminated-stutter claim. Heap/GPU byte usage, draw-pass breakdown, cold-loading distribution and long-drive/mobile/crowded multiplayer benchmarks remain pending.

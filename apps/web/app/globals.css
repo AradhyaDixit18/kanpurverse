@@ -139,3 +139,6 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .l-gallery figure { margin: 0; background: var(--panel); border: 1px solid #2f3038; border-radius: 16px; overflow: hidden; }
 .l-gallery img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .l-gallery figcaption { padding: 0.6rem 0.9rem; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
+
+/* Street-life extension: reuses existing dialogue and HUD surfaces. */
+.street-tools{position:absolute;top:145px;left:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:330px;padding:10px 14px;background:rgba(11,11,13,.88);border:1px solid #ffd23f55;border-radius:12px;pointer-events:auto;font-size:13px}.street-tools small{width:100%;color:#d6c89f}.street-choices{display:flex;flex-wrap:wrap;gap:8px;width:100%;border-top:1px solid #ffffff22;padding-top:12px}.street-shop{width:100%;padding:12px;background:#ffd23f12;border-radius:12px}.street-shop small{display:block;margin-top:8px;color:#bbb}.dlg-card{max-height:85vh;overflow:auto}@media(max-width:600px){.street-tools{top:125px;left:8px;max-width:260px;font-size:11px}.street-choices .btn-sm{font-size:13px}}

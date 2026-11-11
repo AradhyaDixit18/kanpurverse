@@ -3,9 +3,11 @@ import type { WebSocket } from "ws";
 import {
   type S2C, type PlayerSnapshot, type VehicleSnapshot, type PlayerProfile, type AnimState, type Vec3, type Appearance, type Language,
   MAX_PLAYER_SPEED, MAX_VEHICLE_SPEED, VEHICLE_SPAWNS, VEHICLE_HEIGHT, MISSIONS, SPAWN_POINT, WORLD_SIZE, TICK_RATE,
+  vehicleExitCandidates, STREET, PAAN_VENDOR, NPCS,
   maskProfanity, stripPII, hasBlockedWord, levelFromXp,
 } from "@kanpurverse/shared";
 import type { Storage, PlayerDoc } from "./storage";
+import { vehicleBlocksPoint, type ExitBlocker } from "./worldSafety";
 import { log } from "./log";
 
 const IST_OFFSET_MS = 5.5 * 3600 * 1000; // Kanpur is UTC+5:30, no DST
@@ -18,10 +20,11 @@ export class Player {
   id: string; name: string; p: Vec3 = [...SPAWN_POINT] as Vec3; ry = 0; anim: AnimState = "idle"; appearance: Appearance; lang: Language;
   vehicle?: string; seat?: "driver" | "passenger"; lastStateAt = 0; lastSeq = -1; profile: PlayerProfile; doc: PlayerDoc;
   chatTimes: number[] = []; muted = new Set<string>(); mission?: MissionRun; party: Set<string> = new Set(); violations = 0; joinedAt = Date.now();
+  consumeUntil = 0; spitReady = false; lastSpit = 0;
   lastChat: string[] = []; invites = new Set<string>();
   constructor(public ws: WebSocket, doc: PlayerDoc) {
     this.id = doc._id; this.name = doc.name; this.appearance = doc.appearance; this.lang = doc.lang; this.doc = doc;
-    this.profile = { name: doc.name, appearance: doc.appearance, lang: doc.lang, level: doc.level, xp: doc.xp, coins: doc.coins, missionsCompleted: doc.missionsCompleted, unlocked: doc.unlocked, friends: doc.friends, blocked: doc.blocked, playtimeSec: doc.playtimeSec };
+    this.profile = { inventory: { gutka: Math.max(0, Math.min(STREET.maxPackets, Math.floor(doc.inventory?.gutka ?? 0))) }, civic: doc.civic ?? 100, name: doc.name, appearance: doc.appearance, lang: doc.lang, level: doc.level, xp: doc.xp, coins: doc.coins, missionsCompleted: doc.missionsCompleted, unlocked: doc.unlocked, friends: doc.friends, blocked: doc.blocked, playtimeSec: doc.playtimeSec };
   }
   send(m: S2C) { if (this.ws.readyState === this.ws.OPEN) this.ws.send(JSON.stringify(m)); }
   snapshot(): PlayerSnapshot { return { id: this.id, name: this.name, p: this.p, ry: this.ry, anim: this.anim, appearance: this.appearance, vehicle: this.vehicle, seat: this.seat, level: this.profile.level }; }
@@ -33,7 +36,7 @@ export class Room {
   players = new Map<string, Player>();
   vehicles = new Map<string, Vehicle>();
   private tick?: NodeJS.Timeout; private createdAt = Date.now();
-  constructor(public name: string, private storage: Storage, private maxPlayers: number) {
+  constructor(public name: string, private storage: Storage, private maxPlayers: number, private exitBlocked: ExitBlocker = () => false) {
     for (const v of VEHICLE_SPAWNS) {
       const q = yawToQuat(v.ry); const p: Vec3 = [v.p[0], VEHICLE_HEIGHT[v.kind] / 2 + 0.05, v.p[1]];
       this.vehicles.set(v.id, { id: v.id, kind: v.kind, p, q, v: 0, lastAt: 0, home: p, homeRy: v.ry });
@@ -62,7 +65,7 @@ export class Room {
     log.info("join", { room: this.name, id: pl.id, name: pl.name, n: this.players.size });
   }
   leave(pl: Player) {
-    if (pl.vehicle) this.exitVehicle(pl);
+    if (pl.vehicle) this.exitVehicle(pl, undefined, true);
     for (const m of pl.party) this.players.get(m)?.party.delete(pl.id);
     this.players.delete(pl.id);
     this.broadcast({ t: "player.leave", id: pl.id });
@@ -71,7 +74,7 @@ export class Room {
     log.info("leave", { room: this.name, id: pl.id, n: this.players.size });
   }
   persist(pl: Player) {
-    Object.assign(pl.doc, { name: pl.name, appearance: pl.appearance, lang: pl.lang, level: pl.profile.level, xp: pl.profile.xp, coins: pl.profile.coins,
+    Object.assign(pl.doc, { inventory: pl.profile.inventory, civic: pl.profile.civic, name: pl.name, appearance: pl.appearance, lang: pl.lang, level: pl.profile.level, xp: pl.profile.xp, coins: pl.profile.coins,
       missionsCompleted: pl.profile.missionsCompleted, unlocked: pl.profile.unlocked, friends: pl.profile.friends, blocked: pl.profile.blocked, playtimeSec: pl.doc.playtimeSec });
     this.storage.putPlayer(pl.doc).catch(e => log.error("persist failed", { e: String(e) }));
   }
@@ -113,28 +116,46 @@ export class Room {
 
   enterVehicle(pl: Player, id: string, seat: "driver" | "passenger") {
     const v = this.vehicles.get(id); if (!v) return pl.send({ t: "error", code: "no_vehicle", message: "No such vehicle" });
-    if (pl.vehicle) this.exitVehicle(pl);
+    if (Date.now() < pl.consumeUntil) return;
+    // Validate the target before releasing a current seat: failed transfers are atomic.
+    if (pl.vehicle === id && pl.seat === seat) return;
     if (Math.hypot(v.p[0] - pl.p[0], v.p[2] - pl.p[2]) > 6) return pl.send({ t: "error", code: "too_far", message: "Get closer to the vehicle" });
     if (seat === "driver" && v.driver) return pl.send({ t: "error", code: "occupied", message: "Someone's already driving" });
     if (seat === "passenger" && (v.passenger || v.kind === "bike" && v.passenger)) return pl.send({ t: "error", code: "occupied", message: "Seat taken" });
-    if (seat === "driver") v.driver = pl.id; else v.passenger = pl.id;
-    pl.vehicle = id; pl.seat = seat; pl.anim = seat === "driver" ? "drive" : "sit";
+    if (pl.vehicle) return pl.send({ t: "error", code: "busy", message: "Exit your current vehicle first" });
+    if (v.v > 1) return pl.send({ t: "error", code: "vehicle_moving", message: "Wait for the vehicle to stop." });
+    if (seat === "driver") { v.driver = pl.id; v.lastAt = 0; } else v.passenger = pl.id;
+    pl.vehicle = id; pl.seat = seat; pl.anim = seat === "driver" ? "drive" : "sit"; pl.p = [...v.p] as Vec3;
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
   }
-  exitVehicle(pl: Player) {
+  exitVehicle(pl: Player, requested?: Vec3, disconnect = false) {
     const v = pl.vehicle ? this.vehicles.get(pl.vehicle) : undefined; if (!v) return;
+    let exit: Vec3 | undefined;
+    if (!disconnect) {
+      if (v.v > 1) return pl.send({ t: "error", code: "vehicle_moving", message: "Stop the vehicle before getting out." });
+      const candidates = vehicleExitCandidates(v.kind, v.p, v.q, pl.seat ?? "driver");
+      const options = requested ? candidates.filter(p => Math.hypot(p[0] - requested[0], p[2] - requested[2]) <= 0.5).map(() => requested) : candidates;
+      exit = options.find(p => p.every(Number.isFinite) && p[1] >= -0.2 && p[1] <= 0.45 && !this.exitBlocked(p, 0.4)
+        && ![...this.vehicles.values()].some(other => vehicleBlocksPoint(p, 0.4, other))
+        && ![...this.players.values()].some(other => other.id !== pl.id && !other.vehicle && Math.hypot(other.p[0] - p[0], other.p[2] - p[2]) < 0.8));
+      if (!exit) return pl.send({ t: "error", code: "exit_blocked", message: "No clear exit. Move the vehicle to an open space." });
+    }
     if (v.driver === pl.id) { v.driver = undefined; v.v = 0; } if (v.passenger === pl.id) v.passenger = undefined;
     pl.vehicle = undefined; pl.seat = undefined; pl.anim = "idle";
-    pl.p = [v.p[0] + 2.2 * Math.cos(quatYaw(v.q)), 1, v.p[2] - 2.2 * Math.sin(quatYaw(v.q))]; pl.lastStateAt = Date.now();
+    if (exit) { pl.p = exit; pl.lastStateAt = Date.now(); }
     this.broadcast({ t: "vehicle.update", vehicle: stripV(v) });
+    if (!disconnect) pl.send({ t: "correct", p: pl.p, reason: "vehicle_exit" });
   }
   vehicleState(pl: Player, id: string, p: Vec3, q: [number, number, number, number], speed: number) {
     const v = this.vehicles.get(id); if (!v || v.driver !== pl.id) return;
-    const now = Date.now(); const dt = v.lastAt ? Math.min(2, (now - v.lastAt) / 1000) : 0.05; v.lastAt = now;
+    const now = Date.now(); const dt = v.lastAt ? Math.min(2, (now - v.lastAt) / 1000) : 0.05;
     const half = WORLD_SIZE / 2 + 5;
-    if (!p.every(Number.isFinite) || Math.abs(p[0]) > half || Math.abs(p[2]) > half || p[1] < -5 || p[1] > 60) return;
+    if (!p.every(Number.isFinite) || Math.abs(p[0]) > half || Math.abs(p[2]) > half || p[1] < -5 || p[1] > 60) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
     if (Math.hypot(p[0] - v.p[0], p[2] - v.p[2]) > MAX_VEHICLE_SPEED * dt + TELEPORT_TOLERANCE) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
-    v.p = p; v.q = q; v.v = Math.min(Math.abs(speed), MAX_VEHICLE_SPEED); pl.p = [...p] as Vec3;
+    const norm = Math.hypot(...q);
+    if (!q.every(Number.isFinite) || !Number.isFinite(speed) || Math.abs(norm - 1) > 0.05) return pl.send({ t: "vehicle.update", vehicle: stripV(v) });
+    v.lastAt = now;
+    v.p = p; v.q = q.map(n => n / norm) as typeof q; v.v = Math.min(Math.abs(speed), MAX_VEHICLE_SPEED); pl.p = [...p] as Vec3;
     const pass = v.passenger ? this.players.get(v.passenger) : undefined; if (pass) pass.p = [...p] as Vec3;
     this.checkMissionProgress(pl);
   }
@@ -187,10 +208,37 @@ export class Room {
   }
 
   buy(pl: Player, itemId: string, items: { id: string; price: number; slot: string; value: number }[]) {
+    if (itemId === "gutka") return this.buyGutka(pl);
     const it = items.find(i => i.id === itemId); if (!it) return pl.send({ t: "error", code: "no_item", message: "Unknown item" });
     if (pl.profile.unlocked.includes(it.id)) return pl.send({ t: "error", code: "owned", message: "Already owned" });
     if (pl.profile.coins < it.price) return pl.send({ t: "error", code: "coins", message: "Not enough coins" });
     pl.profile.coins -= it.price; pl.profile.unlocked.push(it.id); pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "toast", text: "Purchased!", kind: "reward" }); this.persist(pl);
+  }
+
+  private streetError(pl: Player, message: string) { pl.send({ t: "toast", text: message, kind: "error" }); }
+  buyGutka(pl: Player) {
+    const vendor = NPCS.find(n => n.id === PAAN_VENDOR)!;
+    if (pl.vehicle || Date.now() < pl.consumeUntil || Math.hypot(pl.p[0] - vendor.path[0][0], pl.p[2] - vendor.path[0][1]) > 5) return this.streetError(pl, "नुक्कड़ पान चाचा के पास पैदल आओ।");
+    const inventory = pl.profile.inventory ??= { gutka: 0 };
+    if (inventory.gutka >= STREET.maxPackets) return this.streetError(pl, "झोला भर गया — 30 पैकेट की सीमा।");
+    if (pl.profile.coins < STREET.price) return this.streetError(pl, "सिक्के कम हैं। मिशन से कमाओ।");
+    pl.profile.coins -= STREET.price; inventory.gutka++;
+    pl.send({ t: "profile", profile: pl.profile }); this.persist(pl);
+  }
+  consumeGutka(pl: Player) {
+    if (pl.vehicle || Date.now() < pl.consumeUntil || pl.spitReady) return this.streetError(pl, "पहले मौजूदा काम पूरा करो।");
+    const inventory = pl.profile.inventory ??= { gutka: 0 };
+    if (inventory.gutka <= 0) return this.streetError(pl, "Gutka खत्म — नुक्कड़ पान चाचा से खरीदो।");
+    inventory.gutka--; pl.consumeUntil = Date.now() + STREET.consumeMs; pl.spitReady = true;
+    pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "street.action", action: "consume" }); this.persist(pl);
+  }
+  spitGutka(pl: Player) {
+    const now = Date.now();
+    if (pl.vehicle || now < pl.consumeUntil || !pl.spitReady || now - pl.lastSpit < STREET.spitCooldownMs) return this.streetError(pl, "अभी थूकने के लिए तैयार नहीं।");
+    pl.spitReady = false; pl.lastSpit = now;
+    // Personal civic score is authoritative; geometric area cleanliness is a local simulation.
+    pl.profile.civic = Math.max(0, (pl.profile.civic ?? 100) - STREET.penalty);
+    pl.send({ t: "profile", profile: pl.profile }); pl.send({ t: "street.action", action: "spit" }); this.persist(pl);
   }
 
   social(pl: Player, action: string, target: string, reason?: string) {

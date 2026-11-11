@@ -1,0 +1,33 @@
+{
+  "frames": 1201,
+  "durationMs": 20005.5,
+  "averageFps": 60.033490790032744,
+  "p50Ms": 16.700000047683716,
+  "p95Ms": 21,
+  "p99Ms": 24.90000009536743,
+  "maxMs": 29.200000047683716,
+  "over33Ms": 0,
+  "meanCalls": 852.4188176519567,
+  "meanTriangles": 321305.66194837634,
+  "quality": "high",
+  "position": [
+    471.9999961765502,
+    0.00009774019126784772,
+    -330.00000286758745
+  ],
+  "page": "/play",
+  "viewport": [
+    1280,
+    720
+  ],
+  "buffer": [
+    2240,
+    1260
+  ],
+  "dpr": 1.75,
+  "geometries": 1038,
+  "textures": 90,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+  "capturedAt": "2026-11-08T04:11:05.858Z",
+  "context": "foreground, all render passes, includes stalls; local development build"
+}

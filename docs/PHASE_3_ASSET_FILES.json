@@ -1,0 +1,278 @@
+[
+  {
+    "path": "apps/web/public/fonts/NotoSansDevanagari-400.woff",
+    "bytes": 86428,
+    "sha256": "a5c38eab267fc818cdc3e3f6d6b44bd830f8fc1e7c2df4f38dd03ef6ae0d6e07",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/hdr/kloofendal_48d_partly_cloudy_puresky.hdr",
+    "bytes": 1435119,
+    "sha256": "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/hdr/moonless_golf.hdr",
+    "bytes": 1672754,
+    "sha256": "4f597078024bd81429431e872d466d8808653ad62a8bc8c61d8052af7466c3aa",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/hdr/venice_sunset.hdr",
+    "bytes": 1440400,
+    "sha256": "92fe2b29b1957828fb8925a57633540bbba5bf380d9285ed553443e834249352",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/03_mall_road_spawn.jpg",
+    "bytes": 86204,
+    "sha256": "3dd44ec1abb45ed9cf46ad3ea0e5cb0935c731f94dc07a3710d1489385a90a99",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/04_missions_log.jpg",
+    "bytes": 34220,
+    "sha256": "a5e454bc6dae3586c41e7b29ebcce43c854679d412007568c32ea154f83f4d04",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/05_driving_erickshaw.jpg",
+    "bytes": 90135,
+    "sha256": "9d023a34412e3fc6093ea9ed1bc6a84ba74ab8b66e3cfd35c30eda836a82864c",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/06_nayaganj_tracks.jpg",
+    "bytes": 87949,
+    "sha256": "ba1389abcd5a8eeab6f5ca298bd60d82723ea14881abcc90881638fc5907be4a",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/07_level_crossing.jpg",
+    "bytes": 91844,
+    "sha256": "fdd473b5b2bda7c357c459da31339915649f290fa6e0c44f14b9b57fc8b8f15f",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/screenshots/08_kanpur_central.jpg",
+    "bytes": 79895,
+    "sha256": "aca9dc147bd4c5b774eb0b83dc0e9b89f66d35bbf22438c75bad9e2eebb9f04b",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/asphalt/color.jpg",
+    "bytes": 47621,
+    "sha256": "4f0c32c2a9a4ba31b28c4b5270aa8ff4f79355522c26f8695d9fb3ed102afe3c",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/asphalt/normal.jpg",
+    "bytes": 40552,
+    "sha256": "f3afdd3a4cfc4e7ea3afe34decea19f62b2d590285a609c9a7467fe00bcfa8be",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/asphalt/rough.jpg",
+    "bytes": 63757,
+    "sha256": "b11c9ccbd3c35de816c0b182ae51f4236e5eb8ef7af19e2908c75a1d0f53584c",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/brick/color.jpg",
+    "bytes": 57057,
+    "sha256": "0cd6c0bed4c978b8e5d057bdbb940a56d81da11022b7cba3514f4f784a8390cf",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/brick/normal.jpg",
+    "bytes": 53459,
+    "sha256": "d21f9507407fd26afd3e1478c226da14f2b29e2cd1a7f0a7f84a7dea6bc4432c",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/brick/rough.jpg",
+    "bytes": 64930,
+    "sha256": "07447e9148ac51e37616227e751e89622113caf8b461b2bb0a1a42b6c2a624fe",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/concrete/color.jpg",
+    "bytes": 26106,
+    "sha256": "7943ca8576bba55252027172076672e1d38ca7b3362d94abd3624308fcae7d38",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/concrete/normal.jpg",
+    "bytes": 40944,
+    "sha256": "5b0bba2a21d1e24e16ab08e9beffe1ee6c13834f60fea1dae9ce94c4da212505",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/concrete/rough.jpg",
+    "bytes": 25876,
+    "sha256": "28cb3062ffdfd732d08a90dee47df1e7964e129e56638ad5509af87f32f25a39",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/dirt/color.jpg",
+    "bytes": 92361,
+    "sha256": "a2fc2e8dcccc9a89538aa685f8335c7b7457e479c70025b64241b2bed0d14204",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/dirt/normal.jpg",
+    "bytes": 75138,
+    "sha256": "f8b36c7fc121b034ff49d0719b501b4aa8705d95c9ab01dd384cff5cd8ef061e",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/dirt/rough.jpg",
+    "bytes": 50464,
+    "sha256": "bd59044738012fe5f49dea607cd3a0358b8ebfa8fd371a0ba563b3381aa227f1",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/grass/color.jpg",
+    "bytes": 89394,
+    "sha256": "abeda39ac0f8a488d2c83e73b4f24806307797ea686123e7ae0a410fb6841b19",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/grass/normal.jpg",
+    "bytes": 77184,
+    "sha256": "bc1c761009868777d768e7c52b75c99d2117ea23c9553bbb147036b8b04144c8",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/grass/rough.jpg",
+    "bytes": 81288,
+    "sha256": "d5ad1eaa0e9b183c957826ba4d74256844ff3566108e668a067998629db4859a",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/metal_roof/color.jpg",
+    "bytes": 30922,
+    "sha256": "c023f4368e6229583a9ebe313c3e00d4e35854dfa63e336f76796a6be8aed544",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/metal_roof/normal.jpg",
+    "bytes": 46282,
+    "sha256": "d91ba4dc22478038b23a69a7a33c6ff30b33fb517e4c7b5f14f58aaaa174f9f6",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/metal_roof/rough.jpg",
+    "bytes": 41543,
+    "sha256": "675dd85a77717fb14282502ad347da1df31612aa2097a8c3ed94c1d215513d41",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement/color.jpg",
+    "bytes": 75374,
+    "sha256": "d305bb7113b60b4bf33c12cc553bb623f4224d199c3b8a50154d58809ab9bdac",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement/normal.jpg",
+    "bytes": 40698,
+    "sha256": "f8caea91f7eabe586ffb816e00307330ac28e5999fb76ebc1b53579456d1712d",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement/rough.jpg",
+    "bytes": 31143,
+    "sha256": "cd017e58d664306a1d5460232d8cd753c345c8fe896c81283b12ee314b99cd57",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement_old/color.jpg",
+    "bytes": 60209,
+    "sha256": "4daa0ec3a041f081ca2a4b3f3e882e157023b7de96efb926f00d9964140f9eaf",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement_old/normal.jpg",
+    "bytes": 62590,
+    "sha256": "f7f78b21017150b3afa5072c587a5235188a16ddf4f1b4ecccf9d58927025dd4",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/pavement_old/rough.jpg",
+    "bytes": 33112,
+    "sha256": "283d35fe26841d554fc7d8f0e2ea83be4649884ba8f80ee036c2ea82359aa085",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster/color.jpg",
+    "bytes": 19298,
+    "sha256": "05afe129500c75b24fd15e030cd50542128602905cb0d7d515c8d489ab2f5f58",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster/normal.jpg",
+    "bytes": 41600,
+    "sha256": "5587937d8ba6625828b9471184fba2232cb478e34f400196fce26e47e789ef2a",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster/rough.jpg",
+    "bytes": 19016,
+    "sha256": "d45716556ee46c383685210e4e8201b0f7918c8d337b6344aacc71c7485b7fb4",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster_pink/color.jpg",
+    "bytes": 66440,
+    "sha256": "5c10c06a18461a95543bf783be3c4fb8db887887b110396f997a474e63ba3e10",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster_pink/normal.jpg",
+    "bytes": 46595,
+    "sha256": "4008c4a90b3acb7bcc6f13482f54ccd66c02df565016ad546f915b2a2239e462",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/plaster_pink/rough.jpg",
+    "bytes": 11972,
+    "sha256": "29534024a8805d8e8b4cda92fc79aadbe261b7244c3e5e22491f69d76c5c0031",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/rubber/color.jpg",
+    "bytes": 39655,
+    "sha256": "9e07fbd722c8fb384cf17c837a736ca01aaa349bfeb7f55753fcc923f3f4823b",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/rubber/normal.jpg",
+    "bytes": 35359,
+    "sha256": "dbb507522fda93ee45ba0305256b70537f4ebdb43af273cef233387093441107",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/rubber/rough.jpg",
+    "bytes": 44941,
+    "sha256": "e27414e8e16e1e83d28049c77353741e6d409727088ed5215cfc0f50cbb2c179",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/wood/color.jpg",
+    "bytes": 61663,
+    "sha256": "dfcbd61150c77c855a5b53ccb8143451a7a56ff87ca6ac344e3dc9f3edd8f188",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/wood/normal.jpg",
+    "bytes": 81569,
+    "sha256": "b68d0d87746da1c1e121d5b60b7d8c0ac5a49e51d711eb68a0103d0f82b59930",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  },
+  {
+    "path": "apps/web/public/tex/wood/rough.jpg",
+    "bytes": 53123,
+    "sha256": "e7be91ac17968a85420c9fbac86d2f7271f48838dd86ad39576aa55841b4b9fa",
+    "review": "NOT ART-APPROVED; see family catalogue"
+  }
+]

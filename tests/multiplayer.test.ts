@@ -43,7 +43,7 @@ describe("multiplayer", () => {
   it("two clients join the same room and see each other", async () => {
     const a = new Client(port), b = new Client(port);
     await a.connect(); await b.connect();
-    const wa = await a.hello("Rad"); expect(wa.profile.coins).toBe(200);
+    const wa = await a.hello("Rad"); expect(wa.profile.coins).toBe(200); expect(wa.capabilities).toContain("vehicle-exit-candidates-v1");
     await b.hello("Priya");
     a.send({ t: "join", room: "kanpur-1" }); const ja = await a.wait(m => m.t === "joined"); expect(ja.players.map((p: Msg) => p.name)).toEqual(["Rad"]); expect(ja.vehicles.length).toBeGreaterThan(5);
     b.send({ t: "join", room: "kanpur-1" }); const jb = await b.wait(m => m.t === "joined"); expect(jb.players.map((p: Msg) => p.name).sort()).toEqual(["Priya", "Rad"]);
@@ -81,6 +81,7 @@ describe("multiplayer", () => {
     a.send({ t: "vehicle.state", id: "v_auto_1", p: [auto.p[0] + 2, 0.6, auto.p[1]], q: [0, 0, 0, 1], v: 5 });
     const s = await b.wait(m => m.t === "snapshot" && m.vehicles.some((v: Msg) => v.id === "v_auto_1" && v.p[0] === auto.p[0] + 2));
     expect(s.players.find((p: Msg) => p.id === b.id).p[0]).toBe(auto.p[0] + 2); // passenger moves with the vehicle
+    a.send({ t: "vehicle.state", id: "v_auto_1", p: [auto.p[0] + 2, 0.6, auto.p[1]], q: [0, 0, 0, 1], v: 0 });
     a.send({ t: "vehicle.exit" }); await a.wait(m => m.t === "vehicle.update" && !m.vehicle.driver);
     a.close(); b.close();
   });

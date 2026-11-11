@@ -1,6 +1,8 @@
 "use client";
 /** Indian street dressing: electric poles with sagging wires, rooftop hoardings, festival bunting across streets, thela carts,
  * chai stalls, parked cycle-rickshaws, parked cycles, auto stand, temple bells. Deterministic placement along the road grid. */
+import { StreetColliders } from "./StreetColliders";
+import { StaticBatch } from "./StaticBatch";
 import { useEffect, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -27,7 +29,7 @@ export function Props() {
   const hoardings = useMemo(() => buildings.filter((b, i) => i % 3 === 0 && b.w > 8).slice(0, 14).map((b, i) => ({ b, ad: ADS[i % ADS.length] })), [buildings]);
   const bunting = useMemo(() => { const out: { a: [number, number, number]; b: [number, number, number]; colors: string[] }[] = []; const rnd = seeded(21); for (const r of segs.filter(s => s.w >= 10).slice(0, 8)) { for (let d = 30; d < r.len; d += 60) { const a = segPoint(r, d, -(r.w / 2 + 1)), b = segPoint(r, d, r.w / 2 + 1); const cols = Array.from({ length: 18 }, () => ["#ff5a3c", "#ffd23f", "#2e8b57", "#3d8bff", "#fff", "#ff8fb1"][Math.floor(rnd() * 6)]); out.push({ a: [a[0], 6.2, a[1]], b: [b[0], 6.2, b[1]], colors: cols }); } } return out.slice(0, 24); }, [segs]);
   const stalls = useMemo(() => { const out: { p: [number, number]; rot: number; kind: "thela" | "chai" | "rickshaw" | "cycle" | "cart" }[] = []; const rnd = seeded(5); for (const r of segs) { for (let d = 22; d < r.len; d += 44) { if (LANDMARKS.some(l => (l.kind === "lake") && Math.hypot(l.p[0] - r.a[0], l.p[1] - r.a[1]) < l.r + 6)) continue; const side = rnd() < 0.5 ? 1 : -1; const kinds = ["thela", "chai", "rickshaw", "cycle", "cart", "thela"] as const; out.push({ p: segPoint(r, d, side * (r.w / 2 + 1.8)), rot: Math.atan2(r.dx, r.dz) + Math.PI / 2, kind: kinds[Math.floor(rnd() * kinds.length)] }); } } return out.slice(0, 90); }, [segs]);
-  return <group>
+  return <><StreetColliders poles={poles} stalls={stalls} /><StaticBatch>
     {/* electric poles + wires */}
     {poles.map((p, i) => <group key={"p" + i} position={[p.p[0], 0, p.p[1]]} rotation={[0, p.rot, 0]}>
       <mesh position={[0, 4, 0]} castShadow><boxGeometry args={[0.22, 8, 0.22]} /><meshStandardMaterial color="#6f6a63" /></mesh>
@@ -53,7 +55,7 @@ export function Props() {
     {stalls.map((s, i) => <group key={"s" + i} position={[s.p[0], 0, s.p[1]]} rotation={[0, s.rot, 0]}><Stall kind={s.kind} seed={i} en={en} /></group>)}
     {/* auto stand board at Cafe Chowk */}
     <group position={[SPAWN_POINT[0] + 40, 0, SPAWN_POINT[2] + 14]}><mesh position={[0, 1.6, 0]}><boxGeometry args={[0.08, 3.2, 0.08]} /><meshStandardMaterial color="#444" /></mesh><mesh position={[0, 3, 0]}><boxGeometry args={[2.4, 0.9, 0.06]} /><meshStandardMaterial color="#f2b134" /></mesh><Text position={[0, 3, 0.05]} fontSize={0.45} color="#111" anchorX="center" anchorY="middle">{en ? "AUTO STAND" : "ऑटो स्टैंड"}</Text></group>
-  </group>;
+  </StaticBatch></>;
 }
 
 function Stall({ kind, seed, en }: { kind: "thela" | "chai" | "rickshaw" | "cycle" | "cart"; seed: number; en: boolean }) {

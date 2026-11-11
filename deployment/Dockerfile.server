@@ -7,6 +7,8 @@ COPY apps/server/package.json apps/server/
 RUN npm ci --omit=dev --workspace=apps/server --workspace=packages/shared --include-workspace-root
 COPY packages/shared packages/shared
 COPY apps/server apps/server
+# Read-only geometry for authoritative exit safety (ODbL source retained).
+COPY apps/web/public/geo/kanpur.json apps/web/public/geo/kanpur.json
 COPY tsconfig.base.json .
 ENV NODE_ENV=production PORT=8787 HOST=0.0.0.0 DATA_DIR=/data
 VOLUME /data

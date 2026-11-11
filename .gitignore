@@ -10,3 +10,22 @@ assets/audio/dialogues/*.mp3
 *.log
 .DS_Store
 .vercel
+
+# Local takeover backups and diagnostic artifacts
+work/
+
+# Incremental TypeScript cache is generated per machine
+*.tsbuildinfo
+
+# Local preservation and reel production artifacts
+FEATURES/Backups/
+THIRD_INSTAGRAM_REEL/RAW_FOOTAGE/
+THIRD_INSTAGRAM_REEL/EXPORTS/
+
+._*
+THIRD_INSTAGRAM_REEL/PROJECT_FILES/render/
+THIRD_INSTAGRAM_REEL/VOICEOVER/*.wav
+THIRD_INSTAGRAM_REEL/VOICEOVER/*concat.txt
+
+__pycache__/
+*.pyc

@@ -8,6 +8,7 @@ export function SettingsPanel() {
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => <label className="srow"><span>{label}</span>{children}</label>;
   return <div className="settings">
     <Row label={t("Dialogue language", "संवाद भाषा")}><select value={st.lang} onChange={e => set({ lang: e.target.value as never })}><option value="kanpuriya">Kanpuriya Hindi (कनपुरिया)</option><option value="hindi">Standard Hindi (हिंदी)</option><option value="english">English</option></select></Row>
+    <Row label={t("Clean Language Mode", "साफ़ भाषा मोड")}><input type="checkbox" checked={st.cleanLanguage} onChange={e => set({ cleanLanguage: e.target.checked })} /></Row>
     <Row label={t("Subtitles", "सबटाइटल")}><input type="checkbox" checked={st.subtitles} onChange={e => set({ subtitles: e.target.checked })} /></Row>
     <Row label={t("NPC voice", "एनपीसी आवाज़")}><input type="checkbox" checked={st.voice} onChange={e => set({ voice: e.target.checked })} /></Row>
     <Row label={t("Test voice", "आवाज़ सुनो")}><button className="btn-sm" type="button" onClick={() => { const l = linesFor(st.lang).find(x => x.id === "guide_babloo.greet_1"); if (l) speak(l, "guide_babloo"); }}>▶</button></Row>

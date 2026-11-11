@@ -1,16 +1,15 @@
 "use client";
 /** Procedural stylised humanoid (rounded primitives), code-driven animation with damped blending between poses. Used for players and NPCs. */
-import { useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useStore } from "../state/store";
+import { DistantAvatar } from "./DistantAvatar";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { RoundedBox } from "@react-three/drei";
+import { RoundedPart as RoundedBox } from "./RoundedPart";
 import type { Appearance, AnimState } from "@kanpurverse/shared";
 
-export const SKIN = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0xa5673f, 0x8d5524, 0x5c3a21];
-export const HAIR_COLORS = [0x1a1a1a, 0x3b2314, 0x6b3e1e, 0x8c8c8c, 0xb5121b];
-export const TOPS = [0xc8102e, 0x3d8bff, 0xf4f4f4, 0x2e8b57, 0xffd23f, 0xf7efe2 /* kurta */, 0x1a3c8c /* jersey */, 0x2b2b2b /* jacket */];
-export const BOTTOMS = [0x1c1d22, 0x2f4a7a, 0x6b6b6b, 0xd9c7a0, 0x3a3a3a, 0xffffff];
-export const SHOES = [0x111111, 0xffffff, 0x8b4513, 0xc8102e];
+import { SKIN, HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "./avatarPalette";
+export { SKIN, HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "./avatarPalette";
 
 /** Pose = target rotations (x,z) for limbs + body offset/rotation + head rotation. Blended with exponential damping. */
 interface Pose { la: [number, number]; ra: [number, number]; ll: number; rl: number; lk: number; rk: number; le: number; re: number; by: number; bry: number; brx: number; hx: number; hy: number }
@@ -29,6 +28,10 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
     case "fall": p.ll = -0.2; p.rl = 0.1; p.lk = 0.5; p.rk = 0.4; p.la = [-1.6, 0.9]; p.ra = [-1.6, -0.9]; break;
     case "sit": p.ll = -1.55; p.rl = -1.55; p.lk = 1.5; p.rk = 1.5; p.la = [-0.45, 0.1]; p.ra = [-0.45, -0.1]; p.le = 0.8; p.re = 0.8; p.by = -0.42; break;
     case "drive": p.ll = -1.35; p.rl = -1.35; p.lk = 1.1; p.rk = 1.1; p.la = [-1.25, 0.25]; p.ra = [-1.25, -0.25]; p.le = 0.5; p.re = 0.5; p.by = -0.42; break;
+    case "packet": p.ra = [-.35,-.1]; p.re = 1.4; p.hx = .2; break;
+    case "openpacket": p.la = [-.8,-.25]; p.ra = [-.8,.25]; p.le = 1.5; p.re = 1.5; p.hx = .15; break;
+    case "consume": p.ra = [-1.6,.45]; p.re = 2.1; p.hx = -.15; break;
+    case "spit": p.brx = .18; p.hx = .25; break;
     case "wave": p.ra = [-2.9, -0.3 + Math.sin(T * 9) * 0.35]; p.re = 0.5; p.hy = 0.15; break;
     case "dance": { const s = Math.sin(T * 7), c = Math.cos(T * 7); p.la = [-1.4 + s, 0.9 + s * 0.4]; p.ra = [-1.4 - s, -0.9 + s * 0.4]; p.le = 1.2; p.re = 1.2; p.ll = s * 0.35; p.rl = -s * 0.35; p.lk = Math.abs(c) * 0.4; p.rk = Math.abs(s) * 0.4; p.by = Math.abs(s) * 0.1; p.bry = Math.sin(T * 3.5) * 0.35; p.hy = -Math.sin(T * 3.5) * 0.3; break; }
     case "laugh": p.la = [-0.35, 0.2]; p.ra = [-0.35, -0.2]; p.le = 1.4; p.re = 1.4; p.hx = -0.22 + Math.sin(T * 12) * 0.08; p.brx = -0.1; p.by = Math.abs(Math.sin(T * 12)) * 0.02; break;
@@ -41,10 +44,23 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
   return p;
 }
 
-export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }: { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string }) {
+export interface AvatarProps { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string }
+export const Avatar = memo(function Avatar(props: AvatarProps) {
+  const root = useRef<THREE.Group>(null); const world = useRef(new THREE.Vector3()); const checkAt = useRef(0);
+  const [lod, setLod] = useState(0); const band = useRef(0);
+  useFrame(({ camera, clock }) => {
+    if (!root.current || clock.elapsedTime < checkAt.current) return; checkAt.current = clock.elapsedTime + .2;
+    root.current.getWorldPosition(world.current); const d = camera.position.distanceTo(world.current);
+    const quality = useStore.getState().settings.quality, near = quality === "low" ? 20 : quality === "high" ? 50 : 32;
+    const next = d > 180 ? 2 : d > near + (band.current === 0 ? 4 : -4) ? 1 : 0;
+    if (next !== band.current) { band.current = next; setLod(next); }
+  });
+  return <group ref={root} scale={props.scale ?? 1}>{lod === 0 ? <DetailedAvatar {...props} scale={1} /> : lod === 1 ? <DistantAvatar appearance={props.appearance} anim={props.anim} /> : null}</group>;
+}, (a, b) => a.anim === b.anim && a.name === b.name && a.nameColor === b.nameColor && a.scale === b.scale && JSON.stringify(a.appearance) === JSON.stringify(b.appearance));
+function DetailedAvatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }: AvatarProps) {
   const refs = { lArm: useRef<THREE.Group>(null), rArm: useRef<THREE.Group>(null), lFore: useRef<THREE.Group>(null), rFore: useRef<THREE.Group>(null), lLeg: useRef<THREE.Group>(null), rLeg: useRef<THREE.Group>(null), lShin: useRef<THREE.Group>(null), rShin: useRef<THREE.Group>(null), body: useRef<THREE.Group>(null), head: useRef<THREE.Group>(null) };
   const eyes = useRef<THREE.Group>(null); const blinkAt = useRef(2 + Math.random() * 4);
-  const t = useRef(Math.random() * 10); const cur = useRef<Pose>({ ...REST, la: [...REST.la], ra: [...REST.ra] }); const blend = useRef({ walk: 0 });
+  const t = useRef(Math.random() * 10); const cur = useRef<Pose>(poseFor(anim, 0, { walk: 0 })); const blend = useRef({ walk: 0 });
   const appKey = JSON.stringify(appearance);
   const mats = useMemo(() => ({
     skin: new THREE.MeshStandardMaterial({ color: SKIN[appearance.skin], roughness: 0.75 }),
@@ -58,6 +74,7 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
     eye: new THREE.MeshBasicMaterial({ color: 0x151515 }), white: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [appKey]);
+  useEffect(() => () => Object.values(mats).forEach(m => m.dispose()), [mats]);
   const female = appearance.body === "f";
 
   useFrame((_, dt) => {
@@ -119,6 +136,7 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
             <group ref={refs[f]} position={[0, -0.3, 0]}>
               <mesh position={[0, -0.13, 0]} material={appearance.top === 7 || appearance.top === 5 ? mats.top : mats.skin}><boxGeometry args={[0.12, 0.26, 0.12]} /></mesh>
               <RoundedBox position={[0, -0.3, 0]} material={mats.skin} args={[0.11, 0.1, 0.09]} radius={0.045} smoothness={3} />
+              {sx === 1 && ["packet", "openpacket", "consume"].includes(anim) && <mesh position={[0,-.33,.04]} rotation={[0,0,anim === "openpacket" ? .5 : 0]}><boxGeometry args={[.12,.17,.025]}/><meshStandardMaterial color="#c4a46c" roughness={.9}/></mesh>}
             </group>
           </group>))}
         {/* legs: thigh + shin pivots */}
@@ -139,5 +157,6 @@ export function Avatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }
 /** Canvas-texture name tag (billboarded sprite). */
 export function NameTag({ text, color = "#fff", y = 2.2 }: { text: string; color?: string; y?: number }) {
   const tex = useMemo(() => { const c = document.createElement("canvas"); c.width = 256; c.height = 64; const x = c.getContext("2d")!; x.fillStyle = "rgba(11,11,13,0.6)"; x.roundRect(8, 10, 240, 44, 12); x.fill(); x.font = "600 26px Inter, system-ui, sans-serif"; x.textAlign = "center"; x.fillStyle = color; x.fillText(text.slice(0, 16), 128, 41); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }, [text, color]);
+  useEffect(() => () => tex.dispose(), [tex]);
   return <sprite position={[0, y, 0]} scale={[1.5, 0.375, 1]}><spriteMaterial map={tex} transparent depthWrite={false} /></sprite>;
 }

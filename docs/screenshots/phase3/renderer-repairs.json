@@ -1,0 +1,26 @@
+{
+  "frames": 1201,
+  "durationMs": 20001.89999985695,
+  "averageFps": 60.0442957923292,
+  "p50Ms": 16.699999809265137,
+  "p95Ms": 22.399999856948853,
+  "p99Ms": 28.09999990463257,
+  "maxMs": 30.200000047683716,
+  "over33Ms": 0,
+  "meanCalls": 1059.744379683597,
+  "meanTriangles": 86370.71107410491,
+  "viewport": [
+    1280,
+    720
+  ],
+  "buffer": [
+    1600,
+    900
+  ],
+  "dpr": 1.25,
+  "geometries": 1243,
+  "textures": 50,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+  "capturedAt": "2026-11-08T03:56:13.487Z",
+  "context": "foreground, all render passes, includes stalls; local development build"
+}

@@ -1,11 +1,12 @@
 /** KanpurVerse multiplayer server — WebSocket, server-authoritative. Run: npm run dev:server (or tsx src/index.ts). */
 import { createServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import { C2S, PROTOCOL_VERSION, DEFAULT_APPEARANCE, SHOP_ITEMS, isValidName, type S2C } from "@kanpurverse/shared";
+import { C2S, VEHICLE_EXIT_CAPABILITY, PROTOCOL_VERSION, DEFAULT_APPEARANCE, SHOP_ITEMS, isValidName, type S2C } from "@kanpurverse/shared";
 import { CONFIG } from "./config";
 import { log } from "./log";
 import { issueToken, verifyToken, newUid } from "./auth";
 import { openStorage, type PlayerDoc, type Storage } from "./storage";
+import { loadExitBlocker, type ExitBlocker } from "./worldSafety";
 import { Room, Player } from "./room";
 
 const MSG_WINDOW_MS = 1000, MSG_MAX_PER_WINDOW = 60, MAX_MSG_BYTES = 4096;
@@ -14,11 +15,12 @@ export function originAllowed(origin: string): boolean {
   return CONFIG.allowedOrigins.some(a => a === "*" || a === origin || (a.includes("*") && new RegExp("^" + a.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[a-z0-9-]+") + "$", "i").test(origin)));
 }
 
-export async function startServer(opts: { port?: number; storage?: Storage } = {}) {
+export async function startServer(opts: { port?: number; storage?: Storage; exitBlocked?: ExitBlocker; setupRoom?: (room: Room) => void } = {}) {
   const storage = opts.storage ?? await openStorage();
+  const exitBlocked = opts.exitBlocked ?? loadExitBlocker();
   const rooms = new Map<string, Room>();
   const ipCount = new Map<string, number>();
-  const getRoom = (name: string) => { let r = rooms.get(name); if (!r) { r = new Room(name, storage, CONFIG.maxPlayersPerRoom); rooms.set(name, r); } return r; };
+  const getRoom = (name: string) => { let r = rooms.get(name); if (!r) { r = new Room(name, storage, CONFIG.maxPlayersPerRoom, exitBlocked); opts.setupRoom?.(r); rooms.set(name, r); } return r; };
 
   const http = createServer((req, res) => {
     const url = req.url ?? "/";
@@ -64,7 +66,7 @@ export async function startServer(opts: { port?: number; storage?: Storage } = {
           // one connection per account: kick the older one
           for (const r of rooms.values()) { const dup = r.players.get(doc._id); if (dup) { dup.send({ t: "error", code: "replaced", message: "Signed in elsewhere" }); dup.ws.close(4006, "replaced"); } }
           player = new Player(ws, doc);
-          return send({ t: "welcome", id: player.id, token: issueToken(player.id), name: player.name, profile: player.profile, serverTime: now });
+          return send({ t: "welcome", id: player.id, token: issueToken(player.id), name: player.name, profile: player.profile, serverTime: now, capabilities: [VEHICLE_EXIT_CAPABILITY] });
         }
         if (!player) return send({ t: "error", code: "no_hello", message: "Send hello first" });
         if (m.t === "join") {
@@ -79,13 +81,15 @@ export async function startServer(opts: { port?: number; storage?: Storage } = {
           case "chat": return room.chat(player, m.text);
           case "emote": return room.emote(player, m.anim);
           case "vehicle.enter": return room.enterVehicle(player, m.id, m.seat);
-          case "vehicle.exit": return room.exitVehicle(player);
+          case "vehicle.exit": return room.exitVehicle(player, m.p);
           case "vehicle.state": return room.vehicleState(player, m.id, m.p, m.q, m.v);
           case "mission.start": return room.startMission(player, m.id);
           case "mission.checkpoint": return room.checkpoint(player, m.id, m.index);
           case "mission.abandon": return room.abandon(player);
           case "profile.update": { if (m.appearance) player.appearance = m.appearance; if (m.lang) player.lang = m.lang; player.profile.appearance = player.appearance; player.profile.lang = player.lang; room.persist(player); return send({ t: "profile", profile: player.profile }); }
           case "social": return room.social(player, m.action, m.target, m.reason);
+          case "street.consume": return room.consumeGutka(player);
+          case "street.spit": return room.spitGutka(player);
           case "shop.buy": return room.buy(player, m.item, SHOP_ITEMS);
         }
       } catch (e) { log.error("handler error", { e: String(e), t: (m as { t: string }).t }); send({ t: "error", code: "internal", message: "Server error" }); }

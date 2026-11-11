@@ -1,11 +1,13 @@
 "use client";
 /** Ambient traffic: autos, cars and bikes looping on the road grid. Deterministic from the shared world clock, so every
- * client sees the same traffic with zero network cost. Purely visual (no collisions with players — they stay in lanes). */
+ * client sees the same traffic with zero network cost. Near traffic uses swept chassis contacts and stops for obstacles; route decisions are client-local. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { RigidBody, CuboidCollider, useBeforePhysicsStep, useRapier, type RapierRigidBody } from "@react-three/rapier";
+import { trafficPose, trafficStepClear } from "./trafficMotion";
+import { SPECS } from "./vehicleSpecs";
 import { type VehicleKind } from "@kanpurverse/shared";
-import { getRoads, roadsNear, segPoint, segYaw, roadsVersion, onRoadsChange, type Seg } from "./roads";
+import { getRoads, roadsNear, roadsVersion, onRoadsChange, type Seg } from "./roads";
 import { VehicleMesh } from "./Vehicles";
 import { useStore } from "../state/store";
 import { playerPos } from "./refs";
@@ -23,16 +25,19 @@ export function Traffic() {
   return <>{cars.map((c, i) => <Car key={i + ":" + c.seg.a[0]} car={c} />)}</>;
 }
 
-const DAY_SEC = 86400;
 function Car({ car }: { car: Car }) {
-  const g = useRef<THREE.Group>(null); const hold = useRef<{ x: number; z: number } | null>(null); const stopped = useRef(false); const r = car.seg; const laneOff = (r.w / 4) * car.lane;
-  useFrame(() => {
-    if (!g.current) return; const t = useStore.getState().worldTime * DAY_SEC;
-    const d = (car.offset + t * car.speed) % (r.len * 2); const fwd = d < r.len; const s = fwd ? d : r.len * 2 - d; // ping-pong along the segment
-    const [x, z] = segPoint(r, s, laneOff * (fwd ? 1 : -1)); const yaw = segYaw(r, fwd);
-    const ahead = ((playerPos.x - x) * r.dx + (playerPos.z - z) * r.dz) * (fwd ? 1 : -1); const lateral = Math.abs((playerPos.x - x) * r.nx + (playerPos.z - z) * r.nz);
-    if (ahead > 0 && ahead < 7 && lateral < 2.2) { hold.current = hold.current ?? { x: g.current.position.x, z: g.current.position.z }; g.current.position.set(hold.current.x, 0.6, hold.current.z); stopped.current = true; return; } hold.current = null; stopped.current = false;
-    g.current.position.set(x, 0.6, z); g.current.rotation.y = yaw;
+  const {world,rapier}=useRapier(),body=useRef<RapierRigidBody>(null),spec=SPECS[car.kind];
+  const distance=useRef(car.offset+useStore.getState().worldTime*86400*car.speed+(car.lane<0?car.seg.len:0));
+  const initial=useRef(trafficPose(car.seg,distance.current)),position=useRef<[number,number,number]>([initial.current.x,spec.size[1]/2+.08,initial.current.z]);
+  const rotation=useRef<[number,number,number,number]>([0,Math.sin(initial.current.yaw/2),0,Math.cos(initial.current.yaw/2)]),stopped=useRef(false),state=useRef({speed:0,steer:0,brake:false});
+  const shape=useMemo(()=>new rapier.Cuboid(spec.size[0]/2+.05,spec.size[1]/2,spec.size[2]/2+.05),[rapier,spec]);
+  useBeforePhysicsStep(()=>{
+    const rb=body.current;if(!rb)return;const dt=world.timestep,next=trafficPose(car.seg,distance.current+car.speed*dt),target={...next,y:position.current[1]};
+    const near=Math.hypot(playerPos.x-rb.translation().x,playerPos.z-rb.translation().z)<110;rb.collider(0).setEnabled(near);
+    if(near&&!trafficStepClear(world,rb,shape,target)){stopped.current=true;state.current.speed=0;state.current.brake=true;return;}
+    const previous=trafficPose(car.seg,distance.current);let turn=next.yaw-previous.yaw;while(turn>Math.PI)turn-=2*Math.PI;while(turn< -Math.PI)turn+=2*Math.PI;
+    distance.current+=car.speed*dt;stopped.current=false;state.current={speed:car.speed,steer:Math.max(-1,Math.min(1,-turn/dt*.15)),brake:false};
+    rb.setNextKinematicTranslation(target);rb.setNextKinematicRotation({x:0,y:Math.sin(next.yaw/2),z:0,w:Math.cos(next.yaw/2)});
   });
-  return <group ref={g}><VehicleMesh kind={car.kind} color={car.color} wheelSpin stoppedRef={stopped} /></group>;
+  return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={position.current} quaternion={rotation.current} ccd><CuboidCollider args={[spec.size[0]/2,spec.size[1]/2,spec.size[2]/2]} restitution={0}/><VehicleMesh kind={car.kind} color={car.color} state={state} stoppedRef={stopped}/></RigidBody>;
 }

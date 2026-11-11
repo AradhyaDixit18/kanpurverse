@@ -7,6 +7,7 @@ import { unlockAudio, sfx } from "../audio/sfx";
 import { SettingsPanel } from "./Settings";
 import dynamic from "next/dynamic";
 const CharacterCreator = dynamic(() => import("./Character").then(m => m.CharacterCreator), { ssr: false, loading: () => <div className="screen center"><Skyline /><Logo size={56} /><div className="spinner" /><p className="muted">Loading character studio…</p></div> });
+import { preloadGameEngine } from "../game/engineLoader";
 import { Logo, Skyline } from "./Brand";
 
 export function LanguageGate() {
@@ -25,7 +26,7 @@ export function MainMenu() { const chosen = useStore(s => s.settings.langChosen)
 function MainMenuInner() {
   const s = useStore(); const lang = s.settings.lang; const t = (en: string, hi: string) => lang === "english" ? en : hi;
   const [view, setView] = useState<"main" | "settings" | "character" | "about" | "howto" | "multiplayer">(!s.name ? "character" : "main"); const [room, setRoom] = useState("kanpur-1");
-  const play = (r = room) => { unlockAudio(); sfx.ui(); if (!s.name) return setView("character"); s.set({ screen: "loading", errorText: undefined, loadStage: "engine" }); net.connect(r.trim() || "kanpur-1"); };
+  const play = (r = room) => { preloadGameEngine(); unlockAudio(); sfx.ui(); if (!s.name) return setView("character"); s.set({ screen: "loading", errorText: undefined, loadStage: "engine" }); net.connect(r.trim() || "kanpur-1"); };
   if (view === "character") return <CharacterCreator onDone={() => setView("main")} />;
   const Btn = ({ k, label, hint, accent }: { k: "main" | "settings" | "character" | "about" | "howto" | "multiplayer" | "play"; label: string; hint?: string; accent?: boolean }) => (
     <button className={`mbtn ${accent ? "accent" : ""}`} onClick={() => { sfx.ui(); if (k === "play") play(); else setView(k); }}><span>{label}</span>{hint && <small>{hint}</small>}</button>);
@@ -71,10 +72,10 @@ export function LoadingScreen() {
   const st = STAGES[stage] ?? STAGES.engine; const slow = elapsed > 12; const prog = useStore(s => s.loadProgress); const pct = stage === "engine" && prog !== undefined ? Math.round(prog * 0.5) : st[2];
   return <div className="screen center"><Skyline /><Logo size={56} /><div className="progress"><div className="progress-bar" style={{ width: pct + "%" }} /></div><p className="muted">{en ? st[0] : st[1]}… {pct}%</p><div className="load-steps">{(["engine", "connecting", "auth", "joining", "done"] as const).map(k => <span key={k} className={`ls ${k === stage ? "on" : STAGES[k][2] < st[2] ? "done" : ""}`}>{en ? STAGES[k][0] : STAGES[k][1]}</span>)}</div>
     {slow && <p className="muted small">{en ? "Taking longer than usual. The server may be waking up (free hosting) — this can take up to 60 s." : "थोड़ा समय लग रहा है। सर्वर जाग रहा होगा (मुफ़्त होस्टिंग) — 60 सेकंड तक लग सकते हैं।"}</p>}
-    {elapsed > 30 && <button className="btn" onClick={() => { net.disconnect(); useStore.getState().set({ screen: "menu" }); }}>{en ? "Cancel" : "रद्द करो"}</button>}
+    {<button className="btn" onClick={() => { net.disconnect(); useStore.getState().set({ screen: "menu" }); }}>{en ? "Back to menu" : "मेन्यू पर वापस"}</button>}
     <Tips /></div>;
 }
 export function ErrorScreen() { const s = useStore(); const en = s.settings.lang === "english";
   return <div className="screen center"><Skyline /><Logo size={56} /><h2>{en ? "Couldn't connect" : "जुड़ नहीं पाए"}</h2><p>{s.errorText}</p><p className="muted small">{WS_URL}</p>
-    <div className="row"><button className="btn btn-accent" onClick={() => { s.set({ screen: "loading", errorText: undefined, loadStage: "connecting" }); net.connect(net.room); }}>{en ? "Retry" : "फिर कोशिश"}</button><button className="btn" onClick={() => s.set({ screen: "menu" })}>{en ? "Back to menu" : "मेन्यू"}</button></div></div>; }
+    <div className="row"><button className="btn btn-accent" onClick={() => { preloadGameEngine(); s.set({ screen: "loading", errorText: undefined, loadStage: "connecting" }); net.connect(net.room); }}>{en ? "Retry" : "फिर कोशिश"}</button><button className="btn" onClick={() => { net.disconnect(); s.set({ screen: "menu" }); }}>{en ? "Back to menu" : "मेन्यू"}</button></div></div>; }
 function Tips() { const en = useStore(s => s.settings.lang === "english"); const tips = useMemo(() => en ? ["Press E near anyone to talk.", "Bring a friend: party missions pay bonus coins.", "Sunset Point is prettiest around 18:00 in-game.", "Space is the handbrake when driving.", "Press I for your inventory, M for the map."] : ["किसी के पास E दबाओ, बात होगी।", "दोस्त लाओ: पार्टी मिशन में बोनस सिक्के।", "सनसेट पॉइंट शाम 6 बजे सबसे सुंदर।", "गाड़ी में Space हैंडब्रेक है।", "I से इन्वेंटरी, M से नक्शा।"], [en]); const [i, setI] = useState(0); useEffect(() => { const t = setInterval(() => setI(x => x + 1), 3500); return () => clearInterval(t); }, []); return <p className="tip">{tips[i % tips.length]}</p>; }
