@@ -64,3 +64,18 @@ describe("drawable water", () => {
     expect(w.filter(p => p.name !== "Ganga").some(p => inside(p.pts, 460, -330))).toBe(false);
   });
 });
+
+describe("Ganga shoreline strip", () => {
+  it("lies on land only, so no sand band is drawn over the river (browser QA: boats sat on a grey slab)", async () => {
+    const { shoreStrip, bankSegments, inPoly } = await import("../apps/web/src/game/Ganga");
+    const ganga = geo.water.find(w => w.name === "Ganga")!.pts;
+    const sp = shoreStrip(bankSegments(ganga), ganga);
+    expect(sp.length).toBeGreaterThan(0);
+    let wet = 0, n = 0;
+    for (let i = 0; i < sp.length; i += 18) { // one quad per 18 floats; test its centre
+      const cx = (sp[i] + sp[i + 3] + sp[i + 12] + sp[i + 15]) / 4, cz = (sp[i + 2] + sp[i + 5] + sp[i + 14] + sp[i + 17]) / 4;
+      n++; if (inPoly([cx, cz], ganga)) wet++;
+    }
+    expect(wet / n).toBeLessThan(0.02); // a few very sharp bank corners may fold back; the strip must not run along the water
+  });
+});

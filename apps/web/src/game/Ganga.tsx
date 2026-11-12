@@ -42,6 +42,21 @@ export function clip(pts: [number, number][], L = HALF + 200): [number, number][
 /** The bank: polygon edges that lie inside the playable square (the river polygon's land boundary). */
 export function bankSegments(poly: [number, number][]) { const out: [[number, number], [number, number]][] = []; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; const inside = (p: [number, number]) => Math.abs(p[0]) < HALF + 150 && Math.abs(p[1]) < HALF + 150; if (inside(a) && inside(b) && Math.abs(a[0]) < 4900 && Math.abs(b[0]) < 4900 && a[1] > -4900 && b[1] > -4900) out.push([a, b]); } return out; }
 
+/**
+ * Wet-sand strip along the bank, on the LAND side only. (The first version extended 7 m to both sides and, with its
+ * polygon offset, painted a sand band over the river that the moored boats appeared to sit on.)
+ */
+export function shoreStrip(bank: [[number, number], [number, number]][], poly: [number, number][], width = 7, y = 0.1): number[] {
+  const sp: number[] = [];
+  for (const [a, b] of bank) {
+    const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1; let nx = -dz / l, nz = dx / l;
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2; if (inPoly([mx + nx * 2, mz + nz * 2], poly)) { nx = -nx; nz = -nz; }
+    const a2: [number, number] = [a[0] + nx * width, a[1] + nz * width], b2: [number, number] = [b[0] + nx * width, b[1] + nz * width];
+    sp.push(a[0], y, a[1], a2[0], y, a2[1], b[0], y, b[1], a2[0], y, a2[1], b2[0], y, b2[1], b[0], y, b[1]);
+  }
+  return sp;
+}
+
 function waterNormals() {
   const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!; const img = x.createImageData(256, 256);
   const h = (u: number, v: number) => Math.sin(u * 0.11 + Math.sin(v * 0.07) * 2) * 0.5 + Math.sin(v * 0.17 + u * 0.05) * 0.35 + Math.sin((u + v) * 0.31) * 0.15;
@@ -55,9 +70,8 @@ export function Ganga() {
     const pts = clip(w.pts); const shape = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI / 2); geo.translate(0, RIVER_Y, 0);
     const uv = geo.getAttribute("uv"); const pos = geo.getAttribute("position"); for (let i = 0; i < uv.count; i++) uv.setXY(i, pos.getX(i) / 25, pos.getZ(i) / 25);
     const bank = bankSegments(w.pts);
-    // wet shoreline strip
-    const sp: number[] = []; for (const [a, b] of bank) { const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, nx = -dz / l * 7, nz = dx / l * 7; sp.push(a[0] - nx, 0.1, a[1] - nz, a[0] + nx, 0.1, a[1] + nz, b[0] - nx, 0.1, b[1] - nz, a[0] + nx, 0.1, a[1] + nz, b[0] + nx, 0.1, b[1] + nz, b[0] - nx, 0.1, b[1] - nz); }
-    const shore = new THREE.BufferGeometry(); shore.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3)); shore.computeVertexNormals();
+    const sp = shoreStrip(bank, w.pts);
+    const shore = new THREE.BufferGeometry(); shore.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3)); shore.setAttribute("normal", new THREE.Float32BufferAttribute(sp.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
     return { geo, bank, shore, poly: w.pts };
   }, [ver]);
   const mat = useMemo(() => { const n = waterNormals(); const n2 = n.clone(); n2.repeat.set(37, 37); return { a: new THREE.MeshStandardMaterial({ color: 0x2f5a52, roughness: 0.07, metalness: 0.35, normalMap: n, normalScale: new THREE.Vector2(0.55, 0.55), transparent: true, opacity: 0.95, envMapIntensity: 1.6 }), n, n2 }; }, []);
@@ -66,7 +80,7 @@ export function Ganga() {
   if (!river) return null;
   return <group name="ganga">
     <mesh geometry={river.geo} material={mat.a} receiveShadow renderOrder={1} />
-    <mesh geometry={river.shore}><meshStandardMaterial color="#8a7a5c" roughness={0.35} metalness={0.05} polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} /></mesh>
+    <mesh geometry={river.shore}><meshStandardMaterial color="#8a7a5c" roughness={0.35} metalness={0.05} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} /></mesh>
     <RigidBody type="fixed" colliders={false}>{river.bank.map(([a, b], i) => { const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz); let nx = dz / l, nz = -dx / l; const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2; if (!inPoly([mx + nx * 3, mz + nz * 3], river.poly)) { nx = -nx; nz = -nz; } const off = 2.6; return <CuboidCollider key={i} args={[l / 2 + 1, 2, 0.5]} position={[(a[0] + b[0]) / 2 + nx * off, 2, (a[1] + b[1]) / 2 + nz * off]} rotation={[0, Math.atan2(dx, dz) + Math.PI / 2, 0]} />; })}</RigidBody>
     <ParmatGhat />
   </group>;
