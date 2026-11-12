@@ -8,8 +8,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LAYER, OFFSET } from "./layers";
-import { ribbon, building } from "./worldGeometry";
-import { RigidBody, TrimeshCollider } from "@react-three/rapier";
+import { ribbon, building, platformSlab } from "./worldGeometry";
+import { RigidBody, TrimeshCollider, CuboidCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
 import { getGeo, loadGeo, drawableWater, type GeoData } from "./roads";
 import { clearZones } from "@kanpurverse/shared";
@@ -144,9 +144,9 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     const styles = Object.entries(byStyle).map(([s, g]) => ({ style: Number(s), walls: merge(g.walls)!, roofs: merge(g.roofs)! })); const shop = merge(shops);
     const water = t.water.filter(w => w.pts.length >= 4).map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, LAYER.water, 0); return g; });
     const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, LAYER.park, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
-    const platforms = merge(t.platforms.map(p => ribbon(p.pts, 6, 0.9, 4)));
+    const slabs = t.platforms.map(p => platformSlab(p.pts)); const platforms = merge(slabs.map(x => x.geo)); const platformBoxes = slabs.flatMap(x => x.boxes);
     if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tile built", id, { roads: t.roads.length, bld: t.buildings.length, lots, styles: Object.keys(byStyle).length, hasRoad: !!road });
-    return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms, facades };
+    return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms, platformBoxes, facades };
   }, [t, id]);
   useEffect(() => () => {
     for (const g of [geo.road, geo.pavement, geo.marks, geo.railBed, geo.railL, geo.sleepers, geo.shop, geo.platforms, ...geo.water, ...geo.parks.map(p => p.g), ...geo.styles.flatMap(s => [s.walls, s.roofs])]) g?.dispose();
@@ -161,13 +161,14 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     {geo.railBed && <mesh geometry={geo.railBed} receiveShadow><meshStandardMaterial color="#6e6a63" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.rail} polygonOffsetUnits={OFFSET.rail} /></mesh>}
     {geo.sleepers && <mesh geometry={geo.sleepers}><meshStandardMaterial color="#5a4632" roughness={1} /></mesh>}
     {geo.railL && <mesh geometry={geo.railL}><meshStandardMaterial color="#9a9ea6" metalness={0.8} roughness={0.35} /></mesh>}
-    {geo.platforms && <mesh geometry={geo.platforms} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#cfc9bd" /></mesh>}
+    {geo.platforms && <mesh geometry={geo.platforms} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#cfc9bd" side={THREE.DoubleSide} /></mesh>}
     {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} material={facadeMat(s.style, plasterN)} castShadow receiveShadow /><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
     {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]} material={shopMat()} />}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
     {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.park} polygonOffsetUnits={OFFSET.park} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     {collide && <FacadeDetails buildings={geo.facades} />}<Trees pts={trees} />
     {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Suspense fallback={null}><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></Suspense></group>; })}
+    {collide && geo.platformBoxes.length > 0 && <RigidBody type="fixed" colliders={false}>{geo.platformBoxes.map((b, i) => <CuboidCollider key={i} args={b.half} position={b.c} rotation={[0, b.yaw, 0]} />)}</RigidBody>}
     {collide && <RigidBody type="fixed" colliders={false}>{geo.styles.map(s => { const pos = s.walls.getAttribute("position").array as Float32Array; const idx = s.walls.getIndex()!.array as Uint32Array | Uint16Array; return <TrimeshCollider key={s.style} args={[pos, idx instanceof Uint32Array ? idx : new Uint32Array(idx)]} />; })}</RigidBody>}
   </group>;
 }

@@ -29,3 +29,17 @@ describe("flicker root causes stay fixed", () => {
     expect(a.distanceTo(b) / texel).toBeLessThan(1.5); // a sub-texel move shifts the map by at most one whole texel
   });
 });
+
+describe("railway platforms are solid and walkable", () => {
+  it("slab height is within the character autostep, has kerb faces and one collider box per segment", async () => {
+    const { platformSlab, PLATFORM } = await import("../apps/web/src/game/worldGeometry");
+    const { CHARACTER } = await import("../apps/web/src/game/characterPhysics");
+    void CHARACTER; expect(PLATFORM.h).toBeLessThanOrEqual(0.45);
+    const { geo, boxes } = platformSlab([[0, 0], [0, 50], [10, 90]]);
+    expect(boxes).toHaveLength(2);
+    for (const b of boxes) { expect(b.c[1]).toBeCloseTo(PLATFORM.h / 2); expect(b.half[1]).toBeCloseTo(PLATFORM.h / 2); }
+    const ys = Array.from(geo.getAttribute("position").array as Float32Array).filter((_, i) => i % 3 === 1);
+    expect(Math.min(...ys)).toBe(0); expect(Math.max(...ys)).toBeCloseTo(PLATFORM.h); // kerb faces reach the ground
+    expect(geo.getIndex()).not.toBeNull(); expect(geo.getAttribute("uv")).toBeTruthy(); expect(geo.getAttribute("normal")).toBeTruthy();
+  });
+});
