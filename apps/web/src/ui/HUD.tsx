@@ -2,7 +2,7 @@
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
 import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
-import { LANDMARKS, MISSIONS, SHOP_ITEMS, type AnimState } from "@kanpurverse/shared";
+import { LANDMARKS, MISSIONS, SHOP_ITEMS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
 import { camYaw } from "../game/input";
 import { useStore } from "../state/store";
@@ -11,6 +11,7 @@ import { playerPos, playerYaw } from "../game/refs";
 import { input, touchPress, once } from "../game/input";
 import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
+import { Cutscene, Credits } from "./Story";
 import { vehicleTelemetry } from "../game/refs";
 import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
@@ -44,18 +45,18 @@ export function HUD() {
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
-      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPURVERSE</small><h2>{s.missionResult.success ? "MISSION PASSED" : "MISSION FAILED"}</h2><p>{MISSIONS.find(m=>m.id===s.missionResult?.id)?.nameHi}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>Continue · आगे चलो</button></div>}
+      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? "CHAPTER COMPLETE" : "MISSION PASSED") : "MISSION FAILED"}</h2><p>{MISSIONS.find(m=>m.id===s.missionResult?.id)?.nameHi}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>Continue · आगे चलो</button></div>}
       <Compass />
       {/* top-left stats */}
       <div className="hud-stats">
         <Logo size={14} /><small aria-live="polite">{s.saveState === "error" ? "⚠ सेव नहीं हुआ" : s.lastSavedAt ? "✓ इस डिवाइस पर सेव" : ""}</small>
-        <div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
+        <div className="story-chip">{(() => { const n = nextChapter(s.profile?.missionsCompleted ?? []); return n ? t(`Chapter ${n.n}/8 · ${n.title}`, `अध्याय ${n.n}/8 · ${n.titleHi}`) : t("Story complete · free roam", "कहानी पूरी · खुला शहर"); })()}</div><div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
       </div>
       {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       {/* mission tracker */}
-      {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{m.def.id === "laddoo_chakkar" ? ["बबलू: सुनहरी मिठाई के दरवाज़े तक चलो। E से बात आगे बढ़ाओ।", "अंदर जाओ। सुनहरा लड्डू सामने है — E से उठाओ।", "मेले का खेल! Marshal से बचकर राजू के स्टैंड पहुँचो। E दबाओ।", "बबलू के पास लौटो और E से इनाम लो।"][m.index] : t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
+      {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{(() => { const ch = chapterFor(m.def.id); const o = ch?.objectives[m.index]; return o ? t(o[1], o[0]) : t(m.def.desc, m.def.descHi); })()}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
       {s.nearby && !s.dialogue && !(s.inVehicle && s.nearby.kind === "vehicle") && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
       {s.inVehicle && s.seat === "driver" && <Speedo />}
@@ -68,6 +69,8 @@ export function HUD() {
       {s.settings.touch && <TouchControls onPause={() => setPanel("pause")} onChat={() => setPanel("quests")} onMap={() => setPanel("map")} />}
       {!s.settings.touch && !panel && <div className="hud-hint muted">{t("Esc menu · M map · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · 1-6 इमोट · F1 मदद")}</div>}
       <DialoguePanel />
+      <Cutscene />
+      <Credits />
       {panel && <Panel kind={panel} close={() => setPanel(null)} open={setPanel} />}
     </div>
   );
@@ -178,7 +181,7 @@ function MapPanel({ close }: { close: () => void }) {
     for (const r of getRoads()) { if (Math.abs(r.a[0] - playerPos.x) > SPAN || Math.abs(r.a[1] - playerPos.z) > SPAN) continue; x.strokeStyle = r.cls === "primary" || r.cls === "trunk" ? "#9a9a9a" : r.cls === "secondary" || r.cls === "tertiary" ? "#7a7a7a" : "#4a4a4f"; x.lineWidth = Math.max(1, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
     x.fillStyle = "#fff"; x.font = "bold 11px Inter, system-ui"; x.textAlign = "left"; const seen = new Set<string>(); for (const r of getRoads()) { if (!r.name || seen.has(r.name) || r.len < 60 || Math.abs(r.a[0] - playerPos.x) > SPAN / 2 || Math.abs(r.a[1] - playerPos.z) > SPAN / 2) continue; seen.add(r.name); x.fillText(r.name, r.a[0] * k + 3, r.a[1] * k - 3); }
     x.fillStyle = "#fff"; x.font = "11px Inter, system-ui"; x.textAlign = "center"; for (const l of LANDMARKS) if (l.kind !== "park") x.fillText(s.settings.lang === "english" ? l.name : l.nameHi, l.p[0] * k, l.p[1] * k - 4);
-    for (const m of MISSIONS) if (!s.profile?.missionsCompleted.includes(m.id)) { x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(m.start[0] * k, m.start[1] * k, 4, 0, Math.PI * 2); x.fill(); }
+    for (const m of MISSIONS) if (!s.profile?.missionsCompleted.includes(m.id) && (chapterFor(m.id) ? storyUnlocked(m.id, s.profile?.missionsCompleted ?? []) : sideMissionsOpen(s.profile?.missionsCompleted ?? []))) { x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(m.start[0] * k, m.start[1] * k, 4, 0, Math.PI * 2); x.fill(); }
     if (s.mission) { const cp = s.mission.def.checkpoints[s.mission.index]; x.strokeStyle = "#ffd23f"; x.lineWidth = 2; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 8, 0, Math.PI * 2); x.stroke(); }
     for (const p of Object.values(s.players)) { x.fillStyle = p.id === s.selfId ? "#c8102e" : "#3d8bff"; x.beginPath(); x.arc(p.p[0] * k, p.p[2] * k, 4, 0, Math.PI * 2); x.fill(); }
     x.restore(); }, [s]);

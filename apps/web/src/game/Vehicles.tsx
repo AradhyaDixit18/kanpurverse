@@ -39,7 +39,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
   useBeforePhysicsStep(() => {
     const dt = world.timestep; const rb = body.current; if (!rb) return; const s = useStore.getState();
     if (isDriver) {
-      pollKeys(); const paused = s.paused || !!s.dialogue;
+      pollKeys(); const paused = s.paused || !!s.dialogue || !!s.cutscene || !!s.credits;
       const fwd = paused ? 0 : input.fwd, st = paused ? 0 : input.right; const brake = input.jump && !paused;
       const correction = vehicleCorrections.get(snap.id);
       if (correction) {

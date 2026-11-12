@@ -465,6 +465,62 @@
       "emotion": "happy",
       "mission": "laddoo_chakkar",
       "roman": "Ka guru! Mele ka natak hai. Sunehri Mithai se sunehra laddoo lao, phir chai chowk lauto. Sab kalpanik hai!"
+    },
+    {
+      "id": "guide_babloo.story_1",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "टॉमी, चार साल में मॉल रोड भूल गई क्या? चलो, पहले शहर घूम लो।",
+      "emotion": "warm",
+      "mission": "story_01_wapsi"
+    },
+    {
+      "id": "guide_babloo.story_8",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "आज मेले की रात है। सेठ भागने वाला है। तैयार हो?",
+      "emotion": "warm",
+      "mission": "story_08_finale"
+    },
+    {
+      "id": "auto_raju.story_3",
+      "npc": "auto_raju",
+      "category": "mission_offer",
+      "text": "सुनो! सेठ के पोस्टर पूरे मॉल रोड पर चिपके हैं। हटाओगी?",
+      "emotion": "warm",
+      "mission": "story_03_mall_road"
+    },
+    {
+      "id": "police_singh.story_4",
+      "npc": "police_singh",
+      "category": "mission_offer",
+      "text": "बेटी, सेठ का बक्सा आज की ट्रेन से जा रहा है। फाटक पर नियम मानना।",
+      "emotion": "warm",
+      "mission": "story_04_railway"
+    },
+    {
+      "id": "police_singh.story_7",
+      "npc": "police_singh",
+      "category": "mission_offer",
+      "text": "शहर में अफ़वाह है कि मेला रद्द है। छह मिनट में सबूत चाहिए।",
+      "emotion": "warm",
+      "mission": "story_07_danger"
+    },
+    {
+      "id": "shop_gupta.story_5",
+      "npc": "shop_gupta",
+      "category": "mission_offer",
+      "text": "बेटी, दुकान के पीछे रात में मशीन चलती है। पता लगाओगी?",
+      "emotion": "warm",
+      "mission": "story_05_naveen"
+    },
+    {
+      "id": "chai_munna.story_6",
+      "npc": "chai_munna",
+      "category": "mission_offer",
+      "text": "टॉमी, घाट चलो। मेरा भाई झील पर इंतज़ार कर रहा है।",
+      "emotion": "warm",
+      "mission": "story_06_ghat"
     }
   ]
 }

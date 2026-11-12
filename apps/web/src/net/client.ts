@@ -5,6 +5,10 @@ import {
   VEHICLE_HEIGHT,
   SPAWN_POINT,
   MISSIONS,
+  chapterFor,
+  storyUnlocked,
+  sideMissionsOpen,
+  FINALE_ID,
   SHOP_ITEMS,
   NPCS,
   PAAN_VENDOR,
@@ -211,7 +215,7 @@ class SoloSession {
   }
   private tick() {
     const s = useStore.getState();
-    if (s.paused || s.dialogue) {
+    if (s.paused || s.dialogue || s.cutscene || s.credits) {
       if (s.mission)
         s.set({
           mission: { ...s.mission, startedAt: s.mission.startedAt + 250 },
@@ -301,6 +305,8 @@ class SoloSession {
             ? [...new Set([...s.ownedVehicles, "v_hatch_1"])]
             : s.ownedVehicles,
       });
+      const ch = chapterFor(m.def.id);
+      if (ch && first) s.set({ cutscene: { title: `${ch.titleHi} · ${ch.title}`, lines: ch.outro, i: 0, then: ch.missionId === FINALE_ID ? "credits" : undefined } });
       s.toast(
         `MISSION COMPLETE · ${m.def.nameHi} +${first ? m.def.reward.coins : Math.round(m.def.reward.coins * 0.25)} 🪙`,
         "reward",
@@ -371,11 +377,11 @@ class SoloSession {
       case "mission.start": {
         const def = MISSIONS.find((d) => d.id === m.id);
         if (!def || s.mission) return;
-        if (
-          m.id !== "laddoo_chakkar" &&
-          !profile.missionsCompleted.includes("laddoo_chakkar")
-        )
-          return fail("पहले LADDOO KA CHAKKAR पूरा करो।");
+        const chapter = chapterFor(m.id);
+        if (chapter && !storyUnlocked(m.id, profile.missionsCompleted))
+          return fail(`पहले पिछला अध्याय पूरा करो · Finish Chapter ${chapter.n - 1} first`);
+        if (!chapter && !sideMissionsOpen(profile.missionsCompleted))
+          return fail("पहले अध्याय 2 · LADDOO KA CHAKKAR पूरा करो।");
         if (
           Math.hypot(
             def.start[0] - this.position[0],
@@ -386,11 +392,8 @@ class SoloSession {
         s.set({
           mission: { def, index: 0, startedAt: Date.now(), status: "started" },
         });
-        s.toast(
-          def.id === "laddoo_chakkar"
-            ? "बबलू: मेले का अभिनय है गुरु! सुनहरा लड्डू उठाओ और चाय चौक लौटो।"
-            : "Mission started",
-        );
+        if (chapter) s.set({ cutscene: { title: `अध्याय ${chapter.n} · ${chapter.titleHi} · ${chapter.title}`, lines: chapter.intro, i: 0 } });
+        s.toast(chapter ? `अध्याय ${chapter.n} शुरू · Chapter ${chapter.n} started` : "Mission started");
         this.save();
         break;
       }

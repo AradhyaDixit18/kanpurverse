@@ -43,7 +43,7 @@ export function Player() {
     const spitting = action?.action === "spit" && elapsed < 450;
     if (action?.action === "spit" && lastStreet.current !== action.at) { lastStreet.current = action.at; window.dispatchEvent(new CustomEvent("kv:spit")); }
     if (consuming && lastStreet.current !== action?.at) { lastStreet.current = action!.at; sfx.packet(); vel.current = { x: 0, z: 0 }; }
-    const paused = s.paused || !!s.dialogue || consuming || spitting; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
+    const paused = s.paused || !!s.dialogue || !!s.cutscene || !!s.credits || consuming || spitting; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
     // camera orbit
     const look = consumeLook(); if (!paused) { camYaw.v -= look.dx * 0.0025 * s.settings.sensitivity; camYaw.pitch = THREE.MathUtils.clamp(camYaw.pitch + look.dy * 0.0025 * sens, -0.6, 1.1); }
     camYaw.dist = THREE.MathUtils.clamp(camYaw.dist + consumeZoom() * 0.6, 2.5, 12);

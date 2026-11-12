@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KanpurVerse — Apna shehar, apni duniya",
-  description: "A free browser-based single-player open-world game inspired by Kanpur. Walk Mall Road, drive an auto past Moti Jheel, talk to Kanpuriya NPCs, follow an original story.",
-  openGraph: { title: "KanpurVerse", description: "Kanpur-inspired single-player open world in your browser.", type: "website" },
+  title: "Kanpur Chronicles — City of Stories · Velto Studios",
+  description: "Kanpur Chronicles: a free browser-based single-player open-world story game starring Kanupriya Tommy, inspired by Kanpur. Walk Mall Road, drive an auto past Moti Jheel, talk to Kanpuriya NPCs, follow an original story.",
+  openGraph: { title: "Kanpur Chronicles", description: "Kanpur-inspired single-player open world in your browser.", type: "website" },
   robots: { index: false, follow: false }, // flipped on at production approval
 };
 export const viewport: Viewport = { themeColor: "#0b0b0d", width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: "cover" };

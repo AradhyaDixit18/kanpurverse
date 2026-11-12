@@ -4,6 +4,7 @@ export * from "./world";
 export * from "./dialogue";
 export * from "./moderation";
 export * from "./geo";
+export * from "./story";
 
 export const XP_PER_LEVEL = (level: number) => 200 + level * 150;
 export function levelFromXp(xp: number): number { let l = 1, need = XP_PER_LEVEL(1); while (xp >= need) { xp -= need; l++; need = XP_PER_LEVEL(l); } return l; }

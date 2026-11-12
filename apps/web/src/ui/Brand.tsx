@@ -1,12 +1,20 @@
 "use client";
-/** KanpurVerse logo (inline SVG) and the animated Kanpur skyline backdrop used on menu/loading screens. */
+/** Kanpur Chronicles logo (inline SVG) and the animated Kanpur skyline backdrop used on menu/loading screens. */
 export function Logo({ size = 48 }: { size?: number }) {
-  return <div className="kv-logo" style={{ fontSize: size }}>
-    <svg width={size * 1.15} height={size * 1.15} viewBox="0 0 64 64" aria-hidden><defs><linearGradient id="kvg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ff5a3c" /><stop offset="1" stopColor="#c8102e" /></linearGradient></defs>
-      <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#kvg)" /><path d="M18 46V18h7v11l10-11h9L31 32l14 14h-9L25 34v12z" fill="#fff" /><circle cx="48" cy="17" r="4" fill="#ffd23f" /></svg>
-    <span className="kv-word">KANPUR<b>VERSE</b></span>
+  return <div className="kv-logo" style={{ fontSize: size }} aria-label="Kanpur Chronicles">
+    <svg width={size * 1.15} height={size * 1.15} viewBox="0 0 64 64" aria-hidden><defs>
+      <linearGradient id="kcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ff7a3c" /><stop offset="1" stopColor="#b3122e" /></linearGradient>
+      <linearGradient id="kcs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffe08a" /><stop offset="1" stopColor="#f2a93b" /></linearGradient></defs>
+      <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#kcg)" />
+      <circle cx="44" cy="20" r="7" fill="url(#kcs)" />
+      <path d="M15 47V15h7.5v12.5L34 15h9.5L30 29.5 44 44h-9.8L22.5 31.6V47z" fill="#fff" />
+      <path d="M8 51c6-4 10-4 16 0s10 4 16 0 10-4 16 0" stroke="#ffe08a" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    </svg>
+    <span className="kv-word">KANPUR<b>CHRONICLES</b></span>
   </div>;
 }
+/** Studio mark shown on title, loading and credits screens. */
+export function StudioMark() { return <div className="studio-mark">VELTO <b>STUDIOS</b> <small>presents</small></div>; }
 export function Skyline() {
   return <div className="skyline" aria-hidden>
     <div className="sky-glow" /><div className="sun" />

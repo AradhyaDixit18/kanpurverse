@@ -463,6 +463,62 @@
       "text": "A festival caper, all staged! Bring the golden laddoo back from fictional Sunehri Mithai.",
       "emotion": "happy",
       "mission": "laddoo_chakkar"
+    },
+    {
+      "id": "guide_babloo.story_1",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "Tommy, did four years make you forget Mall Road? Come on, see the city first.",
+      "emotion": "warm",
+      "mission": "story_01_wapsi"
+    },
+    {
+      "id": "guide_babloo.story_8",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "It's mela night. The Seth is about to run. Ready?",
+      "emotion": "warm",
+      "mission": "story_08_finale"
+    },
+    {
+      "id": "auto_raju.story_3",
+      "npc": "auto_raju",
+      "category": "mission_offer",
+      "text": "Listen! The Seth's posters are all over Mall Road. Will you clear them?",
+      "emotion": "warm",
+      "mission": "story_03_mall_road"
+    },
+    {
+      "id": "police_singh.story_4",
+      "npc": "police_singh",
+      "category": "mission_offer",
+      "text": "The Seth's box leaves on today's train. Respect the rules at the crossing.",
+      "emotion": "warm",
+      "mission": "story_04_railway"
+    },
+    {
+      "id": "police_singh.story_7",
+      "npc": "police_singh",
+      "category": "mission_offer",
+      "text": "There's a rumour the mela is cancelled. I need evidence in six minutes.",
+      "emotion": "warm",
+      "mission": "story_07_danger"
+    },
+    {
+      "id": "shop_gupta.story_5",
+      "npc": "shop_gupta",
+      "category": "mission_offer",
+      "text": "There's a machine running behind my shop at night. Will you find out?",
+      "emotion": "warm",
+      "mission": "story_05_naveen"
+    },
+    {
+      "id": "chai_munna.story_6",
+      "npc": "chai_munna",
+      "category": "mission_offer",
+      "text": "Tommy, head for the ghat. My brother is waiting at the lake.",
+      "emotion": "warm",
+      "mission": "story_06_ghat"
     }
   ]
 }

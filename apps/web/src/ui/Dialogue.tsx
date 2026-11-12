@@ -1,7 +1,7 @@
 "use client";
 /** NPC conversation panel: greeting → offers/choices; plays voice + subtitles. */
 import { useEffect, useRef, useState } from "react";
-import { PAAN_VENDOR, STREET, NPCS, MISSIONS, type DialogueLine } from "@kanpurverse/shared";
+import { PAAN_VENDOR, STREET, NPCS, MISSIONS, STORY_CHAPTERS, storyUnlocked, sideMissionsOpen, type DialogueLine } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 import { useDialogueLines } from "../game/dialogueData";
 import { speak, stopVoice } from "../audio/voice";
@@ -42,8 +42,8 @@ export function DialoguePanel() {
           {npc.id === PAAN_VENDOR && <div className="street-shop"><b>नुक्कड़ पान दुकान · काल्पनिक</b><p>Gutka / गुटखा · {STREET.price} 🪙 · झोले में {profile?.inventory?.gutka ?? 0}/{STREET.maxPackets}</p><button className="btn btn-accent" onClick={() => net.send({ t: "shop.buy", item: "gutka" })}>एक पैकेट खरीदो</button><small>काल्पनिक गेमप्ले। तंबाकू सेवन हानिकारक है।</small></div>}
           <div className="street-choices" aria-label="Kanpuri conversation">{(Object.keys(STREET_LINES) as (keyof typeof STREET_LINES)[]).map(cat => <button className="btn-sm" key={cat} onClick={() => { const result = sayStreet(npc.id,cat); if (result) setLine({ id:`street.${cat}`, npc:npc.id, text:result.reply, category:"social", emotion:result.mood.anger ? "annoyed" : "happy" }); }}>{STREET_LINES[cat].label}</button>)}</div>
           {next && <button className="btn" onClick={() => go(next)}>{t("Continue", "आगे")}</button>}
-          {npc.id === "guide_babloo" && !mission && !profile?.missionsCompleted.includes("laddoo_chakkar") && <button className="btn btn-accent" onClick={() => { net.send({t:"mission.start",id:"laddoo_chakkar"}); close(); }}>MISSION 01 · लड्डू का चक्कर</button>}
-          {offers.filter(() => profile?.missionsCompleted.includes("laddoo_chakkar")).map(o => { const def = m(o.mission!); const done = profile?.missionsCompleted.includes(def.id); return <button key={o.id} className="btn btn-accent" onClick={() => go(o)} title={t(def.desc, def.descHi)}>{t(def.name, def.nameHi)}{done ? " ↻" : ""} <small>+{def.reward.coins}🪙</small></button>; })}
+          {!mission && STORY_CHAPTERS.filter(c => c.giver === npc.id && !profile?.missionsCompleted.includes(c.missionId) && storyUnlocked(c.missionId, profile?.missionsCompleted ?? [])).slice(0, 1).map(c => <button key={c.missionId} className="btn btn-accent story-btn" onClick={() => { net.send({ t: "mission.start", id: c.missionId }); close(); }}>{t(`CHAPTER ${c.n} · ${c.title}`, `अध्याय ${c.n} · ${c.titleHi}`)}</button>)}
+          {offers.filter(o => sideMissionsOpen(profile?.missionsCompleted ?? []) && !STORY_CHAPTERS.some(c => c.missionId === o.mission)).map(o => { const def = m(o.mission!); const done = profile?.missionsCompleted.includes(def.id); return <button key={o.id} className="btn btn-accent" onClick={() => go(o)} title={t(def.desc, def.descHi)}>{t(def.name, def.nameHi)}{done ? " ↻" : ""} <small>+{def.reward.coins}🪙</small></button>; })}
           {line.category === "mission_offer" && line.mission && !mission && <button className="btn btn-accent" onClick={() => accept(line)}>{t("Accept", "हाँ, करेंगे")}</button>}
           {npc.role === "guide" && <button className="btn" onClick={() => { const d = lines.find(l => l.npc === npc.id && l.category === "direction"); if (d) go(d); }}>{t("Directions", "रास्ता बताओ")}</button>}
           {npc.role === "shopkeeper" && npc.id !== PAAN_VENDOR && <button className="btn" onClick={() => { close(); window.dispatchEvent(new CustomEvent("kv:shop")); }}>{t("Browse shop", "दुकान देखो")}</button>}

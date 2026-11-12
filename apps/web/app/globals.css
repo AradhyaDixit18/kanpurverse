@@ -145,3 +145,31 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 
 /* Solo story identity: warm ivory, dark teal, brass. */
 .hud-stats{border-left:2px solid #d4ac65;border-radius:3px;background:linear-gradient(110deg,#112b2ae8,#14211fd4);box-shadow:0 8px 28px #0003}.solo-health{color:#efc0a3;font-size:11px;letter-spacing:.04em}.hud-mission{border-radius:4px;border-top:2px solid #d4ac65;background:linear-gradient(125deg,#142c2bf2,#0e1818e0);box-shadow:0 8px 24px #0003}.hud-prompt{border:1px solid #e5c07c66;background:#102623e8}.hud-minimap{border:2px solid #d4ac6588!important;box-shadow:0 4px 24px #0005}.street-tools{opacity:.82;transform:scale(.88);transform-origin:top left}.story-result{position:absolute;top:22%;left:50%;transform:translateX(-50%);text-align:center;padding:28px 44px;background:linear-gradient(120deg,#102d2af5,#101c1cf0);border-top:2px solid #e6c784;color:#f6e6c5;min-width:300px;box-shadow:0 20px 80px #0006;pointer-events:auto}.story-result h2{font-size:30px;letter-spacing:.08em;color:#e5c17b}.story-result small{font-size:9px;letter-spacing:.18em}.menu-foot{letter-spacing:.03em}
+
+/* ── Kanpur Chronicles: story cutscenes, credits, chapter chip ── */
+.story-chip{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#e5c17b}
+.story-btn{font-weight:700;letter-spacing:.04em}
+.cutscene{position:fixed;inset:0;z-index:60;pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(ellipse at center,#0000 55%,#000a 100%);animation:csIn .5s ease}
+.cs-bar{background:#050607f2;color:#f6e6c5;padding:14px 6vw}
+.cs-bar.top{min-height:9vh;display:flex;align-items:flex-end}
+.cs-title{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#e5c17b}
+.cs-bar.bottom{min-height:22vh;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.cs-speaker{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ff8a5c}
+.cs-line{font-size:clamp(17px,2.3vw,26px);line-height:1.45;max-width:980px;margin:0}
+.cs-line.narration{font-style:italic;color:#d9cfbb}
+.cs-sub{font-size:13px;color:#a99f8c;margin:0;max-width:980px}
+.cs-foot{display:flex;justify-content:space-between;font-size:11px;color:#8d8576;letter-spacing:.08em;margin-top:6px}
+@keyframes csIn{from{opacity:0}to{opacity:1}}
+.credits{position:fixed;inset:0;z-index:70;background:#050607;color:#f6e6c5;overflow:hidden;pointer-events:auto;display:flex;justify-content:center}
+.credits-roll{text-align:center;animation:roll 38s linear forwards;padding-top:100vh;max-width:720px}
+.credits-roll h1{font-size:clamp(34px,6vw,64px);letter-spacing:.06em;color:#e5c17b;margin:0}
+.credits-roll h2{font-size:22px;margin:4px 0 40px}
+.credits-end{letter-spacing:.4em;font-size:14px;margin-bottom:48px}
+.credit{display:flex;flex-direction:column;margin:26px 0}.credit small{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#a99f8c}.credit b{font-size:20px}
+.credits-studio{margin-top:60px;font-size:28px;font-weight:800;letter-spacing:.2em;color:#ff5a3c}
+.credits-btn{position:fixed;bottom:28px;left:50%;transform:translateX(-50%)}
+@keyframes roll{to{transform:translateY(-100%)}}
+@media (prefers-reduced-motion:reduce){.credits-roll{animation:none;padding-top:10vh}}
+
+.studio-mark{font-size:11px;letter-spacing:.32em;color:#e5c17b;margin-bottom:10px;text-transform:uppercase}.studio-mark b{color:#fff}.studio-mark small{letter-spacing:.2em;color:#a99f8c;margin-left:6px}
+.kv-word b{margin-left:.35em}

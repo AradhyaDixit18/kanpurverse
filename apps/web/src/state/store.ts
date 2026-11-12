@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import { DEFAULT_APPEARANCE, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
+import { DEFAULT_APPEARANCE, PROTAGONIST, type CutsceneLine, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
 
 export type Quality = "low" | "medium" | "high" | "ultra";
 export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
@@ -13,6 +13,8 @@ function loadLocal(): Partial<{ settings: Settings; appearance: Appearance; name
 
 interface Store {
   saveState?: "saved" | "error"; lastSavedAt?: number;
+  /** Story cutscene currently on screen (input and mission timers pause while set). */
+  cutscene?: { title: string; lines: CutsceneLine[]; i: number; then?: "credits" }; credits?: boolean;
   missionResult?: {id:string;success:boolean;coins:number;xp:number}; health: number; ownedVehicles: string[]; collectibles: string[];
   screen: "landing" | "menu" | "character" | "loading" | "play" | "error";
   name: string; appearance: Appearance; token?: string; settings: Settings;
@@ -28,10 +30,13 @@ interface Store {
 const DEFAULT_SETTINGS: Settings = { atmosphere: "cycle", cleanLanguage: true, lang: "kanpuriya", subtitles: true, voice: true, master: 1, music: 0.45, sfx: 0.8, ambience: 0.6, dialogue: 1, quality: "medium", sensitivity: 1, invertY: false, largeText: false, reduceMotion: false, colorblind: false, showFps: false,
   touch: typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0) };
 
+/** Kanupriya Tommy's signature look (editable in the character studio). */
+export const PROTAGONIST_LOOK: Appearance = { ...DEFAULT_APPEARANCE, body: "f", skin: 2, hair: 4, hairColor: 0, top: 2, bottom: 1, shoes: 2, accessory: 1 };
+
 export const useStore = create<Store>((set, get) => {
   const local = typeof window !== "undefined" ? loadLocal() : {};
   return {
-    health: 100, ownedVehicles: ["v_scooter_1"], collectibles: [], screen: "landing", name: local.name ?? "", appearance: local.appearance ?? DEFAULT_APPEARANCE, token: local.token, settings: { ...DEFAULT_SETTINGS, ...(local.settings ?? {}) },
+    health: 100, ownedVehicles: ["v_scooter_1"], collectibles: [], screen: "landing", name: local.name ?? PROTAGONIST.handle, appearance: local.appearance ?? PROTAGONIST_LOOK, token: local.token, settings: { ...DEFAULT_SETTINGS, ...(local.settings ?? {}) },
     connected: false, serverCapabilities: [], players: {}, vehicles: {}, worldTime: 0.3, chat: [], toasts: [], party: [], invites: [], paused: false, ping: 0, fps: 0,
     set: (p) => set(p),
     saveLocal: () => { const { settings, appearance, name, token } = get(); try { localStorage.setItem(LS, JSON.stringify({ settings, appearance, name, token })); } catch { /* private mode */ } },

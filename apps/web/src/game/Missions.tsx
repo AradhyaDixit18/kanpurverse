@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { MISSIONS } from "@kanpurverse/shared";
+import { MISSIONS, chapterFor, storyUnlocked, sideMissionsOpen } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 
 const EMPTY_MISSIONS: string[] = [];
@@ -11,7 +11,7 @@ export function MissionMarkers() {
   const mission = useStore(s => s.mission); const done = useStore(s => s.profile?.missionsCompleted ?? EMPTY_MISSIONS);
   return <>
     {mission && <Beam p={mission.def.checkpoints[mission.index]} r={mission.def.radius} compact={mission.def.id === "laddoo_chakkar"} />}
-    {!mission && MISSIONS.filter(m => !done.includes(m.id)).map(m => <GiverIcon key={m.id} p={m.start} />)}
+    {!mission && MISSIONS.filter(m => !done.includes(m.id) && (chapterFor(m.id) ? storyUnlocked(m.id, done) : sideMissionsOpen(done))).map(m => <GiverIcon key={m.id} p={m.start} />)}
   </>;
 }
 function Beam({ p, r, compact=false }: { p: [number, number]; r: number; compact?: boolean }) {

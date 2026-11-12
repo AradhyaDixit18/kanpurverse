@@ -5,7 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { isValidName, type Appearance, type AnimState } from "@kanpurverse/shared";
 import { Avatar, SKIN, HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "../game/Avatar";
-import { useStore } from "../state/store";
+import { useStore, PROTAGONIST_LOOK } from "../state/store";
 import { sfx } from "../audio/sfx";
 
 export function CharacterCreator({ onDone }: { onDone: () => void }) {
@@ -22,14 +22,14 @@ export function CharacterCreator({ onDone }: { onDone: () => void }) {
             <OrbitControls enablePan={false} target={[0, 0.15, 0]} minDistance={2} maxDistance={5} autoRotate autoRotateSpeed={0.6} /></Canvas>
       <div className="anim-row">{(["idle", "walk", "wave", "dance", "celebrate"] as AnimState[]).map(x => <button key={x} className={`btn-sm ${anim === x ? "accent" : ""}`} onClick={() => setAnim(x)}>{x}</button>)}</div></div>
     <div className="creator-form">
-      <h1>{t("Create your character", "अपना किरदार बनाओ")}</h1>
-      <label className="field"><span>{t("Name (3–16, letters/numbers/_)", "नाम (3–16 अक्षर/अंक/_)")}</span><input value={name} onChange={e => { setName(e.target.value); setErr(""); }} maxLength={16} placeholder="e.g. Rad_Kanpur" /></label>{err && <div className="err">{err}</div>}
+      <h1>{t("Kanupriya Tommy", "कनुप्रिया टॉमी")}</h1><p className="muted bio">{t("24. Grew up near Parmat Ghat, left for Delhi to work as a video journalist and courier rider, and is back in Kanpur after four years. Everyone calls her Tommy because she never lets go of a story. Style her look below.", "24 साल। परमट घाट के पास पली-बढ़ी, दिल्ली में वीडियो पत्रकार और कूरियर राइडर बनी, और चार साल बाद कानपुर लौटी है। सब उसे टॉमी कहते हैं क्योंकि वो कहानी का पीछा कभी नहीं छोड़ती। नीचे उसका रूप सजाओ।")}</p>
+      <label className="field"><span>{t("Save-slot name (3–16, letters/numbers/_)", "सेव का नाम (3–16 अक्षर/अंक/_)")}</span><input value={name} onChange={e => { setName(e.target.value); setErr(""); }} maxLength={16} placeholder="Kanupriya" /></label>{err && <div className="err">{err}</div>}
       <div className="opt"><span>{t("Body", "शरीर")}</span><div className="swatches"><button className={`sw wide ${a.body === "m" ? "on" : ""}`} onClick={() => setA({ ...a, body: "m" })}>{t("A", "अ")}</button><button className={`sw wide ${a.body === "f" ? "on" : ""}`} onClick={() => setA({ ...a, body: "f" })}>{t("B", "ब")}</button></div></div>
       <Opt label={t("Skin", "त्वचा")} k="skin" n={6} colors={SKIN} /><Opt label={t("Hair style", "बाल")} k="hair" n={6} /><Opt label={t("Hair colour", "बालों का रंग")} k="hairColor" n={5} colors={HAIR_COLORS} />
       <Opt label={t("Top", "ऊपर")} k="top" n={5} colors={TOPS.slice(0, 5)} /><Opt label={t("Bottom", "नीचे")} k="bottom" n={6} colors={BOTTOMS} /><Opt label={t("Shoes", "जूते")} k="shoes" n={4} colors={SHOES} />
       <div className="opt"><span>{t("Accessory", "एक्सेसरी")}</span><div className="swatches">{[t("None", "कुछ नहीं"), t("Shades", "चश्मा"), t("Cap", "टोपी"), t("Gamcha", "गमछा")].map((l, i) => <button key={i} className={`sw wide ${a.accessory === i ? "on" : ""}`} onClick={() => setA({ ...a, accessory: i })}>{l}</button>)}</div></div>
       <p className="muted">{t("Kanpuriya kurta, cricket jersey and leather jacket unlock at Naveen Market with coins from missions.", "कानपुरिया कुर्ता, क्रिकेट जर्सी और लेदर जैकेट नवीन मार्केट में मिशन के सिक्कों से मिलेंगे।")}</p>
-      <div className="row"><button className="btn" onClick={random}>{t("Randomise", "रैंडम")}</button><button className="btn btn-accent" onClick={save}>{t("Save & continue", "सेव करो")}</button></div>
+      <div className="row"><button className="btn" onClick={() => setA(PROTAGONIST_LOOK)}>{t("Signature look", "असली रूप")}</button><button className="btn" onClick={random}>{t("Randomise", "रैंडम")}</button><button className="btn btn-accent" onClick={save}>{t("Save & continue", "सेव करो")}</button></div>
     </div>
   </div>;
 }
