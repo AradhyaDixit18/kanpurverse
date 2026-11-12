@@ -2,7 +2,7 @@
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
 import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
-import { LANDMARKS, MISSIONS, SHOP_ITEMS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
+import { LANDMARKS, MISSIONS, SHOP_ITEMS, VEHICLE_SPECS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
 import { camYaw } from "../game/input";
 import { useStore } from "../state/store";
@@ -12,6 +12,7 @@ import { input, touchPress, once } from "../game/input";
 import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
 import { Cutscene, Credits } from "./Story";
+import { ControlsGuide } from "./Controls";
 import { vehicleTelemetry } from "../game/refs";
 import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
@@ -75,7 +76,11 @@ export function HUD() {
     </div>
   );
 }
-function Speedo() { const [v, setV] = useState(0); useEffect(() => { const i = setInterval(() => setV(Math.round(vehicleTelemetry.speed * 3.6)), 100); return () => clearInterval(i); }, []); return <div className="hud-speedo"><b>{v}</b><small>km/h</small><div className="speedo-bar" style={{ width: Math.min(100, v / 1.3) + "%" }} /></div>; }
+function Speedo() { const [t, setT] = useState({ v: 0, name: "", rev: false, ind: 0, hl: "auto", cond: 100 }); useEffect(() => { const i = setInterval(() => { const s = useStore.getState(); setT({ v: Math.round(vehicleTelemetry.speed * 3.6), name: vehicleTelemetry.name, rev: vehicleTelemetry.reverse, ind: vehicleTelemetry.indicator, hl: s.settings.headlights ?? "auto", cond: s.vehicleCondition ?? 100 }); }, 100); return () => clearInterval(i); }, []);
+  const max = Math.max(60, Math.round((SPECS_KMH[vehicleTelemetry.kind] ?? 120) / 20) * 20); const a = -120 + Math.min(1, t.v / max) * 240;
+  return <div className="hud-speedo v2" aria-label={`${t.v} km/h`}><svg viewBox="0 0 120 80" className="speedo-dial"><path d="M14 70 A50 50 0 1 1 106 70" stroke="#ffffff22" strokeWidth="6" fill="none" /><path d="M14 70 A50 50 0 1 1 106 70" stroke="#e5c17b" strokeWidth="6" fill="none" strokeDasharray={`${Math.min(1, t.v / max) * 236} 400`} /><line x1="60" y1="60" x2="60" y2="22" stroke="#ff5a3c" strokeWidth="2.5" transform={`rotate(${a} 60 60)`} /></svg>
+    <b>{t.v}</b><small>km/h · {t.rev ? "R" : t.v > 0 ? "D" : "N"}</small><div className="speedo-meta"><span className={t.ind === -1 || t.ind === 2 ? "ind on" : "ind"}>◀</span><span title="Headlights">💡{t.hl === "auto" ? "A" : t.hl === "on" ? "●" : "○"}</span><span title="Condition">🔧{t.cond}%</span><span className={t.ind === 1 || t.ind === 2 ? "ind on" : "ind"}>▶</span></div><div className="speedo-name">{t.name}</div></div>; }
+const SPECS_KMH: Record<string, number> = Object.fromEntries(Object.entries(VEHICLE_SPECS).map(([k, v]) => [k, v.max * 3.6]));
 function Compass() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { let raf = 0; const draw = () => { const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const W = c.width, H = c.height; x.clearRect(0, 0, W, H);
@@ -155,10 +160,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
         </div></>}
       {kind === "map" && <MapPanel close={close} />}
       {kind === "settings" && <><h2>{t("Settings", "सेटिंग्स")}</h2><SettingsPanel /><button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
-      {kind === "help" && <><h2>{t("Controls", "कंट्रोल")}</h2><div className="help-grid">
-        <div><kbd>W A S D</kbd> {t("move", "चलो")}</div><div><kbd>Shift</kbd> {t("sprint", "दौड़ो")}</div><div><kbd>Space</kbd> {t("jump / brake", "कूदो / ब्रेक")}</div><div><kbd>Mouse</kbd> {t("look (click to lock)", "कैमरा (क्लिक करो)")}</div>
-        <div><kbd>E</kbd> {t("talk / enter / photo", "बात / चढ़ो / फ़ोटो")}</div><div><kbd>F</kbd> {t("exit vehicle", "गाड़ी से उतरो")}</div><div><kbd>H</kbd> {t("horn", "हॉर्न")}</div><div><kbd>1–6</kbd> {t("emotes: wave, dance, laugh, celebrate, high-five, sit", "इमोट: हाथ हिलाओ, डांस, हँसो, जश्न, हाई-फाइव, बैठो")}</div>
-        <div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>Esc</kbd> {t("menu", "मेन्यू")}</div><div><kbd>C</kbd> {t("camera: normal / close / far / first-person", "कैमरा: सामान्य / पास / दूर / फर्स्ट-पर्सन")}</div><div><kbd>Q</kbd> {t("look back (hold)", "पीछे देखो")}</div><div><kbd>R</kbd> {t("reset vehicle", "गाड़ी रीसेट")}</div><div><kbd>P</kbd> {t("photo mode", "फ़ोटो मोड")}</div><div><kbd>J</kbd> {t("missions log", "मिशन लॉग")}</div><div><kbd>I</kbd> {t("inventory", "इन्वेंटरी")}</div></div>
+      {kind === "help" && <><h2>{t("Controls", "कंट्रोल")}</h2><ControlsGuide />
         <p className="muted">{t("Find Babloo Bhaiya at Cafe Chowk for your first mission. Yellow diamonds mark mission givers.", "पहले मिशन के लिए कैफ़े चौक पर बबलू भैया से मिलो। पीले हीरे मिशन देने वालों को दिखाते हैं।")}</p>
         <button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
 

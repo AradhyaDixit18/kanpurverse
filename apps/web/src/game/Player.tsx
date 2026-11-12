@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { RigidBody, CapsuleCollider, useRapier, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, STREET, type AnimState } from "@kanpurverse/shared";
+import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, VEHICLE_SPECS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, STREET, type AnimState } from "@kanpurverse/shared";
 import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
@@ -25,7 +25,7 @@ export { playerYaw };
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null); const vis = useRef<THREE.Group>(null);
-  const { rapier, world } = useRapier(); const { camera, gl, scene } = useThree();
+  const { rapier, world } = useRapier(); const camScale = useRef(1); const { camera, gl, scene } = useThree();
   const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const wasGrounded = useRef(true); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
   const lastStreet = useRef(useStore.getState().streetAction?.at ?? -1);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
@@ -122,7 +122,9 @@ export function Player() {
 
   useFrame((_, dt) => {
     const s = useStore.getState();
-    placeCamera(camera, world, rapier, playerPos, s.settings.reduceMotion ? 1 : 1 - Math.exp(-dt * 12), s.inVehicle ? 1.4 : 1.6);
+    const vk = s.inVehicle ? s.vehicles[s.inVehicle]?.kind : undefined; const vs = vk ? VEHICLE_SPECS[vk].size : undefined;
+    camScale.current += ((vs ? THREE.MathUtils.clamp(vs[2] / 3.6, 0.85, 2.6) : 1) - camScale.current) * (1 - Math.exp(-dt * 3));
+    placeCamera(camera, world, rapier, playerPos, s.settings.reduceMotion ? 1 : 1 - Math.exp(-dt * (vs ? 7 : 12)), vs ? vs[1] * 0.75 + 0.55 : 1.6);
   });
 
   function placeCamera(cam: THREE.Camera, w: typeof world, r: typeof rapier, target: THREE.Vector3, smooth: number, h: number) {
@@ -137,7 +139,7 @@ export function Player() {
     }
     const yawEff = camYaw.v + (camYaw.lookBack ? Math.PI : 0);
     const dir = rayDir.current.set(Math.sin(yawEff) * Math.cos(camYaw.pitch), Math.sin(camYaw.pitch), Math.cos(yawEff) * Math.cos(camYaw.pitch));
-    let dist = camYaw.dist;
+    let dist = camYaw.mode === 3 ? camYaw.dist : camYaw.dist * camScale.current;
     const occupied = useStore.getState().inVehicle; const vehicleHandle = occupied ? vehicleRuntime.get(occupied)?.handle : undefined;
     const ray = new r.Ray(camTarget.current, dir); const hit = w.castRay(ray, dist, true, undefined, undefined, undefined, body.current ?? undefined, collider => collider.parent()?.handle !== vehicleHandle);
     if (hit && hit.timeOfImpact < dist) dist = Math.max(0.8, hit.timeOfImpact - 0.3);

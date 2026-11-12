@@ -12,6 +12,8 @@ export interface Landmark { id: string; name: string; nameHi: string; p: [number
 export interface Building { p: [number, number]; w: number; d: number; h: number; style: number; sign?: string; signHi?: string }
 
 import { ANCHORS, GEO_WORLD_SIZE } from "./geo";
+import { VEHICLE_SPECS } from "./vehicles";
+import type { VehicleKind } from "./protocol";
 export const WORLD_SIZE = GEO_WORLD_SIZE;             // playable square, centred at origin (OSM extract)
 export const RAIL_Z = 190;                           // hand-authored fallback district only (OSM rails replace this)
 
@@ -106,8 +108,8 @@ export const NPCS: NpcDef[] = [
 ];
 
 /** Body height per kind (metres); the physics body centre sits at height/2 above the road. */
-export const VEHICLE_HEIGHT: Record<"hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi", number> = { hatchback: 1.45, sedan: 1.4, suv: 1.85, bike: 1.1, scooter: 1.1, auto: 1.75, erickshaw: 1.8, bus: 3.1, truck: 2.8, taxi: 1.45 };
-export interface VehicleSpawn { id: string; kind: "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi"; p: [number, number]; ry: number; color: number }
+export const VEHICLE_HEIGHT = Object.fromEntries(Object.entries(VEHICLE_SPECS).map(([k, v]) => [k, v.size[1]])) as Record<VehicleKind, number>;
+export interface VehicleSpawn { id: string; kind: VehicleKind; p: [number, number]; ry: number; color: number }
 export const VEHICLE_SPAWNS: VehicleSpawn[] = [
   { id: "v_auto_1", kind: "auto", p: [506, -320], ry: Math.PI / 2, color: 0x2e8b57 },
   { id: "v_hatch_1", kind: "hatchback", p: [438, -320], ry: Math.PI / 2, color: 0xc8102e },
@@ -121,6 +123,17 @@ export const VEHICLE_SPAWNS: VehicleSpawn[] = [
   { id: "v_taxi_1", kind: "taxi", p: [430, 1778], ry: Math.PI, color: 0xffd23f },
   { id: "v_bus_1", kind: "bus", p: [560, -270], ry: 0, color: 0xe07b1a },
   { id: "v_truck_1", kind: "truck", p: [-820, -760], ry: Math.PI / 2, color: 0x3a7d44 },
+  // Phase B collection: one of every class, parked where the story already takes the player.
+  { id: "v_cruiser_1", kind: "cruiser", p: [446, -342.3], ry: -Math.PI / 2, color: 0x1f2a1f },
+  { id: "v_sport_1", kind: "sportbike", p: [446, -344.6], ry: -Math.PI / 2, color: 0xff6a13 },
+  { id: "v_csuv_1", kind: "compactsuv", p: [612, -256], ry: 0, color: 0x2b6cb0 },
+  { id: "v_muv_1", kind: "muv", p: [620, -256], ry: 0, color: 0x8a8d91 },
+  { id: "v_thar_1", kind: "offroader", p: [628, -256], ry: 0, color: 0x7a1f1f },
+  { id: "v_cycler_1", kind: "cyclerickshaw", p: [519, -322], ry: Math.PI / 2, color: 0x2e7d6b },
+  { id: "v_csuv_2", kind: "compactsuv", p: [-130, -470], ry: Math.PI / 2, color: 0xf3f3f0 },
+  { id: "v_van_1", kind: "van", p: [-120, -470], ry: Math.PI / 2, color: 0x1e5aa8 },
+  { id: "v_school_1", kind: "schoolbus", p: [446, 1770], ry: Math.PI, color: 0xf2b705 },
+  { id: "v_sedan_2", kind: "sedan", p: [430, 1786], ry: Math.PI, color: 0x5b1a2a },
 ];
 
 export const SPAWN_POINT: [number, number, number] = [472, 1, -330];   // The Mall Road beside Z Square (OSM)

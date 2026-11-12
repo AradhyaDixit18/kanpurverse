@@ -6,6 +6,7 @@ import { net } from "../net/client";
 import { readSoloSave } from "../state/soloSave";
 import { unlockAudio, sfx } from "../audio/sfx";
 import { SettingsPanel } from "./Settings";
+import { ControlsGuide } from "./Controls";
 import dynamic from "next/dynamic";
 const CharacterCreator = dynamic(() => import("./Character").then(m => m.CharacterCreator), { ssr: false, loading: () => <div className="screen center"><Skyline /><Logo size={56} /><div className="spinner" /><p className="muted">Loading character studio…</p></div> });
 import { preloadGameEngine } from "../game/engineLoader";
@@ -40,13 +41,13 @@ function MainMenuInner() {
           {readSoloSave() && <button className="mbtn" onClick={() => { preloadGameEngine(); net.newGame(); }}><span>{t("New game", "नई शुरुआत")}</span><small>{t("Previous save kept as recovery backup", "पिछला सेव बैकअप में सुरक्षित")}</small></button>}
           <Btn k="character" label={t("Character", "किरदार")} hint={t("looks, name, outfit", "रूप, नाम, कपड़े")} />
           <Btn k="settings" label={t("Settings", "सेटिंग्स")} hint={t("language, audio, graphics", "भाषा, आवाज़, ग्राफ़िक्स")} />
-          <Btn k="howto" label={t("How to play", "कैसे खेलें")} />
+          <Btn k="howto" label={t("How to play · controls", "कैसे खेलें · कंट्रोल")} />
           <Btn k="about" label={t("About Velto Studios", "वेल्टो स्टूडियोज़")} />
           <Link className="mlink" href="/">{t("← Back to site", "← साइट पर वापस")}</Link>
         </nav>}
         {view === "settings" && <div className="menu-panel"><h2>{t("Settings", "सेटिंग्स")}</h2><SettingsPanel /><button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
         {view === "howto" && <div className="menu-panel"><h2>{t("How to play", "कैसे खेलें")}</h2>
-          <div className="help-grid"><div><kbd>W A S D</kbd> {t("move", "चलो")}</div><div><kbd>Shift</kbd> {t("sprint", "दौड़ो")}</div><div><kbd>Space</kbd> {t("jump / brake", "कूदो / ब्रेक")}</div><div><kbd>Mouse</kbd> {t("look (click to lock)", "कैमरा (क्लिक करो)")}</div><div><kbd>E</kbd> {t("talk / enter vehicle / photo", "बात / गाड़ी / फ़ोटो")}</div><div><kbd>F</kbd> {t("exit vehicle", "गाड़ी से उतरो")}</div><div><kbd>H</kbd> {t("horn", "हॉर्न")}</div><div><kbd>1–6</kbd> {t("emotes", "इमोट")}</div><div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>I</kbd> {t("inventory", "इन्वेंटरी")}</div></div>
+          <ControlsGuide />
           <p className="muted">{t("Start at Cafe Chowk: Babloo Bhaiya (yellow diamond) starts Chapter 1 of Kanupriya\'s story. Coins come only from missions; spend them at Naveen Market. Phones: left joystick, drag to look, buttons on the right.", "कैफ़े चौक से शुरू करो: बबलू भैया (पीला हीरा) कनुप्रिया की कहानी का पहला अध्याय शुरू करेंगे। सिक्के सिर्फ़ मिशन से; नवीन मार्केट में खर्च करो। फ़ोन पर: बायाँ जॉयस्टिक, खींच कर देखो, दायें बटन।")}</p>
           <button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
         {view === "about" && <div className="menu-panel"><h2>Velto Studios</h2>

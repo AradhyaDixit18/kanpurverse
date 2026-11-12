@@ -2,7 +2,7 @@
 /** Procedural audio (WebAudio) — no external files: engine hum, horn, footsteps, UI blips, coin, and a soft ambient music bed. */
 import { useStore } from "../state/store";
 
-let ctx: AudioContext | null = null; let master: GainNode; let musicGain: GainNode; let engineOsc: OscillatorNode | null = null; let engineGain: GainNode | null = null; let musicStarted = false;
+let ctx: AudioContext | null = null; let master: GainNode; let musicGain: GainNode; let engineOsc: OscillatorNode | null = null; let engineGain: GainNode | null = null; let engineFilter: BiquadFilterNode | null = null; let musicStarted = false;
 function ac() { if (!ctx) { ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)(); master = ctx.createGain(); master.connect(ctx.destination); musicGain = ctx.createGain(); musicGain.connect(master); } if (ctx.state === "suspended") ctx.resume(); return ctx; }
 export function unlockAudio() { ac(); if (!musicStarted) startMusic(); }
 function vol() { return useStore.getState().settings.sfx; }
@@ -22,14 +22,36 @@ export const sfx = {
   camera: () => { blip(2400, 0.03, "square", 0.1); setTimeout(() => blip(1800, 0.05, "square", 0.08), 40); },
   trainHorn: () => { const c = ac(); const g = c.createGain(); g.gain.value = 0.3 * amb(); g.connect(master); for (const f of [220, 277, 330]) { const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900; o.connect(lp); lp.connect(g); o.start(); o.stop(c.currentTime + 1.6); } g.gain.setValueAtTime(0.3 * amb(), c.currentTime + 1.2); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.7); },
   crossingBell: () => { blip(1760, 0.25, "triangle", 0.12); setTimeout(() => blip(1760, 0.25, "triangle", 0.12), 500); },
-  engine(on: boolean, speed = 0) {
+  /** Engine voice per vehicle family: pitch rises with road speed (gear-like steps), volume with throttle load. */
+  engine(on: boolean, speed = 0, cls: "car" | "two" | "three" | "heavy" | "pedal" | string = "car", voice: string = "std", load = 0) {
     if (!on && !engineOsc) return;
+    if (on && cls === "pedal") { if (engineGain && ctx) engineGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1); return; }
     const c = ac();
-    if (on && !engineOsc) { engineOsc = c.createOscillator(); engineGain = c.createGain(); engineOsc.type = "sawtooth"; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 400; engineOsc.connect(f); f.connect(engineGain); engineGain.connect(master); engineGain.gain.value = 0; engineOsc.start(); }
-    if (engineOsc && engineGain) { engineOsc.frequency.setTargetAtTime(on ? 40 + speed * 4 : 30, c.currentTime, 0.1); engineGain.gain.setTargetAtTime(on ? (0.05 + Math.min(0.1, speed * 0.004)) * amb() : 0, c.currentTime, 0.15); }
-    if (!on && engineOsc) { const o = engineOsc; engineOsc = null; setTimeout(() => { try { o.stop(); } catch { /* already */ } }, 500); }
+    if (on && !engineOsc) { engineOsc = c.createOscillator(); engineGain = c.createGain(); engineFilter = c.createBiquadFilter(); engineFilter.type = "lowpass"; engineFilter.frequency.value = 400; engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(master); engineGain.gain.value = 0; engineOsc.start(); }
+    if (engineOsc && engineGain && engineFilter) {
+      const p = ENGINE[voice] ?? ENGINE[cls] ?? ENGINE.car; engineOsc.type = p.type;
+      const gearSpan = p.gear; const inGear = (speed % gearSpan) / gearSpan; const gear = Math.floor(speed / gearSpan);
+      const f = p.base + (voice === "electric" ? speed * 28 : (inGear * p.rise + gear * p.rise * 0.18));
+      engineOsc.frequency.setTargetAtTime(on ? f : p.base * 0.7, c.currentTime, 0.08); engineFilter.frequency.setTargetAtTime(p.cutoff * (1 + load * 0.8), c.currentTime, 0.1);
+      engineGain.gain.setTargetAtTime(on ? (p.vol + Math.min(0.08, speed * 0.003) + load * p.vol) * Math.max(amb(), vol() * 0.6) : 0, c.currentTime, 0.15);
+    }
+    if (!on && engineOsc) { const o = engineOsc; engineOsc = null; engineFilter = null; setTimeout(() => { try { o.stop(); } catch { /* already */ } }, 500); }
   },
+  crash(k = 0.5) { const c = ac(); const n = Math.floor(c.sampleRate * 0.35); const b = c.createBuffer(1, n, c.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 2; const s2 = c.createBufferSource(); s2.buffer = b; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 700 + k * 900; const g = c.createGain(); g.gain.value = (0.15 + k * 0.35) * vol(); s2.connect(f); f.connect(g); g.connect(master); s2.start(); blip(90, 0.25, "triangle", 0.2 * k); },
+  skid(k = 0.5) { const c = ac(); const n = Math.floor(c.sampleRate * 0.28); const b = c.createBuffer(1, n, c.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.sin((i / n) * Math.PI); const s2 = c.createBufferSource(); s2.buffer = b; const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1700; f.Q.value = 3; const g = c.createGain(); g.gain.value = 0.06 * k * vol(); s2.connect(f); f.connect(g); g.connect(master); s2.start(); },
 };
+const ENGINE: Record<string, { type: OscillatorType; base: number; rise: number; gear: number; cutoff: number; vol: number }> = {
+  car: { type: "sawtooth", base: 38, rise: 60, gear: 8, cutoff: 420, vol: 0.045 },
+  std: { type: "sawtooth", base: 38, rise: 60, gear: 8, cutoff: 420, vol: 0.045 },
+  two: { type: "square", base: 55, rise: 90, gear: 6, cutoff: 900, vol: 0.035 },
+  thump: { type: "square", base: 28, rise: 40, gear: 8, cutoff: 260, vol: 0.06 },
+  rev: { type: "sawtooth", base: 70, rise: 160, gear: 9, cutoff: 1500, vol: 0.04 },
+  putt: { type: "square", base: 32, rise: 55, gear: 5, cutoff: 500, vol: 0.05 },
+  three: { type: "square", base: 32, rise: 55, gear: 5, cutoff: 500, vol: 0.05 },
+  electric: { type: "sine", base: 180, rise: 0, gear: 100, cutoff: 1800, vol: 0.018 },
+  heavy: { type: "sawtooth", base: 24, rise: 30, gear: 5, cutoff: 260, vol: 0.07 },
+};
+
 
 /** Ambient bed: slow pentatonic arpeggio (raga Bhupali-ish: C D E G A) with a tanpura-like drone. Volume from settings.music. */
 function startMusic() {

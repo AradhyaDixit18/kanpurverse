@@ -175,3 +175,12 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .kv-word b{margin-left:.35em}
 
 .gfx-adv{margin:6px 0 10px;padding:6px 10px;border:1px solid #ffffff1f;border-radius:6px}.gfx-adv summary{cursor:pointer;font-weight:700;padding:4px 0}
+
+.hud-speedo.v2{display:flex;flex-direction:column;align-items:center;min-width:150px;padding:8px 14px 10px;background:linear-gradient(140deg,#0f1c1ce8,#0b1212d9);border-top:2px solid #d4ac65;border-radius:8px}
+.hud-speedo.v2 .speedo-dial{width:120px;height:72px;margin-bottom:-34px}.hud-speedo.v2 b{font-size:28px;line-height:1;z-index:1}.hud-speedo.v2 small{font-size:10px;letter-spacing:.12em;color:#c9bfa9}
+.speedo-meta{display:flex;gap:10px;font-size:11px;margin-top:4px;color:#d8cfbd}.speedo-meta .ind{color:#ffffff33}.speedo-meta .ind.on{color:#ffb000;text-shadow:0 0 8px #ffb000}
+.speedo-name{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#e5c17b;margin-top:2px}
+
+.controls-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 22px;max-height:62vh;overflow:auto}.ctl-sec h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#e5c17b;margin:6px 0}
+/* menu panel: logo must fit inside the card */
+.menu-left .kv-logo{flex-wrap:wrap;max-width:100%}.menu-left .kv-word{font-size:.62em;white-space:nowrap}

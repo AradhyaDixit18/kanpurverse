@@ -58,7 +58,8 @@ export type C2S = z.infer<typeof C2S>;
 /** ---------- server → client ---------- */
 export interface PlayerSnapshot { id: string; name: string; p: Vec3; ry: number; anim: AnimState; appearance: Appearance; vehicle?: string; seat?: "driver" | "passenger"; level: number }
 export interface VehicleSnapshot { id: string; kind: VehicleKind; p: Vec3; q: [number, number, number, number]; v: number; driver?: string; passenger?: string }
-export type VehicleKind = "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi";
+export type VehicleKind = "hatchback" | "sedan" | "suv" | "bike" | "scooter" | "auto" | "erickshaw" | "bus" | "truck" | "taxi"
+  | "compactsuv" | "muv" | "offroader" | "cruiser" | "sportbike" | "cyclerickshaw" | "schoolbus" | "van";
 
 export type S2C =
   | { t: "welcome"; id: string; token: string; name: string; profile: PlayerProfile; serverTime: number; capabilities?: string[] }
