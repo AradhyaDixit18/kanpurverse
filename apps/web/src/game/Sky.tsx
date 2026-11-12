@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
-import { useStore } from "../state/store";
+import { useGraphics } from "../state/store";
 import { playerPos } from "./Player";
 
 const K = {
@@ -31,7 +31,7 @@ void main(){ vec3 d = normalize(vWorld - cameraPosition); float h = clamp(d.y, 0
 
 export function Sky() {
   const sun = useRef<THREE.DirectionalLight>(null); const amb = useRef<THREE.AmbientLight>(null); const hemi = useRef<THREE.HemisphereLight>(null); const { scene } = useThree();
-  const target = useRef(new THREE.Object3D()); const quality = useStore(s => s.settings.quality); const dome = useRef<THREE.Mesh>(null); const sunMesh = useRef<THREE.Mesh>(null); const moon = useRef<THREE.Mesh>(null);
+  const target = useRef(new THREE.Object3D()); const g = useGraphics(); const dome = useRef<THREE.Mesh>(null); const sunMesh = useRef<THREE.Mesh>(null); const moon = useRef<THREE.Mesh>(null);
   const uniforms = useMemo(() => ({ top: { value: new THREE.Color(K.day.top) }, horizon: { value: new THREE.Color(K.day.horizon) }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: new THREE.Color(K.day.sun) }, sunGlow: { value: 1 }, stars: { value: 0 } }), []);
   const tmp = useMemo(() => ({ a: new THREE.Color(), b: new THREE.Color(), c: new THREE.Color() }), []);
 
@@ -50,14 +50,14 @@ export function Sky() {
     if (moon.current) { moon.current.position.set(playerPos.x - dir.x * 600, -dir.y * 600 + 80, playerPos.z - dir.z * 600); moon.current.visible = w.night > 0.2; }
   });
   return <>
-    <fog attach="fog" args={["#b6c8ca", quality === "low" ? 70 : 150, quality === "low" ? 220 : quality === "ultra" ? 650 : 480]} />
+    <fog attach="fog" args={["#b6c8ca", g.fogNear, g.viewDistance]} />
     <mesh ref={dome} frustumCulled={false}><sphereGeometry args={[800, 32, 16]} /><shaderMaterial uniforms={uniforms} vertexShader={skyVert} fragmentShader={skyFrag} side={THREE.BackSide} depthWrite={false} fog={false} /></mesh>
     <mesh ref={sunMesh}><sphereGeometry args={[18, 16, 16]} /><meshBasicMaterial color="#fff2cc" fog={false} /></mesh>
     <mesh ref={moon}><sphereGeometry args={[12, 16, 16]} /><meshBasicMaterial color="#e9eefc" fog={false} /></mesh>
     {/* Haze replaces faceted cloud blobs. */}
     <ambientLight ref={amb} intensity={0.5} />
     <hemisphereLight ref={hemi} args={["#bcd8ff", "#7a6a4a", 0.6]} />
-    <directionalLight ref={sun} castShadow={quality !== "low"} intensity={2} shadow-mapSize={quality === "ultra" ? [4096, 4096] : quality === "high" ? [2048, 2048] : [1024, 1024]} shadow-camera-left={-42} shadow-camera-right={42} shadow-camera-top={42} shadow-camera-bottom={-42} shadow-camera-far={450} shadow-bias={-0.0004} shadow-normalBias={0.02} />
+    <directionalLight ref={sun} key={`sun:${g.shadowMap}:${g.shadowExtent}`} castShadow={g.shadows !== "off"} intensity={2} shadow-mapSize={[Math.max(512, g.shadowMap), Math.max(512, g.shadowMap)]} shadow-camera-left={-g.shadowExtent} shadow-camera-right={g.shadowExtent} shadow-camera-top={g.shadowExtent} shadow-camera-bottom={-g.shadowExtent} shadow-radius={3} shadow-camera-far={450} shadow-bias={-0.0004} shadow-normalBias={0.02} />
     <primitive object={target.current} />
   </>;
 }

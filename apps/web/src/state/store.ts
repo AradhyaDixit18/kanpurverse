@@ -2,8 +2,9 @@
 import { create } from "zustand";
 import { DEFAULT_APPEARANCE, PROTAGONIST, type CutsceneLine, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
 
-export type Quality = "low" | "medium" | "high" | "ultra";
-export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
+import { resolveGraphics, type Quality, type GraphicsOverrides, type ResolvedGraphics } from "../game/graphics";
+export type { Quality };
+export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; gfx?: GraphicsOverrides; headlights?: "auto" | "on" | "off"; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
 export interface ChatMsg { from: string; name: string; text: string; at: number; system?: boolean }
 export interface Subtitle { speaker: string; text: string; roman?: string; until: number }
 export interface MissionState { def: MissionDef; index: number; startedAt: number; status: "started" | "completed" | "failed" }
@@ -22,7 +23,7 @@ interface Store {
   chat: ChatMsg[]; subtitle?: Subtitle; toasts: { id: number; text: string; kind: string }[]; mission?: MissionState; party: string[]; invites: { from: string; name: string }[];
   dialogue?: { npc: string; lineId: string }; nearby?: { kind: "npc" | "vehicle" | "landmark" | "checkpoint"; id: string; label: string };
   streetAction?: { action: "consume" | "spit"; at: number };
-  paused: boolean; ping: number; fps: number; inVehicle?: string; seat?: "driver" | "passenger"; vehicleTransition?: "entering" | "exiting"; errorText?: string; loadStage?: "engine" | "connecting" | "auth" | "joining" | "done"; loadProgress?: number;
+  paused: boolean; ping: number; fps: number; renderScale?: number; inVehicle?: string; seat?: "driver" | "passenger"; vehicleTransition?: "entering" | "exiting"; errorText?: string; loadStage?: "engine" | "connecting" | "auth" | "joining" | "done"; loadProgress?: number;
   set: (p: Partial<Store>) => void; saveLocal: () => void; toast: (text: string, kind?: string) => void; pushChat: (m: ChatMsg) => void;
   setSettings: (s: Partial<Settings>) => void;
 }
@@ -45,3 +46,9 @@ export const useStore = create<Store>((set, get) => {
     setSettings: (p) => { set(s => ({ settings: { ...s.settings, ...p } })); get().saveLocal(); },
   };
 });
+
+/** Resolved renderer configuration (preset + advanced overrides). */
+export function useGraphics(): ResolvedGraphics { const q = useStore(s => s.settings.quality); const o = useStore(s => s.settings.gfx); return resolveGraphicsCached(q, o); }
+let _gk = "", _gv: ResolvedGraphics | null = null;
+export function resolveGraphicsCached(q: Quality, o?: GraphicsOverrides) { const k = q + JSON.stringify(o ?? {}); if (k !== _gk || !_gv) { _gk = k; _gv = resolveGraphics(q, o); } return _gv; }
+export function graphicsNow() { const s = useStore.getState().settings; return resolveGraphicsCached(s.quality, s.gfx); }

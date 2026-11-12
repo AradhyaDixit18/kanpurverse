@@ -3,8 +3,9 @@
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { graphicsNow } from "../state/store";
 const N = 48; const pool: { x: number; y: number; z: number; t: number; s: number }[] = [];
-export function puff(x: number, y: number, z: number, s = 1) { if (pool.length >= N) pool.shift(); pool.push({ x, y, z, t: 0, s }); }
+export function puff(x: number, y: number, z: number, s = 1) { const k = graphicsNow().dustScale; if (k <= 0 || (k < 1 && Math.random() > k)) return; if (pool.length >= N) pool.shift(); pool.push({ x, y, z, t: 0, s }); }
 export function Dust() {
   const mesh = useMemo(() => { const m = new THREE.InstancedMesh(new THREE.SphereGeometry(0.18, 6, 5), new THREE.MeshStandardMaterial({ color: 0xc9b99a, transparent: true, opacity: 0.55, depthWrite: false }), N); m.frustumCulled = false; m.count = 0; return m; }, []);
   const o = useMemo(() => new THREE.Object3D(), []);

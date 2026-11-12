@@ -173,3 +173,5 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 
 .studio-mark{font-size:11px;letter-spacing:.32em;color:#e5c17b;margin-bottom:10px;text-transform:uppercase}.studio-mark b{color:#fff}.studio-mark small{letter-spacing:.2em;color:#a99f8c;margin-left:6px}
 .kv-word b{margin-left:.35em}
+
+.gfx-adv{margin:6px 0 10px;padding:6px 10px;border:1px solid #ffffff1f;border-radius:6px}.gfx-adv summary{cursor:pointer;font-weight:700;padding:4px 0}

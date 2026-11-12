@@ -9,7 +9,7 @@ import { SPECS } from "./vehicleSpecs";
 import { type VehicleKind } from "@kanpurverse/shared";
 import { getRoads, roadsNear, roadsVersion, onRoadsChange, type Seg } from "./roads";
 import { VehicleMesh } from "./Vehicles";
-import { useStore } from "../state/store";
+import { useStore, useGraphics } from "../state/store";
 import { playerPos } from "./refs";
 
 interface Car { kind: VehicleKind; color: number; seg: Seg; lane: 1 | -1; offset: number; speed: number }
@@ -17,11 +17,11 @@ const KINDS: VehicleKind[] = ["auto", "erickshaw", "hatchback", "scooter", "bike
 const COLORS = [0x2e8b57, 0xf2b134, 0xd8d8d8, 0x3d8bff, 0xc8102e, 0x1c1d22, 0x8fd1ff, 0xf5f5f5];
 
 export function Traffic() {
-  const quality = useStore(s => s.settings.quality); const [ver, setVer] = useState(roadsVersion()); useEffect(() => onRoadsChange(() => setVer(roadsVersion())), []);
+  const traffic = useGraphics().traffic; const [ver, setVer] = useState(roadsVersion()); useEffect(() => onRoadsChange(() => setVer(roadsVersion())), []);
   const [center, setCenter] = useState<[number, number]>([playerPos.x, playerPos.z]); useFrame(() => { if (Math.hypot(playerPos.x - center[0], playerPos.z - center[1]) > 150) setCenter([playerPos.x, playerPos.z]); });
-  const cars = useMemo<Car[]>(() => { const n = quality === "low" ? 12 : quality === "medium" ? 24 : 36; const pool = roadsNear(center[0], center[1], 320).filter(s => s.len > 25 && s.cls !== "service" && s.cls !== "living_street"); const segs = pool.length ? pool : getRoads(); if (!segs.length) return [];
+  const cars = useMemo<Car[]>(() => { const n = traffic; const pool = roadsNear(center[0], center[1], 320).filter(s => s.len > 25 && s.cls !== "service" && s.cls !== "living_street"); const segs = pool.length ? pool : getRoads(); if (!segs.length) return [];
     return Array.from({ length: n }, (_, i) => ({ kind: KINDS[i % KINDS.length], color: COLORS[(i * 5) % COLORS.length], seg: segs[(i * 7) % segs.length], lane: i % 2 === 0 ? 1 : -1, offset: (i * 137) % 500, speed: 6 + (i % 4) * 2 })); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quality, ver, center]);
+  }, [traffic, ver, center]);
   return <>{cars.map((c, i) => <Car key={i + ":" + c.seg.a[0]} car={c} />)}</>;
 }
 

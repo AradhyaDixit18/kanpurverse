@@ -10,7 +10,7 @@ import { NPCS, type NpcDef, type Appearance, type AnimState, type DialogueLine }
 import { roadsNear, getRoads, segPoint, segYaw, roadsVersion, onRoadsChange, type Seg } from "./roads";
 import { Avatar } from "./Avatar";
 import { playerPos } from "./Player";
-import { useStore } from "../state/store";
+import { useStore, useGraphics } from "../state/store";
 import { useDialogueLines } from "./dialogueData";
 import { speak } from "../audio/voice";
 
@@ -24,7 +24,7 @@ function appearanceFor(seed: number, role: NpcDef["role"], female: boolean): App
     top: role === "police" ? 1 : role === "shopkeeper" ? 5 : role === "auto" ? 3 : Math.floor(r(4) * 5), bottom: role === "police" ? 1 : Math.floor(r(5) * 4), shoes: Math.floor(r(6) * 3), accessory: role === "auto" ? 3 : role === "police" ? 2 : 0 };
 }
 
-export function NPCs() { const q = useStore(s => s.settings.quality); return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={q === "low" ? 8 : q === "medium" ? 18 : 28} /></>; }
+export function NPCs() { const crowd = useGraphics().crowd; return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={crowd} /></>; }
 
 /** Ambient pedestrians walking the pavements near the player (no dialogue, deterministic). */
 function Crowd({ n }: { n: number }) {
