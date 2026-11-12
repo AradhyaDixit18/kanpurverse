@@ -25,7 +25,7 @@ function MenuMap({ close }: { close: () => void }) { const [ready, setReady] = u
 export function LanguageGate() {
   const set = useStore(s => s.setSettings);
   const pick = (lang: "english" | "hindi" | "kanpuriya") => { unlockAudio(); sfx.ui(); set({ lang, langChosen: true }); };
-  return <div className="screen menu menu-v2"><Skyline /><MenuScene /><div className="menu-shade" /><div className="lang-gate"><Logo size={60} />
+  return <div className="screen menu"><Skyline /><div className="lang-gate"><Logo size={60} />
     <h2>अपनी भाषा चुनो</h2><p className="muted">सेटिंग्स में कभी भी बदल सकते हो · Change any time in Settings</p>
     <div className="lang-cards">
       <button className="lang-card accent" onClick={() => pick("kanpuriya")}><span className="lang-big">कनपुरिया</span><small>असली कानपुर वाली बोली · डिफ़ॉल्ट — &ldquo;का हो भइया!&rdquo;</small></button>
@@ -42,7 +42,7 @@ function MainMenuInner() {
   if (view === "character") return <CharacterCreator onDone={() => setView("main")} />;
   const Btn = ({ k, label, hint, accent }: { k: View | "play"; label: string; hint?: string; accent?: boolean }) => (
     <button className={`mbtn ${accent ? "accent" : ""}`} onClick={() => { sfx.ui(); if (k === "play") play(); else setView(k); }}><span>{label}</span>{hint && <small>{hint}</small>}</button>);
-  return <div className="screen menu"><Skyline />
+  return <div className="screen menu menu-v2"><Skyline /><MenuScene /><div className="menu-shade" />
     <div className="menu-layout">
       <div className="menu-left">
         <StudioMark /><Logo size={64} /><div className="tag">{t("City of Stories · starring Kanupriya Tommy", "कहानियों का शहर · कनुप्रिया टॉमी के साथ")}</div>
