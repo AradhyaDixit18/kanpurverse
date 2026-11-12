@@ -43,3 +43,12 @@ describe("railway platforms are solid and walkable", () => {
     expect(geo.getIndex()).not.toBeNull(); expect(geo.getAttribute("uv")).toBeTruthy(); expect(geo.getAttribute("normal")).toBeTruthy();
   });
 });
+
+describe("third-person camera collision", () => {
+  it("always keeps the camera on the player's side of a wall, even when her back is against it", async () => {
+    const { cameraClampDistance } = await import("../apps/web/src/game/characterPhysics");
+    for (const toi of [0.05, 0.2, 0.35, 0.5, 0.8, 1.2, 3, 6]) expect(cameraClampDistance(toi)).toBeLessThan(toi);
+    expect(cameraClampDistance(0.4)).toBeLessThan(0.8); // the old 0.8 m floor put the camera behind the wall here
+    expect(cameraClampDistance(6)).toBeCloseTo(5.75);
+  });
+});

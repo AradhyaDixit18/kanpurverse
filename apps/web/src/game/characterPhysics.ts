@@ -23,3 +23,6 @@ export function placeCharacter(world: World, body: RigidBody, feet: readonly num
   body.setTranslation(p, true); body.setNextKinematicTranslation(p);
   world.propagateModifiedBodyPositionsToColliders(); world.updateSceneQueries();
 }
+
+/** Third-person camera distance when the view ray hits geometry at `toi`: always on the player's side of the hit. */
+export function cameraClampDistance(toi: number, gap = 0.25, min = 0.3) { return Math.max(Math.min(min, toi * 0.85), toi - gap); }

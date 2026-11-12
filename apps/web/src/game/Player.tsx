@@ -16,7 +16,7 @@ import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
 import { findClearVehicleExit } from "./vehicleExit";
-import { CHARACTER, createCharacterController, moveCharacter, turnLean, placeCharacter } from "./characterPhysics";
+import { CHARACTER, createCharacterController, moveCharacter, turnLean, placeCharacter, cameraClampDistance } from "./characterPhysics";
 import { npcPositions, vehicleRuntime, playerPhysicsTelemetry } from "./refs";
 
 const WALK = 3.2, RUN = 5.5, SPRINT = 8.5, JUMP_V = 6.5, GRAV = -18;
@@ -163,10 +163,11 @@ export function Player() {
     let dist = camYaw.mode === 3 ? camYaw.dist : camYaw.dist * camScale.current;
     const occupied = useStore.getState().inVehicle; const vehicleHandle = occupied ? vehicleRuntime.get(occupied)?.handle : undefined;
     const ray = new r.Ray(camTarget.current, dir); const hit = w.castRay(ray, dist, true, undefined, undefined, undefined, body.current ?? undefined, collider => collider.parent()?.handle !== vehicleHandle);
-    if (hit && hit.timeOfImpact < dist) dist = Math.max(0.8, hit.timeOfImpact - 0.3);
+    // Final QA: a 0.8 m floor pushed the camera through a wall right behind her (the view showed only the wall).
+    const blocked = !!hit && hit.timeOfImpact < dist; if (blocked) dist = cameraClampDistance(hit!.timeOfImpact);
     const want = camTarget.current.clone().addScaledVector(dir, dist);
     if (camYaw.mode === 3) { cam.position.copy(camTarget.current).addScaledVector(dir, 0.0001); cam.lookAt(camTarget.current.clone().addScaledVector(dir, -10)); if (vis.current) vis.current.visible = false; return; } else if (vis.current && !inVehicle) vis.current.visible = true;
-    cam.position.lerp(want, smooth); cam.lookAt(camTarget.current);
+    if (blocked && want.distanceToSquared(camTarget.current) < cam.position.distanceToSquared(camTarget.current)) cam.position.copy(want); else cam.position.lerp(want, smooth); cam.lookAt(camTarget.current);
   }
   function probe(s: ReturnType<typeof useStore.getState>, p: { x: number; z: number }) {
     let best: typeof s.nearby | undefined; let bd = 3.2;
