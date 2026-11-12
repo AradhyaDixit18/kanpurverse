@@ -24,7 +24,21 @@ export const GHAT = { c: [-400, -2130] as [number, number], along: [0.908, 0.419
 export const ghatToWorld = (lx: number, lz: number): [number, number] => [GHAT.c[0] - GHAT.along[0] * lx + GHAT.into[0] * lz, GHAT.c[1] - GHAT.along[1] * lx + GHAT.into[1] * lz];
 const ghatYaw = Math.atan2(GHAT.into[0], GHAT.into[1]); // local +Z → into the river
 
-function clip(pts: [number, number][]): [number, number][] { return pts.map(([x, z]) => [Math.max(-HALF - 200, Math.min(HALF + 200, x)), Math.max(-HALF - 200, Math.min(HALF + 200, z))]); }
+/**
+ * Sutherland–Hodgman clip of the river polygon to the playable square. (Clamping vertices instead — the first version —
+ * created long diagonal edges that flooded half the city in the browser test.)
+ */
+export function clip(pts: [number, number][], L = HALF + 200): [number, number][] {
+  type P = [number, number]; let out: P[] = pts.slice();
+  const edges: [(p: P) => boolean, (a: P, b: P) => P][] = [
+    [p => p[0] >= -L, (a, b) => { const t = (-L - a[0]) / (b[0] - a[0]); return [-L, a[1] + t * (b[1] - a[1])]; }],
+    [p => p[0] <= L, (a, b) => { const t = (L - a[0]) / (b[0] - a[0]); return [L, a[1] + t * (b[1] - a[1])]; }],
+    [p => p[1] >= -L, (a, b) => { const t = (-L - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), -L]; }],
+    [p => p[1] <= L, (a, b) => { const t = (L - a[1]) / (b[1] - a[1]); return [a[0] + t * (b[0] - a[0]), L]; }],
+  ];
+  for (const [inside, cut] of edges) { const src = out; out = []; for (let i = 0; i < src.length; i++) { const cur = src[i], prev = src[(i + src.length - 1) % src.length]; if (inside(cur)) { if (!inside(prev)) out.push(cut(prev, cur)); out.push(cur); } else if (inside(prev)) out.push(cut(prev, cur)); } }
+  return out;
+}
 /** The bank: polygon edges that lie inside the playable square (the river polygon's land boundary). */
 export function bankSegments(poly: [number, number][]) { const out: [[number, number], [number, number]][] = []; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; const inside = (p: [number, number]) => Math.abs(p[0]) < HALF + 150 && Math.abs(p[1]) < HALF + 150; if (inside(a) && inside(b) && Math.abs(a[0]) < 4900 && Math.abs(b[0]) < 4900 && a[1] > -4900 && b[1] > -4900) out.push([a, b]); } return out; }
 

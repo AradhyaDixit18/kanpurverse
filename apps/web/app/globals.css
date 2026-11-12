@@ -233,3 +233,6 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .story-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}.story-list li{display:flex;justify-content:space-between;padding:8px 12px;border-radius:6px;background:#ffffff0a}
 .story-list li.done small{color:#7fd18b}.story-list li.next{border-left:3px solid #ffc83d}.story-list li.locked{opacity:.55}
 .vehicle-list{display:grid;gap:6px}.vrow{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:8px 10px;background:#ffffff0a;border-radius:6px}.vrow span{grid-column:1/-1;font-size:12px;color:#c9bfa9}
+.hud-toasts{z-index:70!important;position:absolute}
+.modal-card.modal-map{width:min(1280px,94vw)!important;max-width:94vw!important;max-height:92vh}
+.status-bars .bar{height:16px}.status-bars .bar span{line-height:16px}

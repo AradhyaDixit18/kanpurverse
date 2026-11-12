@@ -136,7 +136,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
 function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "settings" | "garage" | "help" | "inventory" | "quests") => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   return <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
-    <div className="modal-card">
+    <div className={`modal-card ${kind === "map" ? "modal-map" : ""}`}>
       {kind === "pause" && <><h2>{t("Paused", "रुका हुआ")}</h2>
         <div className="menu-col">
           <button className="btn btn-accent" onClick={close}>{t("Resume", "जारी रखो")}</button>

@@ -104,6 +104,8 @@ export function HumanAvatar({ appearance, anim, speed, protagonist, outfit, weap
     [key, female, male, hair]);
   const mixer = useMemo(() => new THREE.AnimationMixer(built.root), [built]);
   const current = useRef<{ name: string; action: THREE.AnimationAction } | null>(null);
+  // A rebuilt character (new outfit/appearance) has a fresh mixer: forget the old action so a clip starts at once (no T-pose).
+  useMemo(() => { current.current = null; }, [mixer]);
   const head = useMemo(() => built.root.getObjectByName("Head") as THREE.Bone | undefined, [built]);
   const lookT = useRef(Math.random() * 10);
   useEffect(() => () => { mixer.stopAllAction(); mixer.uncacheRoot(built.root); }, [mixer, built]);

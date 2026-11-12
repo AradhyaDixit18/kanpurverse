@@ -43,3 +43,13 @@ describe("Ganga riverfront geometry", () => {
     expect(d).toBeLessThan(3);
   });
 });
+
+describe("river rendering polygon", () => {
+  it("clipping to the world square keeps land as land (regression: clamped vertices flooded the city)", async () => {
+    const { clip } = await import("../apps/web/src/game/Ganga");
+    const c = clip(ganga, 2800);
+    const samples: [number, number][] = [[472, -330], [-413, -2098], [-405, -2120], [0, 0], [423, 1797], [-1046, -835], [1351, -206], [-400, -2400], [-1500, -2700], [2000, -1500]];
+    for (const p of samples) expect(inPoly(p, c), String(p)).toBe(inPoly(p, ganga));
+    for (const p of c) { expect(Math.abs(p[0])).toBeLessThanOrEqual(2800 + 1e-6); expect(Math.abs(p[1])).toBeLessThanOrEqual(2800 + 1e-6); }
+  });
+});
