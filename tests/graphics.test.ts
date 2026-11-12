@@ -9,7 +9,7 @@ describe("central graphics configuration", () => {
     expect(l.viewDistance).toBeLessThan(m.viewDistance); expect(m.viewDistance).toBeLessThan(h.viewDistance); expect(h.viewDistance).toBeLessThan(u.viewDistance);
     expect(l.traffic).toBeLessThan(m.traffic); expect(l.crowd).toBeLessThan(h.crowd);
     expect(u.dpr[1]).toBeLessThanOrEqual(1.5); // measured Ultra bottleneck: DPR 1.75 + full-res AO
-    expect(u.aa).toBe("msaa"); expect(h.ao).toBe("half");
+    expect(u.aa).toBe("msaa"); expect(h.ao).toBe("off"); expect(resolveGraphics("high", { ao: "half" }).ao).toBe("half");
   });
   it("advanced overrides change only their own knob and are clamped", () => {
     const base = resolveGraphics("high"); const o = resolveGraphics("high", { shadows: "low", viewDistance: 5000, resScale: 0.1 });

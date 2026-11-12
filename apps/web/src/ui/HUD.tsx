@@ -63,7 +63,7 @@ export function HUD() {
       {s.inVehicle && s.seat === "driver" && <Speedo />}
       {s.inVehicle && <div className="hud-vehicle">{t("W/S drive · A/D steer · Space brake · H horn · F exit", "W/S चलाओ · A/D मोड़ो · Space ब्रेक · H हॉर्न · F बाहर")}</div>}
       {/* subtitles */}
-      {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && <div className="roman">{sub.roman}</div>}</div>}
+      {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && s.settings.englishSubs && <div className="roman">{sub.roman}</div>}</div>}
       {/* toasts */}
       <div className="hud-toasts">{s.toasts.map(x => <div key={x.id} className={`toast ${x.kind}`}>{x.text}</div>)}</div>
       <Minimap />

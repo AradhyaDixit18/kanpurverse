@@ -152,7 +152,6 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean) {
   const headBone = bones.find(x => x.name === "Head"), spine = bones.find(x => x.name === "spine_03"), pelvis = bones.find(x => x.name === "pelvis");
   if (protagonist && spine && pelvis) {
     // video journalist kit: cross-body strap and a compact camera bag
-    const strap = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.012, 6, 28), cloth(0x2a211b, "leather")); strap.rotation.set(Math.PI / 2, 0.55, 0); strap.scale.set(0.95, 1.25, 1); spine.add(strap);
     const bag = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.09), cloth(0x3b2a1e, "leather")); bag.position.set(0.17, -0.02, 0.06); pelvis.add(bag);
     const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 16), cloth(0x111111, "rubber")); lens.rotation.x = Math.PI / 2; lens.position.set(0.17, -0.02, 0.115); pelvis.add(lens);
   } else if (headBone && app.accessory === 1) {

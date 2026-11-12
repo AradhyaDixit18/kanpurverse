@@ -35,11 +35,12 @@ export interface ResolvedGraphics {
   dpr: [number, number]; resScale: number; adaptive: boolean;
 }
 
+/** AO is opt-in: measured on an Apple M2 (13 Nov 2026) N8AO cost High 59→44 FPS and Ultra 60→25 FPS. */
 export const PRESETS: Record<Quality, Required<GraphicsOverrides>> = {
   low:    { shadows: "off",    aa: "off",  ao: "off",  viewDistance: 240, post: false, effects: "low",    resScale: 0.8, adaptive: true,  ibl: false },
   medium: { shadows: "medium", aa: "smaa", ao: "off",  viewDistance: 480, post: true,  effects: "medium", resScale: 1,   adaptive: true,  ibl: true },
-  high:   { shadows: "high",   aa: "smaa", ao: "half", viewDistance: 600, post: true,  effects: "high",   resScale: 1,   adaptive: true,  ibl: true },
-  ultra:  { shadows: "ultra",  aa: "msaa", ao: "half", viewDistance: 760, post: true,  effects: "high",   resScale: 1,   adaptive: false, ibl: true },
+  high:   { shadows: "high",   aa: "smaa", ao: "off",  viewDistance: 600, post: true,  effects: "high",   resScale: 1,   adaptive: true,  ibl: true },
+  ultra:  { shadows: "ultra",  aa: "msaa", ao: "off",  viewDistance: 760, post: true,  effects: "high",   resScale: 1,   adaptive: false, ibl: true },
 };
 const SHADOW_MAP: Record<ShadowQuality, number> = { off: 0, low: 1024, medium: 2048, high: 2048, ultra: 4096 };
 const SHADOW_EXTENT: Record<ShadowQuality, number> = { off: 0, low: 30, medium: 42, high: 55, ultra: 70 };

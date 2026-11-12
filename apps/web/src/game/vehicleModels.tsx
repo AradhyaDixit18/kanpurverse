@@ -22,7 +22,7 @@ const M = {
   trim: () => mat("trim", () => new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.55, metalness: 0.2 })),
   plastic: () => mat("plastic", () => new THREE.MeshStandardMaterial({ color: 0x22242a, roughness: 0.85 })),
   chrome: () => mat("chrome", () => new THREE.MeshStandardMaterial({ color: 0xdfe3e8, roughness: 0.12, metalness: 1 })),
-  glass: () => mat("glass", () => new THREE.MeshPhysicalMaterial({ color: 0x1d2a33, roughness: 0.04, metalness: 0.1, transparent: true, opacity: 0.62, depthWrite: false, envMapIntensity: 1.6 })),
+  glass: () => mat("glass", () => new THREE.MeshPhysicalMaterial({ color: 0x0c161d, roughness: 0.05, metalness: 0.25, transparent: true, opacity: 0.8, depthWrite: false, envMapIntensity: 1.8, clearcoat: 1, clearcoatRoughness: 0.02 })),
   tyre: () => mat("tyre", () => new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.92 })),
   rim: () => mat("rim", () => new THREE.MeshStandardMaterial({ color: 0xb9bec6, roughness: 0.28, metalness: 0.9 })),
   seat: () => mat("seat", () => new THREE.MeshStandardMaterial({ color: 0x2a2320, roughness: 0.8 })),

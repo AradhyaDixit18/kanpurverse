@@ -53,7 +53,7 @@ export const Avatar = memo(function Avatar(props: AvatarProps) {
   useFrame(({ camera, clock }) => {
     if (!root.current || clock.elapsedTime < checkAt.current) return; checkAt.current = clock.elapsedTime + .2;
     root.current.getWorldPosition(world.current); const d = camera.position.distanceTo(world.current);
-    const quality = useStore.getState().settings.quality, near = quality === "low" ? 20 : quality === "ultra" ? 50 : quality === "high" ? 36 : 24;
+    const quality = useStore.getState().settings.quality, near = quality === "low" ? 24 : quality === "ultra" ? 75 : quality === "high" ? 60 : 45;
     const next = d > 180 ? 2 : d > near + (band.current === 0 ? 4 : -4) ? 1 : 0;
     if (next !== band.current) { band.current = next; setLod(next); }
   });

@@ -37,7 +37,7 @@ export function DialoguePanel() {
     <div className="dlg">
       <div className="dlg-card">
         <div className="dlg-head"><span className="dlg-name">{t(npc.name, npc.nameHi)}</span><span className="dlg-role">{npc.role}</span><button className="btn-ghost" onClick={close} aria-label="Close">✕</button></div>
-        <p className="dlg-text">{line.text}</p>{lang !== "english" && line.roman && <p className="dlg-roman">{line.roman}</p>}
+        <p className="dlg-text">{line.text}</p>{lang !== "english" && line.roman && useStore.getState().settings.englishSubs && <p className="dlg-roman">{line.roman}</p>}
         <div className="dlg-actions">
           {npc.id === PAAN_VENDOR && <div className="street-shop"><b>नुक्कड़ पान दुकान · काल्पनिक</b><p>Gutka / गुटखा · {STREET.price} 🪙 · झोले में {profile?.inventory?.gutka ?? 0}/{STREET.maxPackets}</p><button className="btn btn-accent" onClick={() => net.send({ t: "shop.buy", item: "gutka" })}>एक पैकेट खरीदो</button><small>काल्पनिक गेमप्ले। तंबाकू सेवन हानिकारक है।</small></div>}
           <div className="street-choices" aria-label="Kanpuri conversation">{(Object.keys(STREET_LINES) as (keyof typeof STREET_LINES)[]).map(cat => <button className="btn-sm" key={cat} onClick={() => { const result = sayStreet(npc.id,cat); if (result) setLine({ id:`street.${cat}`, npc:npc.id, text:result.reply, category:"social", emotion:result.mood.anger ? "annoyed" : "happy" }); }}>{STREET_LINES[cat].label}</button>)}</div>
