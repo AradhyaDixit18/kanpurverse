@@ -79,3 +79,14 @@ describe("Ganga shoreline strip", () => {
     expect(wet / n).toBeLessThan(0.02); // a few very sharp bank corners may fold back; the strip must not run along the water
   });
 });
+
+describe("map heading while driving", () => {
+  it("vehicle yaw uses the same convention as the on-foot heading the minimap rotates by", async () => {
+    const { yawFromQuaternion } = await import("../apps/web/src/game/driving");
+    for (const yaw of [0, 0.7, -1.9, 3.0]) {
+      const q: [number, number, number, number] = [0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2)];
+      const y = yawFromQuaternion(q); expect(Math.sin(y)).toBeCloseTo(Math.sin(yaw)); expect(Math.cos(y)).toBeCloseTo(Math.cos(yaw));
+      const fwd = [Math.sin(y), Math.cos(y)]; expect(Math.atan2(fwd[0], fwd[1])).toBeCloseTo(Math.atan2(Math.sin(yaw), Math.cos(yaw))); // on foot: playerYaw = atan2(mx, mz)
+    }
+  });
+});

@@ -23,7 +23,7 @@ import { skid, endSkid } from "./SkidMarks";
 import { isDrifting, slipAngle } from "./driving";
 import { roadsNear, type Seg } from "./roads";
 import { crashDamage } from "./playerStatus";
-import { vehicleTelemetry, vehicleRuntime } from "./refs";
+import { vehicleTelemetry, vehicleRuntime, playerYaw } from "./refs";
 export { vehicleTelemetry };
 
 export function Vehicles() { const vehicles = useStore(s => s.vehicles); const selfId = useStore(s => s.selfId); return <>{Object.values(vehicles).map(v => <Vehicle key={v.id + ":" + (v.driver === selfId)} snap={v} />)}</>; }
@@ -82,6 +82,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       if ((handbrake && Math.abs(speed.current) > 6) || Math.abs(slip.current) > 1.2) { if (Math.random() < 0.3) puff(p.x - Math.sin(yaw.current) * spec.size[2] * 0.35, p.y - spec.size[1] / 2, p.z - Math.cos(yaw.current) * spec.size[2] * 0.35, 1.2); }
       if ((input.horn || once("KeyH")) && performance.now() - lastHorn.current > 600) { lastHorn.current = performance.now(); sfx.horn(); }
       if (once("KeyR")) { const p0 = rb.translation(); rb.setTranslation({ x: p0.x, y: spec.size[1] / 2 + 0.6, z: p0.z }, true); rb.setLinvel({ x: 0, y: 0, z: 0 }, true); speed.current = 0; s.toast(tl("गाड़ी सीधी कर दी", "Vehicle reset")); }
+      playerYaw.v = yaw.current; // Final QA: the minimap/full-map arrow froze at the last on-foot heading while driving
       if (!s.settings.reduceMotion && Math.abs(speed.current) > 2) camYaw.v = lerpAngle(camYaw.v, yaw.current + Math.PI, 1 - Math.exp(-dt * 2.2));
       if (vis.current) { vis.current.position.set(p.x, p.y, p.z); vis.current.quaternion.copy(q); void grip; void TWO_WHEELERS; }
       const hl = s.settings.headlights ?? "auto"; const t = s.worldTime;
