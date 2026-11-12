@@ -90,3 +90,23 @@ describe("map heading while driving", () => {
     }
   });
 });
+
+describe("road graph stitching", () => {
+  it("joins OSM ways that cross or nearly touch without a shared node (QA: 57 m to the garage routed as 1.1 km)", async () => {
+    const { stitchRoads } = await import("../apps/web/src/game/gps");
+    // a T that stops 4 m short, and an X with no shared node
+    const segs = [{ a: [0, 0] as [number, number], b: [100, 0] as [number, number] }, { a: [50, 4] as [number, number], b: [50, 60] as [number, number] }, { a: [20, -30] as [number, number], b: [20, 30] as [number, number] }];
+    const g = buildRoadGraph(segs); const r = route(g, [50, 60], [20, 30]);
+    expect(r.ok).toBe(true); expect(r.length).toBeLessThan(60 + 4 + 30 + 30 + 1);
+    expect(stitchRoads(segs).length).toBeGreaterThan(segs.length);
+  });
+  it("routes the real garage approach on the road, not around the district", () => {
+    const g = buildRoadGraph(geo.roads.flatMap(r => r.pts.slice(1).map((p, i) => ({ a: r.pts[i], b: p, cls: r.cls }))));
+    const r = route(g, [407, -372], [464, -380]);
+    expect(r.ok).toBe(true); expect(r.length).toBeLessThan(200);
+  });
+  it("builds the city graph quickly enough to do on first use", () => {
+    const segs = geo.roads.flatMap(r => r.pts.slice(1).map((p, i) => ({ a: r.pts[i], b: p, cls: r.cls })));
+    const t0 = performance.now(); buildRoadGraph(segs); expect(performance.now() - t0).toBeLessThan(1500);
+  });
+});

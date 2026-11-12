@@ -8,7 +8,36 @@ export interface RoadGraph { pts: [number, number][]; adj: { to: number; w: numb
 const key = (x: number, z: number) => `${Math.round(x * 2)}:${Math.round(z * 2)}`;
 const cell = (x: number, z: number) => `${Math.floor(x / 60)}:${Math.floor(z / 60)}`;
 
-export function buildRoadGraph(segs: RoadSegLike[]): RoadGraph {
+/**
+ * OSM ways often cross, or stop a few metres short of another road, without sharing a node. Left as is, the graph has
+ * no junction there and routes detour (final QA: 57 m to the garage became a 1.1 km loop). Split segments at real
+ * crossings and join dangling ends to a road they nearly touch. Motorway/trunk crossings are left alone (flyovers).
+ */
+export function stitchRoads(segsIn: RoadSegLike[], snap = 6): RoadSegLike[] {
+  const segs = segsIn.filter(s => s.cls !== "footway" && s.cls !== "path" && s.cls !== "steps" && (s.a[0] !== s.b[0] || s.a[1] !== s.b[1]));
+  const C = 60; const grid = new Map<string, number[]>(); const cuts: number[][] = segs.map(() => []); const extra: RoadSegLike[] = [];
+  segs.forEach((s, i) => { const x0 = Math.floor((Math.min(s.a[0], s.b[0]) - snap) / C), x1 = Math.floor((Math.max(s.a[0], s.b[0]) + snap) / C), z0 = Math.floor((Math.min(s.a[1], s.b[1]) - snap) / C), z1 = Math.floor((Math.max(s.a[1], s.b[1]) + snap) / C); for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) { const k = `${x}:${z}`; (grid.get(k) ?? grid.set(k, []).get(k)!).push(i); } });
+  const ends = new Map<string, number>(); for (const s of segs) for (const p of [s.a, s.b]) { const k = key(p[0], p[1]); ends.set(k, (ends.get(k) ?? 0) + 1); }
+  const fly = (s: RoadSegLike) => s.cls === "motorway" || s.cls === "trunk";
+  const seen = new Set<string>();
+  for (const cellList of grid.values()) for (let m = 0; m < cellList.length; m++) for (let n = m + 1; n < cellList.length; n++) {
+    const i = cellList[m], j = cellList[n]; const pk = i < j ? `${i},${j}` : `${j},${i}`; if (seen.has(pk)) continue; seen.add(pk);
+    const A = segs[i], B = segs[j]; const rx = A.b[0] - A.a[0], rz = A.b[1] - A.a[1], sx = B.b[0] - B.a[0], sz = B.b[1] - B.a[1]; const den = rx * sz - rz * sx;
+    if (Math.abs(den) > 1e-9 && !(fly(A) || fly(B))) { const qx = B.a[0] - A.a[0], qz = B.a[1] - A.a[1]; const t = (qx * sz - qz * sx) / den, u = (qx * rz - qz * rx) / den; if (t > 0.001 && t < 0.999 && u > 0.001 && u < 0.999) { cuts[i].push(t); cuts[j].push(u); continue; } }
+    // dangling end of one segment close to the interior of the other
+    for (const [P, Q, qi] of [[A, B, j], [B, A, i]] as [RoadSegLike, RoadSegLike, number][]) for (const e of [P.a, P.b]) {
+      if ((ends.get(key(e[0], e[1])) ?? 0) > 1) continue; const dx = Q.b[0] - Q.a[0], dz = Q.b[1] - Q.a[1], l2 = dx * dx + dz * dz; if (!l2) continue;
+      const t = ((e[0] - Q.a[0]) * dx + (e[1] - Q.a[1]) * dz) / l2; if (t <= 0.001 || t >= 0.999) continue; const px = Q.a[0] + t * dx, pz = Q.a[1] + t * dz; const d = Math.hypot(e[0] - px, e[1] - pz);
+      if (d <= snap) { cuts[qi].push(t); if (d > 0.01) extra.push({ a: [e[0], e[1]], b: [px, pz], cls: P.cls }); } // always bridge: 0.5 m welding can still split a 0.2 m gap
+    }
+  }
+  const out: RoadSegLike[] = [];
+  segs.forEach((s, i) => { if (!cuts[i].length) { out.push(s); return; } const ts = [0, ...cuts[i].sort((x, y) => x - y), 1]; let prev: [number, number] = s.a; for (let k = 1; k < ts.length; k++) { const t = ts[k]; const p: [number, number] = k === ts.length - 1 ? s.b : [s.a[0] + (s.b[0] - s.a[0]) * t, s.a[1] + (s.b[1] - s.a[1]) * t]; if (Math.hypot(p[0] - prev[0], p[1] - prev[1]) > 0.05) { out.push({ a: prev, b: p, cls: s.cls }); prev = p; } } });
+  return out.concat(extra);
+}
+
+export function buildRoadGraph(segsRaw: RoadSegLike[]): RoadGraph {
+  const segs = stitchRoads(segsRaw);
   const index = new Map<string, number>(); const pts: [number, number][] = []; const adj: { to: number; w: number }[][] = []; const grid = new Map<string, number[]>();
   const node = (p: [number, number]) => { const k = key(p[0], p[1]); let i = index.get(k); if (i === undefined) { i = pts.length; index.set(k, i); pts.push([p[0], p[1]]); adj.push([]); const c = cell(p[0], p[1]); (grid.get(c) ?? grid.set(c, []).get(c)!).push(i); } return i; };
   for (const s of segs) { if (s.cls === "footway" || s.cls === "path" || s.cls === "steps") continue; const a = node(s.a), b = node(s.b); if (a === b) continue; const w = Math.hypot(s.a[0] - s.b[0], s.a[1] - s.b[1]); adj[a].push({ to: b, w }); adj[b].push({ to: a, w }); }
