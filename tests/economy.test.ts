@@ -92,3 +92,18 @@ describe("combat and knock-out (runtime)", () => {
     expect(parseSoloSave(data.get(SOLO_KEY)!)?.profile.coins).toBe(900);
   });
 });
+
+describe("outfit pickers share the game's outfit and wardrobe", () => {
+  it("wardrobeFor lists only owned clothes for the slot", async () => {
+    const { wardrobeFor, newGameState } = await import("@kanpurverse/shared");
+    const g = newGameState(); g.wardrobe.push("c_cargo_olive", "c_kurti_maroon");
+    expect(wardrobeFor(g, "bottom").map(i => i.id).sort()).toEqual(["c_cargo_olive", "c_jeans_blue"]);
+    expect(wardrobeFor(g, "top").map(i => i.id)).not.toContain("c_leather_jacket");
+  });
+  it("sanitizeOutfit refuses unowned or wrong-slot items and falls back to her default clothes", async () => {
+    const { sanitizeOutfit, newGameState, DEFAULT_OUTFIT } = await import("@kanpurverse/shared");
+    const g = newGameState(); g.wardrobe.push("c_cargo_olive");
+    expect(sanitizeOutfit(g, { top: "c_leather_jacket", bottom: "c_cargo_olive", shoes: "c_kurti_teal" })).toEqual({ ...DEFAULT_OUTFIT, bottom: "c_cargo_olive" });
+    expect(sanitizeOutfit(g, {})).toEqual(DEFAULT_OUTFIT);
+  });
+});

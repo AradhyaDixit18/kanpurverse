@@ -102,6 +102,14 @@ export function equipOutfit(w: Wallet, id: string): TxResult {
   const n = clone(w); if (it.clothing.slot === "acc") n.game.outfit.acc = n.game.outfit.acc === id ? undefined : id; else n.game.outfit[it.clothing.slot] = id;
   return { ok: true, wallet: n, message: [`पहन लिया: ${it.nameHi}`, `Wearing: ${it.name}`] };
 }
+/** Clothes Kanupriya owns for one slot (the only ones any outfit picker may offer). */
+export function wardrobeFor(game: Pick<GameState, "wardrobe">, slot: ClothingDef["slot"]): Item[] { return ITEMS.filter(i => i.clothing?.slot === slot && game.wardrobe.includes(i.id)); }
+/** An outfit containing only owned items in their correct slots; anything else falls back to her default clothes. */
+export function sanitizeOutfit(game: Pick<GameState, "wardrobe">, o: Partial<Outfit>): Outfit {
+  const ok = (id: string | undefined, slot: ClothingDef["slot"]) => !!id && game.wardrobe.includes(id) && item(id)?.clothing?.slot === slot;
+  const out: Outfit = { top: ok(o.top, "top") ? o.top! : DEFAULT_OUTFIT.top, bottom: ok(o.bottom, "bottom") ? o.bottom! : DEFAULT_OUTFIT.bottom, shoes: ok(o.shoes, "shoes") ? o.shoes! : DEFAULT_OUTFIT.shoes };
+  if (ok(o.acc, "acc")) out.acc = o.acc; return out;
+}
 /** Use a consumable. Returns the new wallet plus health/stamina deltas for the caller to apply. */
 export function consumeItem(w: Wallet, id: string, health: number): TxResult & { health?: number } {
   const it = item(id); if (!it || !(w.game.items[id] > 0) || (it.kind !== "medical" && it.kind !== "food")) return fail("unknown", "ये चीज़ आपके पास नहीं है।", "You don't have that.");
