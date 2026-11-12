@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOPS, chapterFor, storyUnlocked, sideMissionsOpen, type MissionDef } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
-import { getRoads, roadsNear, getGeo } from "../game/roads";
+import { getRoads, roadsNear, getGeo, drawableWater } from "../game/roads";
 import { playerPos, playerYaw } from "../game/refs";
 import { guidance } from "../game/gps";
 
@@ -38,7 +38,7 @@ function drawRoute(x: CanvasRenderingContext2D, pts: [number, number][], k: numb
   x.strokeStyle = "rgba(0,0,0,0.6)"; x.lineWidth = width + 3; x.lineJoin = "round"; x.lineCap = "round"; x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.stroke();
   x.strokeStyle = "#ffc83d"; x.lineWidth = width; x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.stroke();
 }
-function drawWater(x: CanvasRenderingContext2D, k: number) { const g = getGeo(); if (!g) return; x.fillStyle = "#1f5b78"; for (const w of g.water) { x.beginPath(); w.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } x.fillStyle = "#2d4a2c"; for (const p of g.parks) { x.beginPath(); p.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } }
+function drawWater(x: CanvasRenderingContext2D, k: number) { const g = getGeo(); if (!g) return; x.fillStyle = "#1f5b78"; for (const w of drawableWater(g)) { x.beginPath(); w.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } x.fillStyle = "#2d4a2c"; for (const p of g.parks) { x.beginPath(); p.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } }
 
 export function Minimap() {
   const ref = useRef<HTMLCanvasElement>(null); const pois = usePois(); const poisRef = useRef(pois); poisRef.current = pois;

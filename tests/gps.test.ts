@@ -53,3 +53,14 @@ describe("river rendering polygon", () => {
     for (const p of c) { expect(Math.abs(p[0])).toBeLessThanOrEqual(2800 + 1e-6); expect(Math.abs(p[1])).toBeLessThanOrEqual(2800 + 1e-6); }
   });
 });
+
+describe("drawable water", () => {
+  it("drops the spurious city-wide OSM water ring that painted Parmat Ghat blue on the minimap", async () => {
+    const { drawableWater } = await import("../apps/web/src/game/roads");
+    const inside = (pts: [number, number][], x: number, z: number) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, zi] = pts[i], [xj, zj] = pts[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
+    const w = drawableWater(geo as never) as { name?: string; pts: [number, number][] }[];
+    expect(w.some(p => p.name === "Ganga")).toBe(true);
+    expect(w.filter(p => p.name !== "Ganga").some(p => inside(p.pts, -412, -2104))).toBe(false);
+    expect(w.filter(p => p.name !== "Ganga").some(p => inside(p.pts, 460, -330))).toBe(false);
+  });
+});

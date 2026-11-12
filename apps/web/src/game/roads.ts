@@ -42,3 +42,10 @@ export function loadGeo(): Promise<GeoData | null> {
   loading = fetch("/geo/kanpur.json", { cache: "force-cache" }).then(r => r.ok ? r.json() : null).then((g: GeoData | null) => { if (g && g.roads?.length) setGeo(g); return g; }).catch(() => null);
   return loading;
 }
+
+/**
+ * Water polygons safe to draw. The OSM extract contains one unnamed multipolygon (183 points, spanning ~8 km) whose
+ * outer ring was assembled across land; it painted Parmat Ghat's streets blue on the minimap. The Ganga is drawn by
+ * Ganga.tsx; small named/unnamed water bodies remain.
+ */
+export function drawableWater(g: GeoData | null) { if (!g) return []; return g.water.filter(w => { const xs = w.pts.map(p => p[0]), zs = w.pts.map(p => p[1]); const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)); return (w as { name?: string }).name === "Ganga" || span < 2500; }); }

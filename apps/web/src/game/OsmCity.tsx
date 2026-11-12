@@ -11,7 +11,7 @@ import { LAYER, OFFSET } from "./layers";
 import { ribbon, building } from "./worldGeometry";
 import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
-import { getGeo, loadGeo, type GeoData } from "./roads";
+import { getGeo, loadGeo, drawableWater, type GeoData } from "./roads";
 import { clearZones } from "@kanpurverse/shared";
 import { useStore } from "../state/store";
 import { playerPos } from "./refs";
@@ -38,7 +38,8 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     const mid = (pts: [number, number][]) => pts[Math.floor(pts.length / 2)];
     extraClear = geo.stations.filter(st => /^Kanpur/.test(st.name ?? "")).map(st => ({ x: st.p[0], z: st.p[1], r: st.name === "Kanpur Central" ? 95 : 40 }));
     for (const r of geo.roads) get(mid(r.pts)).roads.push(r); for (const b of geo.buildings) get(mid(b.pts)).buildings.push(b); for (const r of geo.rails) get(mid(r.pts)).rails.push(r);
-    for (const w of geo.water) if (Math.abs(w.pts[0][0]) < 6000 && (w as { name?: string }).name !== "Ganga") get(mid(w.pts)).water.push(w); // the Ganga is rendered once by Ganga.tsx for (const p of geo.parks) get(mid(p.pts)).parks.push(p); for (const p of geo.platforms) get(mid(p.pts)).platforms.push(p);
+    for (const w of drawableWater(geo)) if ((w as { name?: string }).name !== "Ganga") get(mid(w.pts)).water.push(w); // the Ganga is rendered once by Ganga.tsx
+    for (const p of geo.parks) get(mid(p.pts)).parks.push(p); for (const p of geo.platforms) get(mid(p.pts)).platforms.push(p);
     return m;
   }, [geo]);
   // Textures are loaded ONCE here (suspending at the Canvas root boundary) and passed down, so a Tile never suspends:
