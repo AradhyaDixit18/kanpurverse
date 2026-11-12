@@ -14,14 +14,14 @@ export function ShopPanel() {
   const [sel, setSel] = useState<string | null>(null);
   const greet = useMemo(() => site ? site.greet[Math.floor(Math.random() * site.greet.length)] : "", [site]);
   const close = () => { sfx.back(); useStore.getState().set({ shop: undefined, previewOutfit: undefined }); };
-  useEffect(() => { if (!site) return; const k = (e: KeyboardEvent) => { if (e.code === "Escape") { e.stopPropagation(); close(); } }; window.addEventListener("keydown", k, true); return () => window.removeEventListener("keydown", k, true); }, [site]);
+  useEffect(() => { if (!site) return; const k = (e: KeyboardEvent) => { if (e.code === "Escape") { e.stopImmediatePropagation(); e.stopPropagation(); close(); } }; window.addEventListener("keydown", k, true); return () => window.removeEventListener("keydown", k, true); }, [site]);
   if (!site) return null;
   const list: Item[] = site.type === "hospital" ? ITEMS.filter(i => i.shop === "medical") : ITEMS.filter(i => i.shop === site.type);
   const owned = (i: Item) => (i.kind === "weapon" && game.weapons.includes(i.id)) || (i.kind === "clothing" && game.wardrobe.includes(i.id));
   const worn = (i: Item) => i.clothing && (game.outfit[i.clothing.slot] === i.id);
   const buy = (id: string) => { if (applyTx(purchase(wallet(), id))) { sfx.coin(); net.save(); } else sfx.error(); };
   const selected = sel ? item(sel) : undefined;
-  return <div className="shop-panel" role="dialog" aria-label={site.nameHi}>
+  return <div className={`shop-panel ${site.type === "clothing" ? "fitting" : ""}`} role="dialog" aria-label={site.nameHi}>
     <header><div><small>{site.keeper.nameHi}</small><h2>{t(site.name, site.nameHi)}</h2><p className="shop-greet">“{greet}”</p></div><div className="shop-money">₹{coins.toLocaleString("en-IN")}<button className="btn-ghost" onClick={close} aria-label="Close">✕</button></div></header>
     {site.type === "garage" ? <GarageBody /> : site.type === "dealership" ? <DealerBody /> : <>
       {site.type === "hospital" && <div className="shop-service"><b>{t("Full treatment", "पूरा इलाज")}</b><span>{t(`Health ${health}/100`, `सेहत ${health}/100`)} · ₹{HOSPITAL_FEE}</span><button className="btn btn-accent" disabled={health >= 100} onClick={() => { if (applyTx(hospitalTreat(wallet(), health))) { sfx.coin(); net.save(); } }}>{t("Treat me", "इलाज करो")}</button></div>}

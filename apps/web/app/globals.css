@@ -236,3 +236,15 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .hud-toasts{z-index:70!important;position:absolute}
 .modal-card.modal-map{width:min(1280px,94vw)!important;max-width:94vw!important;max-height:92vh}
 .status-bars .bar{height:16px}.status-bars .bar span{line-height:16px}
+/* QA (final pass): on a 1470×801 window the menu list ran under the footer and "सेटिंग्स" was covered. The menu now
+   scrolls, the list compacts on short windows, and the footer keeps its own strip. */
+.menu-v2{overflow-y:auto}
+.menu-v2 .menu-layout{padding-bottom:56px}
+.menu-v2 .menu-foot{position:fixed;bottom:0;padding:10px 0 8px;background:linear-gradient(transparent,#000c 60%);pointer-events:none}
+@media (max-height:900px){.menu-v2 .menu-nav{gap:2px}.menu-v2 .mbtn{padding:.32rem 1rem}.menu-v2 .mbtn span{font-size:1.2rem}.menu-v2 .mbtn small{font-size:.72rem}.menu-v2 .menu-left .tag{margin:.2rem 0 .8rem}}
+/* QA (final pass): the full-screen panel hid Kanupriya, so the clothing "preview" could not be seen. The fitting room
+   docks the panel to the left and leaves her visible in the centre of the screen. */
+.shop-panel.fitting{inset:5vh auto 5vh 3vw;width:min(460px,42vw);background:linear-gradient(150deg,#101a1aee,#0b1010e6)}
+.shop-panel.fitting .shop-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+.shop-panel.fitting .shop-detail{max-height:34vh;overflow:auto}
+@media (max-width:900px){.shop-panel.fitting{inset:auto 8px 8px 8px;width:auto;height:52vh}}
