@@ -5,8 +5,8 @@
       "id": "guide_babloo.greet_1",
       "npc": "guide_babloo",
       "category": "greeting",
-      "text": "अरे आओ आओ भैया! कानपुर में स्वागत है। हम हैं बबलू, यहाँ का गाइड समझ लो।",
-      "roman": "Arre aao aao bhaiya! Kanpur mein swagat hai. Hum hain Babloo, yahan ka guide samajh lo.",
+      "text": "अरे आओ आओ बिटिया! कानपुर में स्वागत है। हम हैं बबलू, इहाँ का गाइड समझ लो।",
+      "roman": "Arre aao aao bitiya! Kanpur mein swagat hai. Hum hain Babloo, ihaan ka guide samajh lo.",
       "emotion": "warm",
       "next": "guide_babloo.tut_1"
     },
@@ -14,8 +14,8 @@
       "id": "guide_babloo.greet_2",
       "npc": "guide_babloo",
       "category": "greeting",
-      "text": "का हो भैया, फिर आ गए? चलो, आज शहर घुमाते हैं।",
-      "roman": "Ka ho bhaiya, phir aa gaye? Chalo, aaj sheher ghumaate hain.",
+      "text": "का हो टॉमी, फिर आ गईं? चलो, आज शहर घुमाते हैं।",
+      "roman": "Ka ho Tommy, phir aa gayin? Chalo, aaj shehar ghumate hain.",
       "emotion": "happy"
     },
     {
@@ -49,8 +49,8 @@
       "id": "guide_babloo.done_1",
       "npc": "guide_babloo",
       "category": "mission_done",
-      "text": "वाह भैया, झकास! ये लो इनाम। अब तुम भी आधे कनपुरिया हो गए।",
-      "roman": "Wah bhaiya, jhakaas! Ye lo inaam. Ab tum bhi aadhe Kanpuriya ho gaye.",
+      "text": "वाह टॉमी, झकास! ये लो इनाम। अब तो पक्की कनपुरिया हो गईं।",
+      "roman": "Waah Tommy, jhakaas! Ye lo inaam. Ab to pakki Kanpuriya ho gayin.",
       "emotion": "excited"
     },
     {
@@ -65,8 +65,8 @@
       "id": "guide_babloo.bye_1",
       "npc": "guide_babloo",
       "category": "farewell",
-      "text": "ठीक है भैया, घूमो फिरो, कुछ हो तो बबलू यहीं मिलेगा।",
-      "roman": "Theek hai bhaiya, ghoomo phiro, kuch ho to Babloo yahin milega.",
+      "text": "ठीक है बिटिया, घूमो फिरो, कुछ हो तो बबलू इहीं मिलेगा।",
+      "roman": "Theek hai bitiya, ghoomo phiro, kuch ho to Babloo ihin milega.",
       "emotion": "warm"
     },
     {
@@ -114,8 +114,8 @@
       "id": "auto_raju.greet_1",
       "npc": "auto_raju",
       "category": "auto",
-      "text": "कहाँ जाना है भैया? बैठो, मीटर से नहीं, दिल से चलेंगे।",
-      "roman": "Kahan jaana hai bhaiya? Baitho, meter se nahi, dil se chalenge.",
+      "text": "कहाँ जाना है मैडम? बैठो, मीटर से नहीं, दिल से चलेंगे।",
+      "roman": "Kahaan jaana hai madam? Baitho, meter se nahin, dil se chalenge.",
       "emotion": "sly"
     },
     {
@@ -254,8 +254,8 @@
       "id": "ped_aman.greet_1",
       "npc": "ped_aman",
       "category": "greeting",
-      "text": "भाई कहाँ था तू? चल, मॉल चलते हैं, नया शोरूम खुला है।",
-      "roman": "Bhai kahan tha tu? Chal, mall chalte hain, naya showroom khula hai.",
+      "text": "अरे यार, कहाँ थी तू? चल, मॉल चलते हैं, नया शोरूम खुला है।",
+      "roman": "Arre yaar, kahaan thi tu? Chal, mall chalte hain, naya showroom khula hai.",
       "emotion": "happy"
     },
     {
@@ -278,8 +278,8 @@
       "id": "ped_vikas.greet_1",
       "npc": "ped_vikas",
       "category": "greeting",
-      "text": "भैया ज़ेड स्क्वायर... मतलब ज़ेड स्क्वायर उधर है, सीधे जाओ।",
-      "roman": "Bhaiya Z Square... matlab Z Square udhar hai, seedhe jao.",
+      "text": "दीदी, ज़ेड स्क्वायर... मतलब ज़ेड स्क्वायर उधर है, सीधे निकल जाओ।",
+      "roman": "Didi, Z Square... matlab Z Square udhar hai, seedhe nikal jao.",
       "emotion": "neutral"
     },
     {
@@ -294,8 +294,8 @@
       "id": "any.react_bump",
       "npc": "any",
       "category": "reaction",
-      "text": "अरे देख के भैया!",
-      "roman": "Arre dekh ke bhaiya!",
+      "text": "अरे देख के दीदी!",
+      "roman": "Arre dekh ke didi!",
       "emotion": "annoyed"
     },
     {
@@ -318,8 +318,8 @@
       "id": "any.react_wave",
       "npc": "any",
       "category": "reaction",
-      "text": "राम राम भैया!",
-      "roman": "Ram Ram bhaiya!",
+      "text": "राम राम बिटिया!",
+      "roman": "Ram Ram bitiya!",
       "emotion": "warm"
     },
     {
@@ -358,8 +358,8 @@
       "id": "any.bye_2",
       "npc": "any",
       "category": "farewell",
-      "text": "ठीक है भैया, संभल के।",
-      "roman": "Theek hai bhaiya, sambhal ke.",
+      "text": "ठीक है दीदी, संभल के।",
+      "roman": "Theek hai didi, sambhal ke.",
       "emotion": "warm"
     },
     {
@@ -375,9 +375,9 @@
       "id": "auto_raju.offer_3",
       "npc": "auto_raju",
       "category": "mission_offer",
-      "text": "घंटाघर वाला चक्कर है भैया, सिविल लाइंस से सेंट्रल, नवीन मार्केट होके वापस। सात मिनट। आठ सौ सिक्के। बोलो?",
+      "text": "घंटाघर वाला चक्कर है मैडम, सिविल लाइंस से सेंट्रल, नवीन मार्केट होके वापस। सात मिनट। आठ सौ सिक्के। बोलो?",
       "emotion": "excited",
-      "roman": "Ghantaghar waala chakkar hai bhaiya, Civil Lines se Central, Naveen Market hoke wapas. Saat minute. Aath sau sikke. Bolo?",
+      "roman": "Ghantaghar wala chakkar hai madam, Civil Lines se Central, Naveen Market hoke wapas. Saat minute. Aath sau sikke. Bolo?",
       "mission": "ghantaghar_trial"
     },
     {
@@ -411,9 +411,9 @@
       "id": "ped_aman.offer_1",
       "npc": "ped_aman",
       "category": "mission_offer",
-      "text": "भाई, इंस्टा के लिए दो फ़ोटो चाहिए, नाना राव पार्क और फूल बाग़। चल ना?",
+      "text": "यार, इंस्टा के लिए दो फ़ोटो चाहिए, नाना राव पार्क और फूल बाग़। चल ना?",
       "emotion": "happy",
-      "roman": "Bhai, Insta ke liye do photo chahiye, Nana Rao Park aur Phool Bagh. Chal na?",
+      "roman": "Yaar, Insta ke liye do photo chahiye, Nana Rao Park aur Phool Bagh. Chal na?",
       "mission": "park_photo"
     },
     {
@@ -429,9 +429,9 @@
       "id": "any.crossing_wait",
       "npc": "any",
       "category": "reaction",
-      "text": "अरे भाई रुक जाओ! ट्रेन आने वाली है!",
+      "text": "अरे मैडम, रुक जाओ! ट्रेन आने वाली है!",
       "emotion": "annoyed",
-      "roman": "Arre bhai ruk jao! Train aane waali hai!"
+      "roman": "Arre madam, ruk jao! Train aane wali hai!"
     },
     {
       "id": "any.greet_morning",

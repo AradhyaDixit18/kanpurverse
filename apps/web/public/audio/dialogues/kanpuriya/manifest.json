@@ -1,14 +1,4 @@
 {
- "guide_babloo.greet_1": {
-  "file": "/audio/dialogues/kanpuriya/guide_babloo.greet_1.mp3",
-  "hash": "4672ee72b7",
-  "voice": "hi-IN-MadhurNeural"
- },
- "guide_babloo.greet_2": {
-  "file": "/audio/dialogues/kanpuriya/guide_babloo.greet_2.mp3",
-  "hash": "0deac63a84",
-  "voice": "hi-IN-MadhurNeural"
- },
  "guide_babloo.tut_1": {
   "file": "/audio/dialogues/kanpuriya/guide_babloo.tut_1.mp3",
   "hash": "7425240240",
@@ -24,19 +14,9 @@
   "hash": "0e078176bb",
   "voice": "hi-IN-MadhurNeural"
  },
- "guide_babloo.done_1": {
-  "file": "/audio/dialogues/kanpuriya/guide_babloo.done_1.mp3",
-  "hash": "e8efe81211",
-  "voice": "hi-IN-MadhurNeural"
- },
  "guide_babloo.dir_1": {
   "file": "/audio/dialogues/kanpuriya/guide_babloo.dir_1.mp3",
   "hash": "8efdf0e6d1",
-  "voice": "hi-IN-MadhurNeural"
- },
- "guide_babloo.bye_1": {
-  "file": "/audio/dialogues/kanpuriya/guide_babloo.bye_1.mp3",
-  "hash": "3823d39c95",
   "voice": "hi-IN-MadhurNeural"
  },
  "chai_munna.greet_1": {
@@ -62,11 +42,6 @@
  "chai_munna.idle_1": {
   "file": "/audio/dialogues/kanpuriya/chai_munna.idle_1.mp3",
   "hash": "04835719b3",
-  "voice": "hi-IN-MadhurNeural"
- },
- "auto_raju.greet_1": {
-  "file": "/audio/dialogues/kanpuriya/auto_raju.greet_1.mp3",
-  "hash": "baaa91619b",
   "voice": "hi-IN-MadhurNeural"
  },
  "auto_raju.greet_2": {
@@ -149,11 +124,6 @@
   "hash": "656a6adc70",
   "voice": "hi-IN-SwaraNeural"
  },
- "ped_aman.greet_1": {
-  "file": "/audio/dialogues/kanpuriya/ped_aman.greet_1.mp3",
-  "hash": "7e9728191f",
-  "voice": "hi-IN-MadhurNeural"
- },
  "ped_aman.greet_2": {
   "file": "/audio/dialogues/kanpuriya/ped_aman.greet_2.mp3",
   "hash": "a9d3150e6e",
@@ -164,20 +134,10 @@
   "hash": "dd83c2024d",
   "voice": "hi-IN-SwaraNeural"
  },
- "ped_vikas.greet_1": {
-  "file": "/audio/dialogues/kanpuriya/ped_vikas.greet_1.mp3",
-  "hash": "86626001db",
-  "voice": "hi-IN-MadhurNeural"
- },
  "ped_rekha.greet_1": {
   "file": "/audio/dialogues/kanpuriya/ped_rekha.greet_1.mp3",
   "hash": "9db9a74fb0",
   "voice": "hi-IN-SwaraNeural"
- },
- "any.react_bump": {
-  "file": "/audio/dialogues/kanpuriya/any.react_bump.mp3",
-  "hash": "0a4f6e2e70",
-  "voice": "hi-IN-MadhurNeural"
  },
  "any.react_bump2": {
   "file": "/audio/dialogues/kanpuriya/any.react_bump2.mp3",
@@ -187,11 +147,6 @@
  "any.react_horn": {
   "file": "/audio/dialogues/kanpuriya/any.react_horn.mp3",
   "hash": "752774513c",
-  "voice": "hi-IN-MadhurNeural"
- },
- "any.react_wave": {
-  "file": "/audio/dialogues/kanpuriya/any.react_wave.mp3",
-  "hash": "e73317fb41",
   "voice": "hi-IN-MadhurNeural"
  },
  "any.social_1": {
@@ -214,19 +169,9 @@
   "hash": "09fa839fa1",
   "voice": "hi-IN-MadhurNeural"
  },
- "any.bye_2": {
-  "file": "/audio/dialogues/kanpuriya/any.bye_2.mp3",
-  "hash": "ea9e3ec652",
-  "voice": "hi-IN-MadhurNeural"
- },
  "police_singh.offer_1": {
   "file": "/audio/dialogues/kanpuriya/police_singh.offer_1.mp3",
   "hash": "7866c6beab",
-  "voice": "hi-IN-MadhurNeural"
- },
- "auto_raju.offer_3": {
-  "file": "/audio/dialogues/kanpuriya/auto_raju.offer_3.mp3",
-  "hash": "56b37a020c",
   "voice": "hi-IN-MadhurNeural"
  },
  "ped_sunita.offer_1": {
@@ -244,19 +189,9 @@
   "hash": "36805f716c",
   "voice": "hi-IN-MadhurNeural"
  },
- "ped_aman.offer_1": {
-  "file": "/audio/dialogues/kanpuriya/ped_aman.offer_1.mp3",
-  "hash": "b53db0bab6",
-  "voice": "hi-IN-MadhurNeural"
- },
  "chai_munna.offer_2": {
   "file": "/audio/dialogues/kanpuriya/chai_munna.offer_2.mp3",
   "hash": "da180dd430",
-  "voice": "hi-IN-MadhurNeural"
- },
- "any.crossing_wait": {
-  "file": "/audio/dialogues/kanpuriya/any.crossing_wait.mp3",
-  "hash": "df77c34c9a",
   "voice": "hi-IN-MadhurNeural"
  },
  "any.greet_morning": {
