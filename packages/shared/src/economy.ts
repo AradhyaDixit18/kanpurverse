@@ -103,7 +103,7 @@ export function equipOutfit(w: Wallet, id: string): TxResult {
   return { ok: true, wallet: n, message: [`पहन लिया: ${it.nameHi}`, `Wearing: ${it.name}`] };
 }
 /** Use a consumable. Returns the new wallet plus health/stamina deltas for the caller to apply. */
-export function useItem(w: Wallet, id: string, health: number): TxResult & { health?: number } {
+export function consumeItem(w: Wallet, id: string, health: number): TxResult & { health?: number } {
   const it = item(id); if (!it || !(w.game.items[id] > 0) || (it.kind !== "medical" && it.kind !== "food")) return fail("unknown", "ये चीज़ आपके पास नहीं है।", "You don't have that.");
   const n = clone(w); n.game.items[id]--; if (!n.game.items[id]) delete n.game.items[id];
   n.game.stamina = Math.min(100, n.game.stamina + (it.stamina ?? 0));

@@ -11,11 +11,21 @@ import dynamic from "next/dynamic";
 const CharacterCreator = dynamic(() => import("./Character").then(m => m.CharacterCreator), { ssr: false, loading: () => <div className="screen center"><Skyline /><Logo size={56} /><div className="spinner" /><p className="muted">Loading character studio…</p></div> });
 import { preloadGameEngine } from "../game/engineLoader";
 import { Logo, Skyline, StudioMark } from "./Brand";
+import { CREDITS, STORY_CHAPTERS, VEHICLE_SPECS, VEHICLE_INFO, VEHICLE_PRICES, type VehicleKind } from "@kanpurverse/shared";
+import { loadGeo } from "../game/roads";
+import { WorldMap } from "./MapUI";
+const MenuScene = dynamic(() => import("./MenuScene"), { ssr: false, loading: () => null });
+type View = "main" | "settings" | "character" | "about" | "howto" | "story" | "vehicles" | "credits" | "map";
+function StoryList() { const lang = useStore(s => s.settings.lang); const done = readSoloSave()?.profile.missionsCompleted ?? []; const en = lang === "english";
+  return <ol className="story-list">{STORY_CHAPTERS.map(c => { const ok = done.includes(c.missionId); const next = !ok && (c.n === 1 || done.includes(STORY_CHAPTERS[c.n - 2].missionId)); return <li key={c.n} className={ok ? "done" : next ? "next" : "locked"}><b>{c.n}. {en ? c.title : c.titleHi}</b><small>{ok ? (en ? "complete" : "पूरा") : next ? (en ? "next up" : "अगला") : (en ? "locked" : "बंद")}</small></li>; })}</ol>; }
+function VehicleList() { const en = useStore(s => s.settings.lang === "english");
+  return <div className="vehicle-list">{(Object.keys(VEHICLE_SPECS) as VehicleKind[]).map(k => { const v = VEHICLE_SPECS[k], i = VEHICLE_INFO[k]; return <div key={k} className="vrow"><b>{en ? i.name : i.nameHi}</b><small>{en ? i.cls : i.clsHi}</small><span>{Math.round(v.max * 3.6)} km/h · {v.accel} m/s² · {v.grip}g{VEHICLE_PRICES[k] ? ` · ₹${VEHICLE_PRICES[k]!.toLocaleString("en-IN")}` : ""}</span></div>; })}</div>; }
+function MenuMap({ close }: { close: () => void }) { const [ready, setReady] = useState(false); useEffect(() => { loadGeo().then(() => setReady(true)); }, []); return ready ? <WorldMap close={close} /> : <div className="spinner" />; }
 
 export function LanguageGate() {
   const set = useStore(s => s.setSettings);
   const pick = (lang: "english" | "hindi" | "kanpuriya") => { unlockAudio(); sfx.ui(); set({ lang, langChosen: true }); };
-  return <div className="screen menu"><Skyline /><div className="lang-gate"><Logo size={60} />
+  return <div className="screen menu menu-v2"><Skyline /><MenuScene /><div className="menu-shade" /><div className="lang-gate"><Logo size={60} />
     <h2>अपनी भाषा चुनो</h2><p className="muted">सेटिंग्स में कभी भी बदल सकते हो · Change any time in Settings</p>
     <div className="lang-cards">
       <button className="lang-card accent" onClick={() => pick("kanpuriya")}><span className="lang-big">कनपुरिया</span><small>असली कानपुर वाली बोली · डिफ़ॉल्ट — &ldquo;का हो भइया!&rdquo;</small></button>
@@ -27,10 +37,10 @@ export function LanguageGate() {
 export function MainMenu() { const chosen = useStore(s => s.settings.langChosen); return chosen ? <MainMenuInner /> : <LanguageGate />; }
 function MainMenuInner() {
   const s = useStore(); const lang = s.settings.lang; const t = (en: string, hi: string) => lang === "english" ? en : hi;
-  const [view, setView] = useState<"main" | "settings" | "character" | "about" | "howto">(!s.name ? "character" : "main");
+  const [view, setView] = useState<View>(!s.name ? "character" : "main");
   const play = () => { preloadGameEngine(); unlockAudio(); sfx.ui(); if (!s.name) return setView("character"); s.set({ screen: "loading", errorText: undefined, loadStage: "engine" }); net.connect(); };
   if (view === "character") return <CharacterCreator onDone={() => setView("main")} />;
-  const Btn = ({ k, label, hint, accent }: { k: "main" | "settings" | "character" | "about" | "howto" | "play"; label: string; hint?: string; accent?: boolean }) => (
+  const Btn = ({ k, label, hint, accent }: { k: View | "play"; label: string; hint?: string; accent?: boolean }) => (
     <button className={`mbtn ${accent ? "accent" : ""}`} onClick={() => { sfx.ui(); if (k === "play") play(); else setView(k); }}><span>{label}</span>{hint && <small>{hint}</small>}</button>);
   return <div className="screen menu"><Skyline />
     <div className="menu-layout">
@@ -39,12 +49,20 @@ function MainMenuInner() {
         {view === "main" && <nav className="menu-nav">
           <Btn k="play" label={t(readSoloSave() ? "Continue story" : "New story", readSoloSave() ? "कहानी जारी रखो" : "नई कहानी")} hint={s.name ? t(`as ${s.name} · saved on this device`, `${s.name} · इसी डिवाइस पर सेव`) : t("create a character first", "पहले किरदार बनाओ")} accent />
           {readSoloSave() && <button className="mbtn" onClick={() => { preloadGameEngine(); net.newGame(); }}><span>{t("New game", "नई शुरुआत")}</span><small>{t("Previous save kept as recovery backup", "पिछला सेव बैकअप में सुरक्षित")}</small></button>}
+          <Btn k="story" label={t("Story", "कहानी")} hint={t("eight chapters · your progress", "आठ अध्याय · आपकी प्रगति")} />
+          <Btn k="map" label={t("Map", "नक्शा")} hint={t("Kanpur, shops, missions", "कानपुर, दुकानें, मिशन")} />
+          <Btn k="vehicles" label={t("Vehicles", "गाड़ियाँ")} hint={t("18 classes · handling sheet", "18 तरह की · चलाने की जानकारी")} />
           <Btn k="character" label={t("Character", "किरदार")} hint={t("looks, name, outfit", "रूप, नाम, कपड़े")} />
           <Btn k="settings" label={t("Settings", "सेटिंग्स")} hint={t("language, audio, graphics", "भाषा, आवाज़, ग्राफ़िक्स")} />
           <Btn k="howto" label={t("How to play · controls", "कैसे खेलें · कंट्रोल")} />
+          <Btn k="credits" label={t("Credits", "क्रेडिट्स")} />
           <Btn k="about" label={t("About Velto Studios", "वेल्टो स्टूडियोज़")} />
           <Link className="mlink" href="/">{t("← Back to site", "← साइट पर वापस")}</Link>
         </nav>}
+        {view === "story" && <div className="menu-panel"><h2>{t("Story", "कहानी")}</h2><StoryList /><button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
+        {view === "vehicles" && <div className="menu-panel"><h2>{t("Vehicles", "गाड़ियाँ")}</h2><VehicleList /><button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
+        {view === "credits" && <div className="menu-panel"><h2>{t("Credits", "क्रेडिट्स")}</h2>{CREDITS.map(([a, b]) => <p key={a}><small className="muted">{a}</small><br /><b>{b}</b></p>)}<p className="muted small">Characters & animations: Quaternius (CC0) · Map: © OpenStreetMap contributors</p><button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
+        {view === "map" && <div className="menu-panel wide"><MenuMap close={() => setView("main")} /></div>}
         {view === "settings" && <div className="menu-panel"><h2>{t("Settings", "सेटिंग्स")}</h2><SettingsPanel /><button className="btn" onClick={() => setView("main")}>{t("Back", "वापस")}</button></div>}
         {view === "howto" && <div className="menu-panel"><h2>{t("How to play", "कैसे खेलें")}</h2>
           <ControlsGuide />

@@ -216,3 +216,20 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .wm-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}.wm-side h3{margin:2px 0 6px}.wm-sel{background:#ffffff0d;border-radius:8px;padding:10px 12px;margin-bottom:10px}
 .wm-legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-size:12px;margin:10px 0}.wm-legend label{display:flex;align-items:center;gap:6px}.wm-legend .dot{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:#111}
 @media (max-width:900px){.worldmap{grid-template-columns:1fr}}
+/* ── Phase D main menu: live 3D scene, cinematic shade, big type nav ── */
+.menu-v2 .menu-scene{position:absolute!important;inset:0;z-index:0}
+.menu-v2 .skyline{z-index:0}
+.menu-shade{position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,#07080bf2 0%,#07080bc0 32%,#07080b10 62%,transparent 100%),linear-gradient(0deg,#000a,transparent 30%);pointer-events:none}
+.menu-v2 .menu-layout{grid-template-columns:minmax(320px,500px) 1fr}
+.menu-v2 .menu-left{background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:1rem 0}
+.menu-v2 .menu-nav{display:flex;flex-direction:column;gap:4px}
+.menu-v2 .mbtn{background:transparent;border:0;border-left:3px solid transparent;border-radius:0;padding:.55rem 1rem;text-align:left;transition:all .18s}
+.menu-v2 .mbtn span{font-size:1.45rem;font-weight:800;letter-spacing:.02em;color:#f4ead8}.menu-v2 .mbtn small{display:block;color:#b9ae98;font-size:.78rem}
+.menu-v2 .mbtn:hover,.menu-v2 .mbtn:focus-visible{border-left-color:#ff5a3c;background:linear-gradient(90deg,#ff5a3c33,transparent);transform:translateX(6px);outline:none}
+.menu-v2 .mbtn.accent{background:linear-gradient(90deg,#c8102ecc,#c8102e00);border-left-color:#ffd27a}
+.menu-v2 .menu-right{display:none}
+.menu-v2 .menu-panel{background:#0b0d10d9;border-radius:12px;padding:1rem 1.2rem;max-height:70vh;overflow:auto}
+.menu-v2 .menu-panel.wide{position:fixed;inset:5vh 4vw;max-height:none;z-index:5}
+.story-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}.story-list li{display:flex;justify-content:space-between;padding:8px 12px;border-radius:6px;background:#ffffff0a}
+.story-list li.done small{color:#7fd18b}.story-list li.next{border-left:3px solid #ffc83d}.story-list li.locked{opacity:.55}
+.vehicle-list{display:grid;gap:6px}.vrow{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:8px 10px;background:#ffffff0a;border-radius:6px}.vrow span{grid-column:1/-1;font-size:12px;color:#c9bfa9}

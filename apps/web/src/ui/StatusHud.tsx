@@ -1,7 +1,7 @@
 "use client";
 /** Player status HUD: health and stamina bars, held weapon and ammo, vehicle-entry notice, knock-out screen, inventory. */
 import { useEffect, useState } from "react";
-import { item, useItem, type Item } from "@kanpurverse/shared";
+import { item, consumeItem, type Item } from "@kanpurverse/shared";
 import { useStore, applyTx, wallet } from "../state/store";
 import { runtime } from "../game/playerStatus";
 import { cycleWeapon } from "../game/combatRuntime";
@@ -33,7 +33,7 @@ export function KnockOut() {
 }
 export function InventoryPanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi; const g = s.game;
-  const use = (id: string) => { const r = useItem(wallet(), id, s.health); if (applyTx(r)) { runtime.stamina = Math.max(runtime.stamina, useStore.getState().game.stamina); net.save(); } };
+  const use = (id: string) => { const r = consumeItem(wallet(), id, s.health); if (applyTx(r)) { runtime.stamina = Math.max(runtime.stamina, useStore.getState().game.stamina); net.save(); } };
   const name = (it?: Item) => it ? t(it.name, it.nameHi) : "";
   return <><h2>{t("Inventory", "इन्वेंटरी")} · ₹{(s.profile?.coins ?? 0).toLocaleString("en-IN")}</h2>
     <h3 className="inv-h">{t("Weapons", "हथियार")} <small className="muted">T {t("to cycle", "से बदलो")}</small></h3>

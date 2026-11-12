@@ -2,7 +2,9 @@
 /** NPC conversation panel: greeting → offers/choices; plays voice + subtitles. */
 import { useEffect, useRef, useState } from "react";
 import { PAAN_VENDOR, STREET, NPCS, MISSIONS, STORY_CHAPTERS, storyUnlocked, sideMissionsOpen, type DialogueLine } from "@kanpurverse/shared";
-import { useStore } from "../state/store";
+import { useStore, applyTx, wallet } from "../state/store";
+import { item, purchase, consumeItem } from "@kanpurverse/shared";
+import { runtime } from "../game/playerStatus";
 import { useDialogueLines } from "../game/dialogueData";
 import { speak, stopVoice } from "../audio/voice";
 import { net } from "../net/client";
@@ -45,6 +47,7 @@ export function DialoguePanel() {
           {!mission && STORY_CHAPTERS.filter(c => c.giver === npc.id && !profile?.missionsCompleted.includes(c.missionId) && storyUnlocked(c.missionId, profile?.missionsCompleted ?? [])).slice(0, 1).map(c => <button key={c.missionId} className="btn btn-accent story-btn" onClick={() => { net.send({ t: "mission.start", id: c.missionId }); close(); }}>{t(`CHAPTER ${c.n} · ${c.title}`, `अध्याय ${c.n} · ${c.titleHi}`)}</button>)}
           {offers.filter(o => sideMissionsOpen(profile?.missionsCompleted ?? []) && !STORY_CHAPTERS.some(c => c.missionId === o.mission)).map(o => { const def = m(o.mission!); const done = profile?.missionsCompleted.includes(def.id); return <button key={o.id} className="btn btn-accent" onClick={() => go(o)} title={t(def.desc, def.descHi)}>{t(def.name, def.nameHi)}{done ? " ↻" : ""} <small>+{def.reward.coins}🪙</small></button>; })}
           {line.category === "mission_offer" && line.mission && !mission && <button className="btn btn-accent" onClick={() => accept(line)}>{t("Accept", "हाँ, करेंगे")}</button>}
+          {npc.id === "chai_munna" && <>{(["f_chai", "f_samosa"] as const).map(id => { const it = item(id)!; return <button key={id} className="btn" onClick={() => { const bought = purchase(wallet(), id); if (!bought.ok) { applyTx(bought); return; } const used = consumeItem(bought.wallet, id, useStore.getState().health); if (used.ok) { applyTx({ ...used, message: [`${it.nameHi} का मज़ा लिया (−₹${it.price})`, `Enjoyed ${it.name} (−₹${it.price})`] }); runtime.stamina = Math.max(runtime.stamina, useStore.getState().game.stamina); sfx.coin(); } }}>{t(`${it.name} ₹${it.price}`, `${it.nameHi} ₹${it.price}`)}</button>; })}</>}
           {npc.role === "guide" && <button className="btn" onClick={() => { const d = lines.find(l => l.npc === npc.id && l.category === "direction"); if (d) go(d); }}>{t("Directions", "रास्ता बताओ")}</button>}
           {npc.role === "shopkeeper" && npc.id !== PAAN_VENDOR && <button className="btn" onClick={() => { close(); window.dispatchEvent(new CustomEvent("kv:shop")); }}>{t("Browse shop", "दुकान देखो")}</button>}
           <button className="btn-ghost" onClick={close}>{t("Leave", "चलो फिर")}</button>

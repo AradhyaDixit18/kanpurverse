@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ITEMS, purchase, equipOutfit, useItem, buyVehicle, repairVehicle, hospitalTreat, knockoutBill, newGameState, item, SHOPS, MISSIONS, type Wallet } from "@kanpurverse/shared";
+import { ITEMS, purchase, equipOutfit, consumeItem, buyVehicle, repairVehicle, hospitalTreat, knockoutBill, newGameState, item, SHOPS, MISSIONS, type Wallet } from "@kanpurverse/shared";
 import { migrateSave, parseSoloSave, SOLO_KEY } from "../apps/web/src/state/soloSave";
 import { stepStamina, fallDamage, crashDamage } from "../apps/web/src/game/playerStatus";
 import { attack, enemies, hurtPlayer, resetCombat } from "../apps/web/src/game/combatRuntime";
@@ -30,8 +30,8 @@ describe("economy transactions are atomic", () => {
     w = (equipOutfit(w, "c_shades") as { wallet: Wallet }).wallet; expect(w.game.outfit.acc).toBeUndefined();
   });
   it("consumables heal and restore stamina, and are used up", () => {
-    let w = (purchase(W(500), "m_firstaid") as { wallet: Wallet }).wallet; const r = useItem(w, "m_firstaid", 50); expect(r.ok).toBe(true); if (!r.ok) return;
-    expect(r.health).toBe(90); w = r.wallet; expect(w.game.items.m_firstaid).toBeUndefined(); expect(useItem(w, "m_firstaid", 50).ok).toBe(false);
+    let w = (purchase(W(500), "m_firstaid") as { wallet: Wallet }).wallet; const r = consumeItem(w, "m_firstaid", 50); expect(r.ok).toBe(true); if (!r.ok) return;
+    expect(r.health).toBe(90); w = r.wallet; expect(w.game.items.m_firstaid).toBeUndefined(); expect(consumeItem(w, "m_firstaid", 50).ok).toBe(false);
   });
   it("vehicle purchase, repair and hospital are priced and saved", () => {
     let r = buyVehicle(W(20000), "hatchback"); expect(r.ok).toBe(true); if (!r.ok) return; expect(r.wallet.game.boughtVehicles).toContain("hatchback");
