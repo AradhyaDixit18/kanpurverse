@@ -50,7 +50,7 @@ export function HUD() {
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
-      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? t("CHAPTER COMPLETE", "अध्याय पूरा") : t("MISSION PASSED", "मिशन पूरा")) : t("MISSION FAILED", "मिशन फेल")}</h2><p>{(() => { const md = MISSIONS.find(m=>m.id===s.missionResult?.id); return md ? t(md.name, md.nameHi) : ""; })()}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>{t("Continue", "आगे चलो")}</button></div>}
+      {s.missionResult && !useStore.getState().dead && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? t("CHAPTER COMPLETE", "अध्याय पूरा") : t("MISSION PASSED", "मिशन पूरा")) : t("MISSION FAILED", "मिशन फेल")}</h2><p>{(() => { const md = MISSIONS.find(m=>m.id===s.missionResult?.id); return md ? t(md.name, md.nameHi) : ""; })()}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>{t("Continue", "आगे चलो")}</button></div>}
       <Compass />
       <Guidance />
       {/* top-left stats */}

@@ -16,7 +16,8 @@ import { playerPos } from "./refs";
 import { enemies, hurtPlayer } from "./combatRuntime";
 import { sfx } from "../audio/sfx";
 
-export const ENEMY = { health: 60, speed: 3.6, aggro: 24, reach: 1.45, damage: 7, attackEvery: 1300 };
+/** Balanced after browser QA: two goons at 7 dmg / 1.3 s knocked Kanupriya out in ~10 s, before melee could land. */
+export const ENEMY = { health: 55, speed: 3.4, aggro: 24, reach: 1.45, damage: 4, attackEvery: 1700 };
 
 export function Enemies() {
   const mission = useStore(s => s.mission); const cleared = useStore(s => s.cleared);

@@ -10,7 +10,7 @@ const EMPTY_MISSIONS: string[] = [];
 export function MissionMarkers() {
   const mission = useStore(s => s.mission); const done = useStore(s => s.profile?.missionsCompleted ?? EMPTY_MISSIONS);
   return <>
-    {mission && <Beam p={mission.def.checkpoints[mission.index]} r={mission.def.radius} compact={mission.def.id === "laddoo_chakkar"} />}
+    {mission && <Beam p={mission.def.checkpoints[mission.index]} r={mission.def.radius} compact={mission.def.id === "laddoo_chakkar" || !!mission.def.enemies?.some(e => e.index === mission.index)} />}
     {!mission && MISSIONS.filter(m => !done.includes(m.id) && (chapterFor(m.id) ? storyUnlocked(m.id, done) : sideMissionsOpen(done))).map(m => <GiverIcon key={m.id} p={m.start} />)}
   </>;
 }

@@ -10,7 +10,7 @@ import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } fr
 export { camYaw };
 import { useStore, tl } from "../state/store";
 import { stepStamina, runtime, fallDamage, FALL } from "./playerStatus";
-import { hurtPlayer, attack, cycleWeapon, reload, equippedWeapon } from "./combatRuntime";
+import { hurtPlayer, attack, cycleWeapon, reload, equippedWeapon, enemies } from "./combatRuntime";
 import { SHOPS, shopCounterPoint } from "@kanpurverse/shared";
 import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
@@ -122,6 +122,11 @@ export function Player() {
       const w = equippedWeapon().def; const ranged = w?.cls === "ranged";
       const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
       if (ranged) playerYaw.v = Math.atan2(camDir.x, camDir.z);
+      else { // melee soft-lock: turn to the nearest standing enemy within reach + 1.5 m
+        let best: { x: number; z: number; d: number } | null = null; const reachMax = (w?.range ?? 1.5) + 1.5;
+        for (const e of enemies.values()) { if (e.knockedAt) continue; const d = Math.hypot(e.pos.x - playerPos.x, e.pos.z - playerPos.z); if (d < reachMax && (!best || d < best.d)) best = { x: e.pos.x, z: e.pos.z, d }; }
+        if (best) playerYaw.v = Math.atan2(best.x - playerPos.x, best.z - playerPos.z);
+      }
       const facing = new THREE.Vector3(Math.sin(playerYaw.v), 0, Math.cos(playerYaw.v));
       const origin = ranged ? camera.position.clone() : new THREE.Vector3(playerPos.x, playerPos.y + 1, playerPos.z);
       attack(origin, ranged ? camDir : facing, target => { const d = target.clone().setY(target.y + 1.2).sub(origin); const len = d.length(); const hit = world.castRay(new rapier.Ray(origin, d.normalize()), len, true, undefined, undefined, undefined, rb); return !!hit && hit.timeOfImpact < len - 0.8; });
