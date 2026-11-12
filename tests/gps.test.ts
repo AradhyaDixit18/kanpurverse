@@ -32,3 +32,14 @@ describe("GPS on the real OSM road graph", () => {
     const gd = guidance(r.pts, 472, -330); expect(gd.remaining).toBeGreaterThan(100); expect(gd.remaining).toBeLessThan(r.length + 1);
   });
 });
+
+describe("Ganga riverfront geometry", () => {
+  it("Parmat Ghat sits on the real bank: steps end at the water, promenade and mission points are on land", async () => {
+    const { GHAT, ghatToWorld, bankSegments } = await import("../apps/web/src/game/Ganga");
+    expect(inPoly(ghatToWorld(0, 4), ganga)).toBe(true); expect(inPoly(ghatToWorld(0, -11), ganga)).toBe(false);
+    for (const m of MISSIONS) for (const cp of m.checkpoints) expect(inPoly(cp, ganga), `${m.id} ${cp}`).toBe(false);
+    const bank = bankSegments(ganga); expect(bank.length).toBeGreaterThan(5);
+    const d = Math.min(...bank.map(([a, b]) => { const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz, t = Math.max(0, Math.min(1, ((GHAT.c[0] - a[0]) * dx + (GHAT.c[1] - a[1]) * dz) / l2)); return Math.hypot(GHAT.c[0] - a[0] - t * dx, GHAT.c[1] - a[1] - t * dz); }));
+    expect(d).toBeLessThan(3);
+  });
+});
