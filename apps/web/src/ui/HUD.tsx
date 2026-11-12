@@ -61,7 +61,7 @@ export function HUD() {
       {/* interaction prompt */}
       {s.nearby && !s.dialogue && !(s.inVehicle && s.nearby.kind === "vehicle") && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
       {s.inVehicle && s.seat === "driver" && <Speedo />}
-      {s.inVehicle && <div className="hud-vehicle">{t("W/S drive · A/D steer · Space brake · H horn · F exit", "W/S चलाओ · A/D मोड़ो · Space ब्रेक · H हॉर्न · F बाहर")}</div>}
+      {s.inVehicle && <div className="hud-vehicle">{t("W/S throttle · brake · A/D steer · Space handbrake · L lights · H horn · F exit", "W/S रफ़्तार · ब्रेक · A/D मोड़ो · Space हैंडब्रेक · L लाइट · H हॉर्न · F उतरो")}</div>}
       {/* subtitles */}
       {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && s.settings.englishSubs && <div className="roman">{sub.roman}</div>}</div>}
       {/* toasts */}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { RigidBody, CapsuleCollider, useRapier, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, VEHICLE_SPECS, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, STREET, type AnimState } from "@kanpurverse/shared";
+import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, VEHICLE_SPECS, VEHICLE_INFO, vehicleSeatPose, vehicleLocalToWorld, vehicleYaw, STREET, type AnimState } from "@kanpurverse/shared";
 import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
@@ -150,7 +150,7 @@ export function Player() {
   function probe(s: ReturnType<typeof useStore.getState>, p: { x: number; z: number }) {
     let best: typeof s.nearby | undefined; let bd = 3.2;
     for (const n of NPCS) { const q = npcPositions.get(n.id) ?? { x: n.path[0][0], z: n.path[0][1] }; const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; best = { kind: "npc", id: n.id, label: s.settings.lang === "english" ? `Talk to ${n.name}` : `${n.nameHi} से बात करो` }; } }
-    for (const v of Object.values(s.vehicles)) { const d = Math.hypot(v.p[0] - p.x, v.p[2] - p.z); if (d < Math.max(bd, 4.5) && !best) { bd = d; best = { kind: "vehicle", id: v.id, label: v.driver ? (s.settings.lang === "english" ? "Ride along" : "सवारी बनो") : (s.settings.lang === "english" ? `Drive ${v.kind}` : `${v.kind} चलाओ`) }; } }
+    for (const v of Object.values(s.vehicles)) { const d = Math.hypot(v.p[0] - p.x, v.p[2] - p.z); if (d < Math.max(bd, 4.5) && !best) { bd = d; best = { kind: "vehicle", id: v.id, label: v.driver ? (s.settings.lang === "english" ? "Ride along" : "सवारी बनो") : (s.settings.lang === "english" ? `Drive the ${VEHICLE_INFO[v.kind].name} (${VEHICLE_INFO[v.kind].cls})` : `${VEHICLE_INFO[v.kind].nameHi} चलाओ (${VEHICLE_INFO[v.kind].clsHi})`) }; } }
     const m = s.mission; if (m && (m.def.kind === "photo" || m.def.kind === "social")) { const cp = m.def.checkpoints[m.index]; if (cp && Math.hypot(cp[0] - p.x, cp[1] - p.z) < m.def.radius) best = { kind: "checkpoint", id: m.def.id, label: m.def.id === "laddoo_chakkar" ? (s.settings.lang === "english" ? "Story action" : "कहानी आगे बढ़ाओ") : m.def.kind === "photo" ? (s.settings.lang === "english" ? "Take photo" : "फ़ोटो लो") : (s.settings.lang === "english" ? "Sit together" : "साथ बैठो") }; }
     if (!best) { for (const l of LANDMARKS) if (l.kind !== "park" && l.kind !== "ghat" && Math.hypot(l.p[0] - p.x, l.p[1] - p.z) < Math.min(l.r, 12) + 2) { best = { kind: "landmark", id: l.id, label: s.settings.lang === "english" ? l.name : l.nameHi }; break; } }
     if (Math.hypot(p.x-456,p.z+345)<3) best = {kind:"checkpoint",id:"safehouse",label:"विश्राम / Save & heal"};

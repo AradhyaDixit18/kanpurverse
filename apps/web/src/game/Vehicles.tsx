@@ -13,7 +13,7 @@ import { net, vehicleBuf, vehicleCorrections } from "../net/client";
 import { input, pollKeys, once, camYaw } from "./input";
 import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
-import { Avatar, NameTag } from "./Avatar";
+import { Avatar } from "./Avatar";
 
 import { SPECS } from "./vehicleSpecs";
 export { SPECS } from "./vehicleSpecs";
@@ -86,7 +86,6 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
     vehicleRuntime.set(snap.id, { x: p.x, y: p.y, z: p.z, handle: rb.handle });
   });
 
-  const driverName = useStore(s => snap.driver ? s.players[snap.driver]?.name : undefined);
   return (
     <>
       <RigidBody ref={body} key={isDriver ? "dyn" : "kin"} type={isDriver ? "dynamic" : "kinematicPosition"} colliders={false} position={[initialPose.current.p[0], Math.max(initialPose.current.p[1], spec.size[1] / 2 + 0.05), initialPose.current.p[2]]} quaternion={initialPose.current.q} mass={900} linearDamping={0} angularDamping={5} enabledRotations={[false, true, false]} ccd>
@@ -94,7 +93,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
             use Min so the road's default friction does not restore sliding drag. */}
         <CuboidCollider args={[spec.size[0] / 2, spec.size[1] / 2, spec.size[2] / 2]} friction={0} frictionCombineRule={rapier.CoefficientCombineRule.Min} restitution={0} />
       </RigidBody>
-      <group ref={vis} position={initialPose.current.p} quaternion={initialPose.current.q}><VehicleMesh kind={snap.kind} color={color} state={state} />{isDriver && <Headlamps kind={snap.kind} state={state} />}<VehicleOccupants vehicle={snap} />{driverName && <NameTag text={driverName} y={spec.size[1] + 0.7} />}</group>
+      <group ref={vis} position={initialPose.current.p} quaternion={initialPose.current.q}><VehicleMesh kind={snap.kind} color={color} state={state} />{isDriver && <Headlamps kind={snap.kind} state={state} />}<VehicleOccupants vehicle={snap} /></group>
     </>
   );
 }
