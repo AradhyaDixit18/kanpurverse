@@ -24,6 +24,7 @@ import { Props } from "./Props";
 import { Animals } from "./Animals";
 import { Effects } from "./Effects";
 import { NightLights } from "./NightLights";
+import { CAMERA_NEAR } from "./layers";
 import { Dust } from "./Dust";
 import { Boundary } from "./Boundary";
 import { OsmCity, useGeo } from "./OsmCity";
@@ -38,13 +39,19 @@ function Fps() { const n = useRef(0); const t = useRef(performance.now()); useFr
 export function World() { const geo = useGeo(); return geo ? <OsmCity geo={geo} /> : <><City /><Railway /></>; }
 function CameraFar() { const far = useGraphics().cameraFar; const { camera } = useThree(); useEffect(() => { (camera as THREE.PerspectiveCamera).far = far; camera.updateProjectionMatrix(); }, [far, camera]); return null; }
 /** Adaptive resolution: steps the render DPR down when frame time stays above ~19 ms and back up when it recovers. */
+/**
+ * Adaptive resolution with hysteresis. Earlier version re-evaluated every 2 s in both directions, which could oscillate
+ * (a visible resolution "pulse"). Now: step down only after two consecutive slow windows, step up only after 10 s of
+ * clean frames, and never change more often than every 6 s.
+ */
 function AdaptiveResolution() {
-  const setDpr = useThree(s => s.setDpr); const g = useGraphics(); const cur = useRef(g.dpr[1]); const acc = useRef({ t: 0, n: 0, slow: 0 });
+  const setDpr = useThree(s => s.setDpr); const g = useGraphics(); const cur = useRef(g.dpr[1]); const acc = useRef({ t: 0, n: 0, slow: 0, slowWindows: 0, cleanFor: 0, lastChange: 0 });
   useEffect(() => { cur.current = Math.min(window.devicePixelRatio, g.dpr[1]); setDpr(cur.current); }, [g.dpr, setDpr]);
-  useFrame((_, dt) => { if (!g.adaptive) return; const a = acc.current; a.t += dt; a.n++; if (dt > 0.019) a.slow++; if (a.t < 2) return; const slowShare = a.slow / a.n; a.t = 0; a.n = 0; a.slow = 0;
-    const max = Math.min(window.devicePixelRatio, g.dpr[1]), min = g.dpr[0];
-    if (slowShare > 0.25 && cur.current > min + 0.01) { cur.current = Math.max(min, cur.current - 0.15); setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); }
-    else if (slowShare < 0.03 && cur.current < max - 0.01) { cur.current = Math.min(max, cur.current + 0.1); setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); } });
+  useFrame(({ clock }, dt) => { if (!g.adaptive) return; const a = acc.current; a.t += dt; a.n++; if (dt > 0.021) a.slow++; if (a.t < 2) return;
+    const share = a.slow / a.n; a.t = 0; a.n = 0; a.slow = 0; a.slowWindows = share > 0.3 ? a.slowWindows + 1 : 0; a.cleanFor = share < 0.02 ? a.cleanFor + 2 : 0;
+    const now = clock.elapsedTime; if (now - a.lastChange < 6) return; const max = Math.min(window.devicePixelRatio, g.dpr[1]), min = g.dpr[0];
+    if (a.slowWindows >= 2 && cur.current > min + 0.01) { cur.current = Math.max(min, cur.current - 0.15); a.lastChange = now; a.slowWindows = 0; setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); }
+    else if (a.cleanFor >= 10 && cur.current < max - 0.01) { cur.current = Math.min(max, cur.current + 0.1); a.lastChange = now; a.cleanFor = 0; setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); } });
   return null;
 }
 function Ibl() { const period = useStore(s => { const h = s.worldTime * 24; return h < 5.5 || h > 19.5 ? "night" : h < 7.5 || h > 17 ? "sunset" : "day"; }); const ibl = useGraphics().ibl; if (!ibl) return null; const file = period === "night" ? "/hdr/moonless_golf.hdr" : period === "sunset" ? "/hdr/venice_sunset.hdr" : "/hdr/kloofendal_48d_partly_cloudy_puresky.hdr"; return <Boundary name="ibl"><Suspense fallback={null}><Environment key={file} files={file} background={false} environmentIntensity={period === "night" ? 0.25 : 0.6} /></Suspense></Boundary>; }
@@ -53,7 +60,7 @@ export function Game({ qaScenario }: { qaScenario?: "vehicles" } = {}) {
   const qa = process.env.NODE_ENV === "development" && qaScenario === "vehicles";
   const g = useGraphics();
   return (
-    <Canvas data-engine="kanpurverse" shadows={g.shadows !== "off" ? (g.softShadows ? "soft" : true) : false} dpr={g.dpr} camera={{ fov: 60, near: 0.1, far: g.cameraFar, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: graphicsNow().aa !== "off", powerPreference: "high-performance", stencil: false }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = graphicsNow().softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; }}>
+    <Canvas data-engine="kanpurverse" shadows={g.shadows !== "off" ? (g.softShadows ? "soft" : true) : false} dpr={g.dpr} camera={{ fov: 60, near: CAMERA_NEAR, far: g.cameraFar, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: graphicsNow().aa !== "off", powerPreference: "high-performance", stencil: false }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = graphicsNow().softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; }}>
       <Suspense fallback={<SceneLoading />}>
         <WorldClock /><Physics gravity={[0, -18, 0]} timeStep={1 / 60}>
           {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="nightlights"><NightLights /></Boundary><Boundary name="animals"><Animals /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />

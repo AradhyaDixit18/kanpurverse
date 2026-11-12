@@ -42,7 +42,7 @@ export function Sky() {
     uniforms.sunDir.value.copy(dir); mix("top", w, uniforms.top.value); mix("horizon", w, uniforms.horizon.value); mix("sun", w, uniforms.sunColor.value); uniforms.sunGlow.value = w.dawn + w.dusk + 0.4 * w.day; uniforms.stars.value = w.night * 0.9;
     const fogC = mix("fog", w, tmp.c); (scene.fog as THREE.Fog | null)?.color.copy(fogC);
     const dayLight = THREE.MathUtils.clamp(elev * 1.6 + 0.25, 0, 1);
-    if (sun.current) { sun.current.position.set(playerPos.x + dir.x * 140, Math.max(6, dir.y * 160), playerPos.z + dir.z * 140); sun.current.intensity = 0.16 + dayLight * 3.0; sun.current.color.copy(uniforms.sunColor.value); target.current.position.copy(playerPos); sun.current.target = target.current; }
+    if (sun.current) { const c = snapToShadowTexels(playerPos, dir, (2 * g.shadowExtent) / Math.max(512, g.shadowMap)); sun.current.position.set(c.x + dir.x * 140, c.y + Math.max(6, dir.y * 160), c.z + dir.z * 140); sun.current.intensity = 0.16 + dayLight * 3.0; sun.current.color.copy(uniforms.sunColor.value); target.current.position.copy(c); sun.current.target = target.current; }
     if (amb.current) amb.current.intensity = K.night.amb * w.night + K.dawn.amb * w.dawn + K.day.amb * w.day + K.dusk.amb * w.dusk;
     if (hemi.current) { hemi.current.intensity = 0.24 + dayLight * 0.35; hemi.current.color.copy(uniforms.top.value); }
     if (dome.current) dome.current.position.copy(playerPos);
@@ -62,3 +62,15 @@ export function Sky() {
   </>;
 }
 
+
+/**
+ * Stable shadows: move the shadow camera only in whole shadow-map texels, measured in the light's own view plane.
+ * A continuously following light makes shadow edges swim and shimmer as the player moves.
+ */
+const _u = new THREE.Vector3(), _v = new THREE.Vector3(), _out = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+export function snapToShadowTexels(p: { x: number; y: number; z: number }, lightDir: THREE.Vector3, texel: number) {
+  if (!(texel > 0)) return _out.set(p.x, p.y, p.z);
+  _u.crossVectors(UP, lightDir); if (_u.lengthSq() < 1e-6) _u.set(1, 0, 0); _u.normalize(); _v.crossVectors(lightDir, _u).normalize();
+  const P = _out.set(p.x, p.y, p.z); const a = Math.round(P.dot(_u) / texel) * texel, b = Math.round(P.dot(_v) / texel) * texel, d = P.dot(lightDir);
+  return _out.set(0, 0, 0).addScaledVector(_u, a).addScaledVector(_v, b).addScaledVector(lightDir, d);
+}

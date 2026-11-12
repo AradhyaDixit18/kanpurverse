@@ -7,6 +7,7 @@ import type { FacadeBuilding } from "./facadeKit";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { LAYER, OFFSET } from "./layers";
 import { ribbon, building } from "./worldGeometry";
 import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
@@ -119,13 +120,13 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   const { asphalt, asphaltN, pave, grass, concrete, plasterN } = tex;
   const quality = useStore(s => s.settings.quality); const lang = useStore(s => s.settings.lang);
   const geo = useMemo(() => {
-    const road = merge(t.roads.map(r => ribbon(r.pts, r.w, 0.06))); const pavement = merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, 0.03, 4)));
-    const marks = merge(t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8).map(r => ribbon(r.pts, 0.22, 0.08, 4)));
-    const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, 0.04, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
+    const road = worldUV(merge(t.roads.map(r => ribbon(r.pts, r.w, LAYER.road))), 8); const pavement = worldUV(merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, LAYER.pavement, 4))), 4);
+    const marks = merge(t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8).map(r => ribbon(r.pts, 0.22, LAYER.marks, 4)));
+    const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, LAYER.rail, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
     const sleepers = merge(t.rails.map(r => ribbon(r.pts, 2.6 * r.tracks, 0.1, 0.7)));
     const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const facades: FacadeBuilding[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
     for (const b of t.buildings) { if (b.pts.length < 4) continue; const h = buildingHeight(b); const st = b.kind === "train_station" ? 8 : Math.floor(hash(b.id + 7) * 8); facades.push({pts:b.pts,h,style:st,shop:hash(b.id+3)<.45&&h<20&&b.kind!=="train_station",kind:b.kind}); const { walls, roof } = building(b.pts, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(walls); byStyle[st].roofs.push(roof);
-      if (hash(b.id + 3) < 0.45 && h < 20 && b.kind !== "train_station") { const g = building(b.pts, 3.4, 0.0); shops.push(g.walls); g.roof.dispose(); } const bb = bbox(b.pts); boxes.push({ x: (bb.x0 + bb.x1) / 2, z: (bb.z0 + bb.z1) / 2, w: bb.x1 - bb.x0, d: bb.z1 - bb.z0, h }); }
+      if (hash(b.id + 3) < 0.45 && h < 20 && b.kind !== "train_station") { const g = building(inflate(b.pts, 0.05), 3.4, 0.0); shops.push(g.walls); g.roof.dispose(); } const bb = bbox(b.pts); boxes.push({ x: (bb.x0 + bb.x1) / 2, z: (bb.z0 + bb.z1) / 2, w: bb.x1 - bb.x0, d: bb.z1 - bb.z0, h }); }
     // procedural infill: lots along real roads where OSM has no footprint (typical Kanpur: continuous shophouses on main roads, homes on residential lanes)
     const osmBoxes = boxes.slice(); let lots = 0;
     for (const r of t.roads) { if (!["residential", "tertiary", "secondary", "unclassified", "living_street", "primary"].includes(r.cls)) continue;
@@ -137,11 +138,11 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
           if (clearZones().some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2) || extraClear.some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2)) continue;
           const yaw = Math.atan2(dx, dz); const h = (r.cls === "residential" || r.cls === "living_street") ? 6.4 + Math.floor(hash(cx * 3 + cz) * 3) * 3.2 : 9.6 + Math.floor(hash(cx + cz * 3) * 3) * 3.2;
           const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); facades.push({pts:poly,h,style:st,shop:r.cls!=="residential"&&hash(cx+1)<.7}); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof);
-          if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(poly, 3.4); shops.push(sg.walls); sg.roof.dispose(); }
+          if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(inflate(poly, 0.05), 3.4); shops.push(sg.walls); sg.roof.dispose(); }
           osmBoxes.push({ x: cx, z: cz, w: width, d: depth, h }); boxes.push({ x: cx, z: cz, w: Math.max(width, depth), d: Math.max(width, depth), h }); lots++; } } }
     const styles = Object.entries(byStyle).map(([s, g]) => ({ style: Number(s), walls: merge(g.walls)!, roofs: merge(g.roofs)! })); const shop = merge(shops);
-    const water = t.water.filter(w => w.pts.length >= 4).map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.05, 0); return g; });
-    const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
+    const water = t.water.filter(w => w.pts.length >= 4).map(w => { const sh = new THREE.Shape(w.pts.map(p => new THREE.Vector2(p[0], -p[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, LAYER.water, 0); return g; });
+    const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, LAYER.park, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
     const platforms = merge(t.platforms.map(p => ribbon(p.pts, 6, 0.9, 4)));
     if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tile built", id, { roads: t.roads.length, bld: t.buildings.length, lots, styles: Object.keys(byStyle).length, hasRoad: !!road });
     return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms, facades };
@@ -153,17 +154,17 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   const trees = useMemo(() => { const out: [number, number][] = []; for (const p of geo.parks) { const bb = bbox(p.pts); const n = Math.min(40, Math.floor(polyArea(p.pts) / 400)); let tries = 0; while (out.length < n && tries++ < n * 6) { const x = bb.x0 + Math.random() * (bb.x1 - bb.x0), z = bb.z0 + Math.random() * (bb.z1 - bb.z0); if (inPoly([x, z], p.pts)) out.push([x, z]); } } return out; }, [geo]);
   void id;
   return <group name={"tile:" + id}>
-    {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial map={pave} roughness={0.95} color="#b8b0a2" /></mesh>}
-    {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} /></mesh>}
-    {geo.marks && quality !== "low" && <mesh geometry={geo.marks}><meshBasicMaterial color="#e8e2c6" /></mesh>}
-    {geo.railBed && <mesh geometry={geo.railBed} receiveShadow><meshStandardMaterial color="#6e6a63" roughness={1} /></mesh>}
+    {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial map={pave} roughness={0.95} color="#b8b0a2" polygonOffset polygonOffsetFactor={OFFSET.pavement} polygonOffsetUnits={OFFSET.pavement} /></mesh>}
+    {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} polygonOffset polygonOffsetFactor={OFFSET.road} polygonOffsetUnits={OFFSET.road} /></mesh>}
+    {geo.marks && quality !== "low" && <mesh geometry={geo.marks}><meshBasicMaterial color="#e8e2c6" polygonOffset polygonOffsetFactor={OFFSET.marks} polygonOffsetUnits={OFFSET.marks} /></mesh>}
+    {geo.railBed && <mesh geometry={geo.railBed} receiveShadow><meshStandardMaterial color="#6e6a63" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.rail} polygonOffsetUnits={OFFSET.rail} /></mesh>}
     {geo.sleepers && <mesh geometry={geo.sleepers}><meshStandardMaterial color="#5a4632" roughness={1} /></mesh>}
     {geo.railL && <mesh geometry={geo.railL}><meshStandardMaterial color="#9a9ea6" metalness={0.8} roughness={0.35} /></mesh>}
     {geo.platforms && <mesh geometry={geo.platforms} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#cfc9bd" /></mesh>}
     {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} material={facadeMat(s.style, plasterN)} castShadow receiveShadow /><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
     {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]} material={shopMat()} />}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
-    {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
+    {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.park} polygonOffsetUnits={OFFSET.park} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     {collide && <FacadeDetails buildings={geo.facades} />}<Trees pts={trees} />
     {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Suspense fallback={null}><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></Suspense></group>; })}
     {collide && <RigidBody type="fixed" colliders={false}>{geo.styles.map(s => { const pos = s.walls.getAttribute("position").array as Float32Array; const idx = s.walls.getIndex()!.array as Uint32Array | Uint16Array; return <TrimeshCollider key={s.style} args={[pos, idx instanceof Uint32Array ? idx : new Uint32Array(idx)]} />; })}</RigidBody>}
@@ -225,3 +226,8 @@ function Stations({ geo }: { geo: GeoData }) {
 }
 
 function Attribution() { return <Suspense fallback={null}><Text position={[0, 0.5, 0]} fontSize={0.001} color="#000">© OpenStreetMap contributors (ODbL)</Text></Suspense>; }
+
+/** Push a footprint outward by d metres (from its centroid) so overlay shells never sit coplanar with walls. */
+function inflate(pts: [number, number][], d: number): [number, number][] { const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cz = pts.reduce((s, p) => s + p[1], 0) / pts.length; return pts.map(([x, z]) => { const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1; return [x + dx / l * d, z + dz / l * d]; }); }
+/** Planar world-space UVs: overlapping ribbons at junctions sample identical texels, so depth ties cannot shimmer. */
+function worldUV(g: THREE.BufferGeometry | null, scale: number) { if (!g) return g; const p = g.getAttribute("position"), uv = new Float32Array(p.count * 2); for (let i = 0; i < p.count; i++) { uv[i * 2] = p.getX(i) / scale; uv[i * 2 + 1] = p.getZ(i) / scale; } g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); return g; }

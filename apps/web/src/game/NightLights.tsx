@@ -14,6 +14,7 @@ import { playerPos } from "./refs";
 import { useStore } from "../state/store";
 import { renderWorldTime } from "./syncedClock";
 import { setCityNight } from "./OsmCity";
+import { LAYER } from "./layers";
 
 /** 0 by day, 1 at night; smooth through dusk (18:00–19:30) and dawn (05:15–06:30). */
 export function nightFactor(t = renderWorldTime.v) {
@@ -56,7 +57,7 @@ export function NightLights() {
       const dx = l.road[0] - l.p[0], dz = l.road[1] - l.p[1]; const yaw = Math.atan2(dx, dz);
       o.position.set(l.p[0] + dx * 0.32, 7.0, l.p[1] + dz * 0.32); o.rotation.set(0, yaw, 0); o.scale.set(1, 1, 1); o.updateMatrix(); arm.current?.setMatrixAt(i, o.matrix);
       o.position.set(l.p[0] + dx * 0.62, 6.92, l.p[1] + dz * 0.62); o.updateMatrix(); head.current?.setMatrixAt(i, o.matrix);
-      o.position.set(l.road[0], 0.1, l.road[1]); o.rotation.set(0, l.rot, 0); o.scale.set(13, 1, 13); o.updateMatrix(); pools.current?.setMatrixAt(i, o.matrix);
+      o.position.set(l.road[0], LAYER.decal, l.road[1]); o.rotation.set(0, l.rot, 0); o.scale.set(13, 1, 13); o.updateMatrix(); pools.current?.setMatrixAt(i, o.matrix);
     });
     for (const m of [arm.current, head.current, pools.current]) if (m) { m.count = n; m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
   }, [lamps]);
