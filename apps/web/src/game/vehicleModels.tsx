@@ -11,6 +11,8 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { VEHICLE_SPECS, type VehicleKind } from "@kanpurverse/shared";
+import { graphicsNow } from "../state/store";
+import { vehicleCullDistance } from "./graphics";
 
 export interface VehicleVisualState { speed: number; steer: number; brake: boolean; accel?: number; lat?: number; lights?: boolean; indicator?: -1 | 0 | 1 | 2 }
 
@@ -328,6 +330,7 @@ export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lights
     const ind = st?.indicator ?? 0; const blink = Math.floor(clock.elapsedTime * 2.6) % 2 === 0;
     lm.indL.emissiveIntensity = blink && (ind === -1 || ind === 2) ? 3 : 0; lm.indR.emissiveIntensity = blink && (ind === 1 || ind === 2) ? 3 : 0;
     if (body.current) { body.current.getWorldPosition(_me); camera.getWorldPosition(_cam); const d2 = _me.distanceToSquared(_cam);
+      const far = vehicleCullDistance(graphicsNow().viewDistance); const shown = d2 < far * far; if (body.current.visible !== shown) body.current.visible = shown; if (!shown) return;
       if (detail.current) detail.current.visible = d2 < 45 * 45;
       const fine = d2 < 28 * 28; for (const g of fineGroups.get(wheels.current) ?? []) if (g.visible !== fine) g.visible = fine; } // spokes/hubs: 24 meshes per car
   });

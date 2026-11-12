@@ -26,3 +26,11 @@ describe("central graphics configuration", () => {
     expect(Object.keys(PRESETS)).toEqual(["low", "medium", "high", "ultra"]);
   });
 });
+
+describe("vehicle draw distance", () => {
+  it("culls whole vehicles beyond a distance tied to the view-distance setting", async () => {
+    const { vehicleCullDistance, resolveGraphics } = await import("../apps/web/src/game/graphics");
+    expect(vehicleCullDistance(240)).toBe(120); expect(vehicleCullDistance(600)).toBe(240); expect(vehicleCullDistance(1000)).toBe(320);
+    for (const q of ["low", "medium", "high", "ultra"] as const) { const g = resolveGraphics(q); const d = vehicleCullDistance(g.viewDistance); expect(d).toBeGreaterThanOrEqual(120); expect(d).toBeLessThan(g.viewDistance); }
+  });
+});

@@ -62,3 +62,9 @@ export function resolveGraphics(quality: Quality, overrides: GraphicsOverrides =
   };
 }
 function stripUndefined<T extends object>(o: T): Partial<T> { const out: Partial<T> = {}; for (const k in o) if (o[k] !== undefined) out[k] = o[k]; return out; }
+
+/**
+ * Distance beyond which a whole vehicle is not drawn (or shadowed). Final QA: parked and traffic vehicles 100–600 m away
+ * were ~350 of ~1,280 draw calls per frame on High, each 6–8 px wide. Tied to the view distance setting.
+ */
+export function vehicleCullDistance(viewDistance: number) { return Math.min(320, Math.max(120, viewDistance * 0.4)); }
