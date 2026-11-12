@@ -184,3 +184,6 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .controls-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 22px;max-height:62vh;overflow:auto}.ctl-sec h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#e5c17b;margin:6px 0}
 /* menu panel: logo must fit inside the card */
 .menu-left .kv-logo{flex-wrap:wrap;max-width:100%}.menu-left .kv-word{font-size:.62em;white-space:nowrap}
+
+/* street tools live inside the stats card flow (fixes top-left overlap) */
+.hud-stats .street-tools{position:static;transform:none;opacity:1;margin-top:6px;max-width:260px;padding:6px 8px;font-size:11px}

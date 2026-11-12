@@ -54,8 +54,8 @@ export function HUD() {
         <div className="story-chip">{(() => { const n = nextChapter(s.profile?.missionsCompleted ?? []); return n ? t(`Chapter ${n.n}/8 · ${n.title}`, `अध्याय ${n.n}/8 · ${n.titleHi}`) : t("Story complete · free roam", "कहानी पूरी · खुला शहर"); })()}</div><div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
+  {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       </div>
-      {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{(() => { const ch = chapterFor(m.def.id); const o = ch?.objectives[m.index]; return o ? t(o[1], o[0]) : t(m.def.desc, m.def.descHi); })()}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
