@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOP_ITEMS, VEHICLE_SPECS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
 import { camYaw } from "../game/input";
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { net } from "../net/client";
 import { playerPos, playerYaw } from "../game/refs";
 import { input, touchPress, once } from "../game/input";
@@ -46,7 +46,7 @@ export function HUD() {
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
-      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? "CHAPTER COMPLETE" : "MISSION PASSED") : "MISSION FAILED"}</h2><p>{MISSIONS.find(m=>m.id===s.missionResult?.id)?.nameHi}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>Continue · आगे चलो</button></div>}
+      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? t("CHAPTER COMPLETE", "अध्याय पूरा") : t("MISSION PASSED", "मिशन पूरा")) : t("MISSION FAILED", "मिशन फेल")}</h2><p>{(() => { const md = MISSIONS.find(m=>m.id===s.missionResult?.id); return md ? t(md.name, md.nameHi) : ""; })()}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>{t("Continue", "आगे चलो")}</button></div>}
       <Compass />
       {/* top-left stats */}
       <div className="hud-stats">

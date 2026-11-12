@@ -8,7 +8,7 @@ import { SPAWN_POINT, NPCS, LANDMARKS, MISSIONS, VEHICLE_SPECS, vehicleSeatPose,
 import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
@@ -59,11 +59,11 @@ export function Player() {
         const vehicleBody = live ? world.getRigidBody(live.handle) : null;
         const pos = vehicleBody?.translation(), rot = vehicleBody?.rotation();
         const actual = pos && rot ? { ...v, p: [pos.x, pos.y, pos.z] as [number, number, number], q: [rot.x, rot.y, rot.z, rot.w] as [number, number, number, number] } : v;
-        if (v.v > 1) s.toast("Stop the vehicle before getting out.", "error");
+        if (v.v > 1) s.toast(tl("पहिले गाड़ी रोको, फिर उतरो।", "Stop the vehicle before getting out."), "error");
         else {
           const p = findClearVehicleExit(world, rapier, actual, s.seat ?? "driver", rb, vehicleBody ?? undefined);
           if (p) { s.set({ vehicleTransition: "exiting" }); net.send({ t: "vehicle.exit", p }); }
-          else s.toast("No clear exit. Move the vehicle to an open space.", "error");
+          else s.toast(tl("इहाँ से उतरने की जगह नहीं है। गाड़ी खुली जगह ले चलो।", "No clear exit. Move the vehicle to an open space."), "error");
         }
       }
       if (animState !== (seat === "driver" ? "drive" : "sit")) setAnimState(seat === "driver" ? "drive" : "sit");

@@ -5,7 +5,7 @@ import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import * as THREE from "three";
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { playerPos } from "./refs";
 import { StaticBatch } from "./StaticBatch";
 import { Avatar } from "./Avatar";
@@ -235,7 +235,7 @@ function Collectible({
         collectibles: [...s.collectibles, id],
         profile: s.profile && { ...s.profile, coins: s.profile.coins + 50 },
       });
-      s.toast("Festival token +50 🪙", "reward");
+      s.toast(tl("मेले का टोकन मिला +50 🪙", "Festival token +50 🪙"), "reward");
       net.save();
     }
   });

@@ -2,7 +2,7 @@
 /** Story presentation: letterboxed chapter cutscenes and the end credits roll. */
 import { useEffect } from "react";
 import { CREDITS, GAME_TITLE, GAME_TITLE_HI, PROTAGONIST, STUDIO } from "@kanpurverse/shared";
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { sfx } from "../audio/sfx";
 import { net } from "../net/client";
 
@@ -27,7 +27,7 @@ export function Cutscene() {
     <div className="cs-bar bottom">
       {line.speaker && <div className="cs-speaker">{en ? line.speaker : line.speakerHi}</div>}
       <p className={`cs-line ${line.speaker ? "" : "narration"}`}>{en ? line.en : line.hi}</p>
-      {!en && <p className="cs-sub">{line.en}</p>}
+      {!en && useStore.getState().settings.englishSubs && <p className="cs-sub">{line.en}</p>}
       <div className="cs-foot"><span>{c.i + 1}/{c.lines.length}</span><span>E / Space · {en ? "next" : "आगे"} &nbsp; Esc · {en ? "skip" : "छोड़ो"}</span></div>
     </div>
   </div>;
@@ -41,11 +41,11 @@ export function Credits() {
     <div className="credits-roll">
       <h1>{GAME_TITLE}</h1><h2>{GAME_TITLE_HI}</h2>
       <p className="credits-end">THE END · समाप्त</p>
-      <p>{PROTAGONIST.name} {"will return."}</p>
+      <p>{tl(`${PROTAGONIST.nameHi} फिर लौटेगी।`, `${PROTAGONIST.name} will return.`)}</p>
       {CREDITS.map(([a, b]) => <div key={a} className="credit"><small>{a}</small><b>{b}</b></div>)}
-      <p className="muted">All characters, shops and events are fictional. Landmarks are stylised tributes.</p>
+      <p className="muted">{tl("सभी किरदार, दुकानें और घटनाएँ काल्पनिक हैं। जगहें असली कानपुर से प्रेरित हैं।", "All characters, shops and events are fictional. Landmarks are stylised tributes.")}</p>
       <p className="credits-studio">{STUDIO}</p>
     </div>
-    <button className="btn btn-accent credits-btn" onClick={() => set({ credits: undefined })}>Keep exploring Kanpur · कानपुर घूमते रहो</button>
+    <button className="btn btn-accent credits-btn" onClick={() => set({ credits: undefined })}>{tl("कानपुर घूमते रहो", "Keep exploring Kanpur")}</button>
   </div>;
 }

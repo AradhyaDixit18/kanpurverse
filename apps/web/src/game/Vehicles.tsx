@@ -8,7 +8,7 @@ import { useFrame } from "@react-three/fiber";
 import { RigidBody, CuboidCollider, type RapierRigidBody, useBeforePhysicsStep, useRapier } from "@react-three/rapier";
 import * as THREE from "three";
 import { VEHICLE_SPAWNS, type VehicleKind, type VehicleSnapshot, vehicleSeatPose } from "@kanpurverse/shared";
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { net, vehicleBuf, vehicleCorrections } from "../net/client";
 import { input, pollKeys, once, camYaw } from "./input";
 import { sfx } from "../audio/sfx";
@@ -57,7 +57,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       const next = stepDriving({ speed: speed.current, steer: steer.current, yaw: yaw.current, slip: slip.current, yawRate: yawRate.current }, spec, { throttle: fwd, steer: st, brake: false, handbrake }, actual, dt);
       speed.current = next.speed; steer.current = next.steer; yaw.current = next.yaw; slip.current = next.slip ?? 0; yawRate.current = next.yawRate ?? 0;
       const brake = handbrake || (fwd < 0 && speed.current > 0.5) || (fwd > 0 && speed.current < -0.5);
-      if (!paused) { if (once("KeyL")) { const m = s.settings.headlights ?? "auto"; const nm = m === "auto" ? "on" : m === "on" ? "off" : "auto"; s.setSettings({ headlights: nm }); s.toast(`Headlights: ${nm}`); }
+      if (!paused) { if (once("KeyL")) { const m = s.settings.headlights ?? "auto"; const nm = m === "auto" ? "on" : m === "on" ? "off" : "auto"; s.setSettings({ headlights: nm }); s.toast(tl(`हेडलाइट: ${nm === "auto" ? "अपने-आप" : nm === "on" ? "चालू" : "बंद"}`, `Headlights: ${nm}`)); }
         if (once("KeyZ")) indicator.current = indicator.current === -1 ? 0 : -1; if (once("KeyX")) indicator.current = indicator.current === 1 ? 0 : 1; if (once("KeyB")) indicator.current = indicator.current === 2 ? 0 : 2; }
       if (indicator.current === -1 && steer.current < -0.5 || indicator.current === 1 && steer.current > 0.5) indicator.current = 0;
       if ((Math.abs(slip.current) > 1.5 || handbrake && Math.abs(speed.current) > 6) && performance.now() - lastSkid.current > 260 && spec.cls !== "pedal") { lastSkid.current = performance.now(); sfx.skid(Math.min(1, Math.abs(speed.current) / 20)); }
@@ -68,7 +68,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       sfx.engine(true, Math.abs(speed.current), spec.cls, kindEngine(snap.kind), Math.max(0, fwd)); vehicleTelemetry.speed = Math.abs(speed.current); vehicleTelemetry.kind = snap.kind; vehicleTelemetry.reverse = speed.current < -0.2; vehicleTelemetry.indicator = indicator.current; vehicleTelemetry.name = VEHICLE_INFO[snap.kind].name;
       if ((handbrake && Math.abs(speed.current) > 6) || Math.abs(slip.current) > 1.2) { if (Math.random() < 0.3) puff(p.x - Math.sin(yaw.current) * spec.size[2] * 0.35, p.y - spec.size[1] / 2, p.z - Math.cos(yaw.current) * spec.size[2] * 0.35, 1.2); }
       if ((input.horn || once("KeyH")) && performance.now() - lastHorn.current > 600) { lastHorn.current = performance.now(); sfx.horn(); }
-      if (once("KeyR")) { const p0 = rb.translation(); rb.setTranslation({ x: p0.x, y: spec.size[1] / 2 + 0.6, z: p0.z }, true); rb.setLinvel({ x: 0, y: 0, z: 0 }, true); speed.current = 0; s.toast("Vehicle reset"); }
+      if (once("KeyR")) { const p0 = rb.translation(); rb.setTranslation({ x: p0.x, y: spec.size[1] / 2 + 0.6, z: p0.z }, true); rb.setLinvel({ x: 0, y: 0, z: 0 }, true); speed.current = 0; s.toast(tl("गाड़ी सीधी कर दी", "Vehicle reset")); }
       if (!s.settings.reduceMotion && Math.abs(speed.current) > 2) camYaw.v = lerpAngle(camYaw.v, yaw.current + Math.PI, 1 - Math.exp(-dt * 2.2));
       if (vis.current) { vis.current.position.set(p.x, p.y, p.z); vis.current.quaternion.copy(q); void grip; void TWO_WHEELERS; }
       const hl = s.settings.headlights ?? "auto"; const t = s.worldTime;

@@ -16,11 +16,11 @@ export function LanguageGate() {
   const set = useStore(s => s.setSettings);
   const pick = (lang: "english" | "hindi" | "kanpuriya") => { unlockAudio(); sfx.ui(); set({ lang, langChosen: true }); };
   return <div className="screen menu"><Skyline /><div className="lang-gate"><Logo size={60} />
-    <h2>Choose your language · अपनी भाषा चुनें</h2><p className="muted">You can change this any time in Settings · सेटिंग्स में कभी भी बदल सकते हैं</p>
+    <h2>अपनी भाषा चुनो</h2><p className="muted">सेटिंग्स में कभी भी बदल सकते हो · Change any time in Settings</p>
     <div className="lang-cards">
-      <button className="lang-card" onClick={() => pick("english")}><span className="lang-big">English</span><small>Menus, subtitles and NPC voices in English</small></button>
-      <button className="lang-card" onClick={() => pick("hindi")}><span className="lang-big">हिंदी</span><small>मेन्यू, सबटाइटल और NPC की आवाज़ हिंदी में</small></button>
-      <button className="lang-card accent" onClick={() => pick("kanpuriya")}><span className="lang-big">कनपुरिया</span><small>असली कानपुर वाली बोली — &ldquo;का हो भैया!&rdquo;</small></button>
+      <button className="lang-card accent" onClick={() => pick("kanpuriya")}><span className="lang-big">कनपुरिया</span><small>असली कानपुर वाली बोली · डिफ़ॉल्ट — &ldquo;का हो भइया!&rdquo;</small></button>
+      <button className="lang-card" onClick={() => pick("hindi")}><span className="lang-big">हिंदी</span><small>मेन्यू, सबटाइटल और आवाज़ सामान्य हिंदी में</small></button>
+      <button className="lang-card" onClick={() => pick("english")}><span className="lang-big">English</span><small>Optional: menus and subtitles in English</small></button>
     </div></div></div>;
 }
 

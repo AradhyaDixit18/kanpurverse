@@ -4,7 +4,7 @@ import { DEFAULT_APPEARANCE, PROTAGONIST, type CutsceneLine, type Appearance, ty
 
 import { resolveGraphics, type Quality, type GraphicsOverrides, type ResolvedGraphics } from "../game/graphics";
 export type { Quality };
-export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; gfx?: GraphicsOverrides; classicCharacters?: boolean; headlights?: "auto" | "on" | "off"; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
+export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; englishSubs?: boolean; gfx?: GraphicsOverrides; classicCharacters?: boolean; headlights?: "auto" | "on" | "off"; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
 export interface Subtitle { speaker: string; text: string; roman?: string; until: number }
 export interface MissionState { def: MissionDef; index: number; startedAt: number; status: "started" | "completed" | "failed" }
 
@@ -50,3 +50,6 @@ export function useGraphics(): ResolvedGraphics { const q = useStore(s => s.sett
 let _gk = "", _gv: ResolvedGraphics | null = null;
 export function resolveGraphicsCached(q: Quality, o?: GraphicsOverrides) { const k = q + JSON.stringify(o ?? {}); if (k !== _gk || !_gv) { _gk = k; _gv = resolveGraphics(q, o); } return _gv; }
 export function graphicsNow() { const s = useStore.getState().settings; return resolveGraphicsCached(s.quality, s.gfx); }
+
+/** Kanpuriya/Hindi by default; English only when the player chose English. */
+export function tl(hi: string, en: string) { return useStore.getState().settings.lang === "english" ? en : hi; }

@@ -19,7 +19,7 @@ import {
   type VehicleSnapshot,
   type AnimState,
 } from "@kanpurverse/shared";
-import { useStore } from "../state/store";
+import { useStore, tl } from "../state/store";
 import { readSoloSave, writeSoloSave } from "../state/soloSave";
 import { visualClock } from "../game/syncedClock";
 export const WS_URL = "Local single-player";
@@ -150,8 +150,8 @@ class SoloSession {
     this.savedAt = Date.now();
     s.toast(
       save
-        ? "स्थानीय सेव से वापसी · Welcome back"
-        : "कानपुर में स्वागत है · Your solo story begins",
+        ? tl("फिर से स्वागत है! कहानी वहीं से चालू।", "Welcome back! Picking up where you left off.")
+        : tl("कानपुर में स्वागत है!", "Welcome to Kanpur!"),
     );
     this.save();
   }
@@ -195,7 +195,7 @@ class SoloSession {
           }
         : undefined,
     });
-    if (!saved && !this.storageWarned) { this.storageWarned=true; s.toast("सेव नहीं हुआ। Browser storage उपलब्ध नहीं है।", "error"); }
+    if (!saved && !this.storageWarned) { this.storageWarned=true; s.toast(tl("सेव नहीं हुआ, ब्राउज़र स्टोरेज बंद है।", "Not saved: browser storage is unavailable."), "error"); }
     if (saved) this.storageWarned=false;
     s.set({saveState:saved?"saved":"error",lastSavedAt:saved?Date.now():s.lastSavedAt});
     return saved;
@@ -208,7 +208,7 @@ class SoloSession {
     this.position=p; correction.p=p; correction.at=performance.now();
     const vehicles={...s.vehicles};if(s.inVehicle&&vehicles[s.inVehicle])vehicles[s.inVehicle]={...vehicles[s.inVehicle],driver:undefined};
     s.set({players:s.players.solo?{solo:{...s.players.solo,p}}:s.players,health:Math.max(10,s.health-10),mission:{...m,index:1},inVehicle:undefined,seat:undefined,vehicleTransition:undefined,vehicles});
-    s.toast("पकड़े गए गुरु! दुकान वाला checkpoint फिर करो।","error");this.save();return true;
+    s.toast(tl("पकड़े गए गुरु! दुकान वाले चेकपॉइंट से फिर करो।", "Caught! Retry from the shop checkpoint."),"error");this.save();return true;
   }
   private tick() {
     const s = useStore.getState();
@@ -239,7 +239,7 @@ class SoloSession {
           mission: undefined,
           missionResult: { id: m.def.id, success: false, coins: 0, xp: 0 },
         });
-        s.toast("समय खत्म। Mission log से फिर शुरू करो।", "error");
+        s.toast(tl("टाइम खतम! मिशन देने वाले से फिर शुरू करो।", "Time up! Restart from the mission giver."), "error");
         this.save();
       } else if (m.def.kind !== "photo") this.checkpoint();
     }
@@ -267,7 +267,7 @@ class SoloSession {
     this.lastCheckpoint = Date.now();
     if (m.index + 1 < m.def.checkpoints.length) {
       s.set({ mission: { ...m, index: m.index + 1 } });
-      s.toast("लक्ष्य पूरा · Next objective");
+      s.toast(tl("बढ़िया! अगला काम", "Objective complete"));
     } else {
       const profile = s.profile!;
       const first = !profile.missionsCompleted.includes(m.def.id);
@@ -305,7 +305,7 @@ class SoloSession {
       const ch = chapterFor(m.def.id);
       if (ch && first) s.set({ cutscene: { title: `${ch.titleHi} · ${ch.title}`, lines: ch.outro, i: 0, then: ch.missionId === FINALE_ID ? "credits" : undefined } });
       s.toast(
-        `MISSION COMPLETE · ${m.def.nameHi} +${first ? m.def.reward.coins : Math.round(m.def.reward.coins * 0.25)} 🪙`,
+        tl(`मिशन पूरा · ${m.def.nameHi} +${first ? m.def.reward.coins : Math.round(m.def.reward.coins * 0.25)} 🪙`, `Mission complete · ${m.def.name} +${first ? m.def.reward.coins : Math.round(m.def.reward.coins * 0.25)} 🪙`),
         "reward",
       );
     }
@@ -390,7 +390,7 @@ class SoloSession {
           mission: { def, index: 0, startedAt: Date.now(), status: "started" },
         });
         if (chapter) s.set({ cutscene: { title: `अध्याय ${chapter.n} · ${chapter.titleHi} · ${chapter.title}`, lines: chapter.intro, i: 0 } });
-        s.toast(chapter ? `अध्याय ${chapter.n} शुरू · Chapter ${chapter.n} started` : "Mission started");
+        s.toast(chapter ? tl(`अध्याय ${chapter.n} शुरू`, `Chapter ${chapter.n} started`) : tl("मिशन शुरू", "Mission started"));
         this.save();
         break;
       }
