@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import { DEFAULT_APPEARANCE, PROTAGONIST, type CutsceneLine, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
+import { DEFAULT_APPEARANCE, PROTAGONIST, newGameState, type GameState, type TxResult, type Outfit, type CutsceneLine, type Appearance, type Language, type PlayerProfile, type PlayerSnapshot, type VehicleSnapshot, type MissionDef } from "@kanpurverse/shared";
 
 import { resolveGraphics, type Quality, type GraphicsOverrides, type ResolvedGraphics } from "../game/graphics";
 export type { Quality };
@@ -13,6 +13,8 @@ function loadLocal(): Partial<{ settings: Settings; appearance: Appearance; name
 
 interface Store {
   saveState?: "saved" | "error"; lastSavedAt?: number;
+  /** Phase D gameplay state (single authority, persisted in save v2). Money stays in profile.coins. */
+  game: GameState; cleared: string[]; lastVehicle?: string; previewOutfit?: Outfit; shop?: string; notice?: { text: string; sub?: string; at: number }; dead?: { at: number; bill: number };
   /** Story cutscene currently on screen (input and mission timers pause while set). */
   cutscene?: { title: string; lines: CutsceneLine[]; i: number; then?: "credits" }; credits?: boolean;
   missionResult?: {id:string;success:boolean;coins:number;xp:number}; health: number; ownedVehicles: string[]; collectibles: string[];
@@ -20,9 +22,9 @@ interface Store {
   name: string; appearance: Appearance; token?: string; settings: Settings;
   connected: boolean; selfId?: string; profile?: PlayerProfile; players: Record<string, PlayerSnapshot>; vehicles: Record<string, VehicleSnapshot>; worldTime: number;
   subtitle?: Subtitle; toasts: { id: number; text: string; kind: string }[]; mission?: MissionState;
-  dialogue?: { npc: string; lineId: string }; nearby?: { kind: "npc" | "vehicle" | "landmark" | "checkpoint"; id: string; label: string };
+  dialogue?: { npc: string; lineId: string }; nearby?: { kind: "npc" | "vehicle" | "landmark" | "checkpoint" | "shop"; id: string; label: string };
   streetAction?: { action: "consume" | "spit"; at: number };
-  paused: boolean; fps: number; renderScale?: number; vehicleCondition?: number; inVehicle?: string; seat?: "driver" | "passenger"; vehicleTransition?: "entering" | "exiting"; errorText?: string; loadStage?: "engine" | "connecting" | "auth" | "joining" | "done"; loadProgress?: number;
+  paused: boolean; fps: number; renderScale?: number; inVehicle?: string; seat?: "driver" | "passenger"; vehicleTransition?: "entering" | "exiting"; errorText?: string; loadStage?: "engine" | "connecting" | "auth" | "joining" | "done"; loadProgress?: number;
   set: (p: Partial<Store>) => void; saveLocal: () => void; toast: (text: string, kind?: string) => void;
   setSettings: (s: Partial<Settings>) => void;
 }
@@ -36,7 +38,7 @@ export const PROTAGONIST_LOOK: Appearance = { ...DEFAULT_APPEARANCE, body: "f", 
 export const useStore = create<Store>((set, get) => {
   const local = typeof window !== "undefined" ? loadLocal() : {};
   return {
-    health: 100, ownedVehicles: ["v_scooter_1"], collectibles: [], screen: "landing", name: local.name ?? PROTAGONIST.handle, appearance: local.appearance ?? PROTAGONIST_LOOK, token: local.token, settings: { ...DEFAULT_SETTINGS, ...(local.settings ?? {}) },
+    health: 100, game: newGameState(), cleared: [], ownedVehicles: ["v_scooter_1"], collectibles: [], screen: "landing", name: local.name ?? PROTAGONIST.handle, appearance: local.appearance ?? PROTAGONIST_LOOK, token: local.token, settings: { ...DEFAULT_SETTINGS, ...(local.settings ?? {}) },
     connected: false, players: {}, vehicles: {}, worldTime: 0.3, toasts: [], paused: false, fps: 0,
     set: (p) => set(p),
     saveLocal: () => { const { settings, appearance, name, token } = get(); try { localStorage.setItem(LS, JSON.stringify({ settings, appearance, name, token })); } catch { /* private mode */ } },
@@ -53,3 +55,11 @@ export function graphicsNow() { const s = useStore.getState().settings; return r
 
 /** Kanpuriya/Hindi by default; English only when the player chose English. */
 export function tl(hi: string, en: string) { return useStore.getState().settings.lang === "english" ? en : hi; }
+
+/** Apply an economy transaction atomically to money + game state, with feedback. Returns success. */
+export function applyTx(r: TxResult & { health?: number }) {
+  const s = useStore.getState(); const [hi, en] = r.message; s.toast(s.settings.lang === "english" ? en : hi, r.ok ? "reward" : "error");
+  if (!r.ok || !s.profile) return false;
+  s.set({ profile: { ...s.profile, coins: r.wallet.coins }, game: r.wallet.game, ...(r.health !== undefined ? { health: r.health } : {}) }); return true;
+}
+export const wallet = () => { const s = useStore.getState(); return { coins: s.profile?.coins ?? 0, game: s.game }; };

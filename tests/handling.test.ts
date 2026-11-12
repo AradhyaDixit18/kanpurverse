@@ -62,3 +62,24 @@ describe("original car body geometry", () => {
     }
   });
 });
+
+describe("drifting comes from the tyre model", () => {
+  it("handbrake at speed builds a slip angle; counter-steer recovers faster than holding the turn", () => {
+    let s: DriveState = { speed: 22, steer: 0, yaw: 0 };
+    for (let i = 0; i < 40; i++) s = stepDriving(s, SPECS.hatchback, { throttle: 0.7, steer: 1, brake: false, handbrake: true }, s.speed, DT);
+    expect(Math.abs(s.slip ?? 0)).toBeGreaterThan(1);
+    let hold = s, counter = s;
+    for (let i = 0; i < 30; i++) { hold = stepDriving(hold, SPECS.hatchback, { throttle: 0.5, steer: 1, brake: false }, hold.speed, DT); counter = stepDriving(counter, SPECS.hatchback, { throttle: 0.5, steer: -Math.sign(counter.slip ?? 1) * 0.6, brake: false }, counter.speed, DT); }
+    expect(Math.abs(counter.slip ?? 0)).toBeLessThan(Math.abs(hold.slip ?? 0));
+  });
+  it("power at the limit on a loose surface steps the rear out without a handbrake", () => {
+    let road: DriveState = { speed: 20, steer: 0, yaw: 0 }, dirt: DriveState = { speed: 20, steer: 0, yaw: 0 };
+    for (let i = 0; i < 60; i++) { road = stepDriving(road, SPECS.sedan, { throttle: 1, steer: 1, brake: false, surface: 1 }, road.speed, DT); dirt = stepDriving(dirt, SPECS.sedan, { throttle: 1, steer: 1, brake: false, surface: 0.6 }, dirt.speed, DT); }
+    expect(Math.abs(dirt.slip ?? 0)).toBeGreaterThan(Math.abs(road.slip ?? 0));
+  });
+  it("two-wheelers never slide sideways", () => {
+    let s: DriveState = { speed: 18, steer: 0, yaw: 0 };
+    for (let i = 0; i < 60; i++) s = stepDriving(s, SPECS.sportbike, { throttle: 1, steer: 1, brake: false, handbrake: true, noSlide: true }, s.speed, DT);
+    expect(s.slip ?? 0).toBe(0);
+  });
+});

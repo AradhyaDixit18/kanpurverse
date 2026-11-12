@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { Appearance, Language } from "@kanpurverse/shared";
+import { Appearance, Language, newGameState } from "@kanpurverse/shared";
 const finite = z.number().finite();
-export const SoloSave = z.object({
+const SaveV1 = z.object({
   version: z.literal(1),
   savedAt: finite,
   position: z.tuple([finite, finite, finite]),
@@ -32,11 +32,30 @@ export const SoloSave = z.object({
     })
     .optional(),
 });
+const GameStateSchema = z.object({
+  stamina: z.number().min(0).max(100),
+  items: z.record(z.string(), z.number().int().min(0)),
+  weapons: z.array(z.string()),
+  equipped: z.string().optional(),
+  clip: z.record(z.string(), z.number().int().min(0)),
+  wardrobe: z.array(z.string()),
+  outfit: z.object({ top: z.string(), bottom: z.string(), shoes: z.string(), acc: z.string().optional() }),
+  boughtVehicles: z.array(z.string()),
+  vehicleHealth: z.record(z.string(), z.object({ engine: z.number().min(0).max(100), body: z.number().min(0).max(100) })),
+  stats: z.object({ knockouts: z.number(), deaths: z.number(), driftBest: z.number(), earned: z.number(), spent: z.number() }),
+});
+/** Version 2 adds the Phase D game state (stamina, inventory, weapons, wardrobe, vehicles, stats). */
+export const SoloSave = SaveV1.extend({ version: z.literal(2), game: GameStateSchema });
 export type SoloSaveData = z.infer<typeof SoloSave>;
+/** Versioned migration: a v1 save keeps every story field and gains a fresh game state (existing coins untouched). */
+export function migrateSave(raw: unknown): SoloSaveData | null {
+  const v2 = SoloSave.safeParse(raw); if (v2.success) return v2.data;
+  const v1 = SaveV1.safeParse(raw); if (!v1.success) return null;
+  return SoloSave.parse({ ...v1.data, version: 2, game: newGameState() });
+}
 export function parseSoloSave(raw: string | null): SoloSaveData | null {
   try {
-    const r = SoloSave.safeParse(JSON.parse(raw ?? "null"));
-    return r.success ? r.data : null;
+    return migrateSave(JSON.parse(raw ?? "null"));
   } catch {
     return null;
   }

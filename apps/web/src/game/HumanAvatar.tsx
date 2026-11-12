@@ -13,8 +13,8 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
-import type { Appearance, AnimState } from "@kanpurverse/shared";
-import { SKIN, HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "./avatarPalette";
+import { item, type Appearance, type AnimState, type Outfit } from "@kanpurverse/shared";
+import { HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "./avatarPalette";
 
 const BASE = "/models/characters/";
 export const CHARACTER_FILES = { female: BASE + "kc_female.glb", male: BASE + "kc_male.glb", hair: BASE + "kc_hair.glb", anims: BASE + "kc_anims.glb" };
@@ -36,7 +36,13 @@ export function clipFor(anim: AnimState, speed?: number): { clip: string; timeSc
     case "dance": case "celebrate": return { clip: "Dance_Loop", timeScale: 1 };
     case "talk": case "laugh": case "spit": return { clip: "Idle_Talking_Loop", timeScale: 1 };
     case "wave": case "highfive": return { clip: "Interact", timeScale: 1 };
-    case "punch": return { clip: "Punch_Jab", timeScale: 1 };
+    case "punch": return { clip: "Punch_Cross", timeScale: 1.3 };
+    case "swing": return { clip: "Sword_Attack", timeScale: 1.4 };
+    case "shoot": return { clip: "Pistol_Shoot", timeScale: 1.2 };
+    case "aim": return { clip: "Pistol_Idle_Loop", timeScale: 1 };
+    case "hit": return { clip: "Hit_Chest", timeScale: 1.2 };
+    case "knockdown": return { clip: "Death01", timeScale: 1, once: true };
+    case "stunned": return { clip: "Hit_Head", timeScale: 0.5 };
     case "packet": case "openpacket": case "consume": return { clip: "PickUp_Table", timeScale: 1 };
     default: return { clip: "Idle_Loop", timeScale: 1 };
   }
@@ -46,9 +52,9 @@ const clampScale = (s: number) => Math.min(1.6, Math.max(0.55, s));
 
 // ───────────── outfits ─────────────
 type Region = "top" | "sleeveShort" | "sleeveLong" | "tunic" | "pants" | "shorts" | "shoes";
-interface Outfit { top: Region[]; pants: Region[]; tunic: boolean; long: boolean }
+interface NpcOutfit { top: Region[]; pants: Region[]; tunic: boolean; long: boolean }
 /** Appearance.top index → garment cut. 5 = kurta/kurti (long tunic), 7 = jacket (long sleeves). */
-function outfitFor(a: Appearance): Outfit { const tunic = a.top === 5 || (a.body === "f" && a.top !== 6); return { top: [], pants: [], tunic, long: a.top === 7 || a.top === 5 }; }
+function outfitFor(a: Appearance): NpcOutfit { const tunic = a.top === 5 || (a.body === "f" && a.top !== 6); return { top: [], pants: [], tunic, long: a.top === 7 || a.top === 5 }; }
 
 const TORSO = ["pelvis", "spine_01", "spine_02", "spine_03", "clavicle_l", "clavicle_r"];
 const UPPER = ["upperarm_l", "upperarm_r"], LOWER = ["lowerarm_l", "lowerarm_r"], THIGH = ["thigh_l", "thigh_r"], CALF = ["calf_l", "calf_r"], FEET = ["foot_l", "foot_r", "ball_l", "ball_r", "ball_leaf_l", "ball_leaf_r"];
@@ -89,24 +95,26 @@ const SKIN_SCALE = [1.32, 1.18, 1.0, 0.86, 0.72, 0.55];
 interface Assets { female: GLTF; male: GLTF; hair: GLTF; anims: GLTF }
 const HAIR_NAMES = ["Hair_Buzzed", "Hair_SimpleParted", "Hair_Long", "Hair_Buns", "Hair_Long", "Hair_SimpleParted"];
 
-export interface HumanProps { appearance: Appearance; anim: AnimState; speed?: number; protagonist?: boolean }
-export function HumanAvatar({ appearance, anim, speed, protagonist }: HumanProps) {
+export interface HumanProps { appearance: Appearance; anim: AnimState; speed?: number; protagonist?: boolean; outfit?: Outfit; weapon?: string }
+export function HumanAvatar({ appearance, anim, speed, protagonist, outfit, weapon }: HumanProps) {
   const [female, male, hair, anims] = useLoader(GLTFLoader, [CHARACTER_FILES.female, CHARACTER_FILES.male, CHARACTER_FILES.hair, CHARACTER_FILES.anims]) as GLTF[];
   const assets: Assets = { female, male, hair, anims };
-  const key = JSON.stringify(appearance) + (protagonist ? ":p" : "");
-  const built = useMemo(() => buildCharacter(assets, appearance, !!protagonist), // eslint-disable-next-line react-hooks/exhaustive-deps
+  const key = JSON.stringify(appearance) + (protagonist ? ":p" + JSON.stringify(outfit ?? {}) : "");
+  const built = useMemo(() => buildCharacter(assets, appearance, !!protagonist, outfit), // eslint-disable-next-line react-hooks/exhaustive-deps
     [key, female, male, hair]);
   const mixer = useMemo(() => new THREE.AnimationMixer(built.root), [built]);
   const current = useRef<{ name: string; action: THREE.AnimationAction } | null>(null);
   const head = useMemo(() => built.root.getObjectByName("Head") as THREE.Bone | undefined, [built]);
   const lookT = useRef(Math.random() * 10);
   useEffect(() => () => { mixer.stopAllAction(); mixer.uncacheRoot(built.root); }, [mixer, built]);
+  // Held item on the right hand bone; swapped without rebuilding the character.
+  useEffect(() => { const hand = built.root.getObjectByName("hand_r"); if (!hand || !weapon) return; const mesh = weaponMesh(weapon); hand.add(mesh); return () => { hand.remove(mesh); }; }, [built, weapon]);
 
   useFrame((_, dt) => {
     const want = clipFor(anim, speed);
     if (current.current?.name !== want.clip) {
       const clip = anims.animations.find(c => c.name === want.clip) ?? anims.animations.find(c => c.name === "Idle_Loop");
-      if (clip) { const next = mixer.clipAction(clip); next.reset().setEffectiveWeight(1).fadeIn(0.22).play(); current.current?.action.fadeOut(0.22); current.current = { name: want.clip, action: next }; }
+      if (clip) { const next = mixer.clipAction(clip); next.reset().setEffectiveWeight(1); if (want.once) { next.setLoop(THREE.LoopOnce, 1); next.clampWhenFinished = true; } else next.setLoop(THREE.LoopRepeat, Infinity); next.fadeIn(0.18).play(); current.current?.action.fadeOut(0.22); current.current = { name: want.clip, action: next }; }
     }
     if (current.current) current.current.action.timeScale = CLIP_SPEED[want.clip] ? clampScale(want.timeScale) : want.timeScale;
     mixer.update(Math.min(dt, 0.1));
@@ -116,7 +124,7 @@ export function HumanAvatar({ appearance, anim, speed, protagonist }: HumanProps
   return <primitive object={built.root} />;
 }
 
-function buildCharacter(a: Assets, app: Appearance, protagonist: boolean) {
+function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit?: Outfit) {
   const src = app.body === "f" ? a.female : a.male;
   const root = cloneSkinned(src.scene) as THREE.Group;
   let body: THREE.SkinnedMesh | null = null;
@@ -140,16 +148,27 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean) {
   const kneeY = calfL && thighL ? new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(b.skeleton.boneInverses[bones.indexOf(calfL)]).invert()).y : 0.5;
   const hipY = thighL ? new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(b.skeleton.boneInverses[bones.indexOf(thighL)]).invert()).y : 0.9;
   const add = (geo: THREE.BufferGeometry, mat: THREE.Material) => { const m = new THREE.SkinnedMesh(geo, mat); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; b.parent!.add(m); m.bind(b.skeleton, b.bindMatrix); };
-  const topCol = protagonist ? 0x1f6f78 : TOPS[app.top] ?? 0xc8102e, botCol = protagonist ? 0x2b4f7e : BOTTOMS[app.bottom] ?? 0x1c1d22, shoeCol = protagonist ? 0xf2f0ea : SHOES[app.shoes] ?? 0x111111;
-  const denim = !protagonist ? (app.bottom === 1 || app.bottom === 0 ? "denim" : "cotton") : "denim";
-  add(shell(`${kind}:pants`, g, bones, ["pelvis", ...THIGH, ...CALF], 0.006, (_, p) => p.y < hipY + 0.12), cloth(botCol, denim));
-  add(shell(`${kind}:shoes`, g, bones, [...FEET, ...CALF], 0.012, (_, p) => p.y < Math.max(0.13, kneeY * 0.25)), cloth(shoeCol, "rubber"));
-  const sleeves = o.long ? [...UPPER, ...LOWER] : protagonist ? [...UPPER, ...LOWER] : UPPER;
-  const sleeveKeep = (_: number, p: THREE.Vector3) => o.long || protagonist ? true : Math.abs(p.x) < 0.42;
-  add(shell(`${kind}:top:${o.long || protagonist ? "l" : "s"}`, g, bones, [...TORSO, ...sleeves], 0.012, (v, p) => (Math.abs(p.x) < 0.2 || sleeveKeep(v, p)) && p.y > hipY - 0.06 && !(protagonist && Math.abs(p.x) > 0.5)), cloth(topCol, app.top === 7 && !protagonist ? "leather" : "cotton"));
-  if (o.tunic || protagonist) add(shell(`${kind}:tunic`, g, bones, ["pelvis", "spine_01", ...THIGH], 0.022, (_, p) => p.y > (hipY + kneeY) / 2 + 0.02), cloth(topCol, "cotton"));
+  // Protagonist clothes come from the wardrobe (economy catalogue); NPCs from their appearance palette.
+  const pick = (id?: string) => (id ? item(id)?.clothing : undefined);
+  const pt = protagonist ? pick(outfit?.top) : undefined, pb = protagonist ? pick(outfit?.bottom) : undefined, ps = protagonist ? pick(outfit?.shoes) : undefined;
+  const topCol = pt?.color ?? (protagonist ? 0x1f6f78 : TOPS[app.top] ?? 0xc8102e), botCol = pb?.color ?? (protagonist ? 0x2b4f7e : BOTTOMS[app.bottom] ?? 0x1c1d22), shoeCol = ps?.color ?? (protagonist ? 0xf2f0ea : SHOES[app.shoes] ?? 0x111111);
+  const cut = pt?.cut ?? (protagonist ? "kurti" : o.tunic ? "kurti" : o.long ? "jacket" : "tee");
+  const longSleeve = cut === "kurti" || cut === "jacket" || cut === "shirt" || (!protagonist && o.long);
+  const tunic = cut === "kurti" || (!protagonist && o.tunic);
+  const bottomCut = pb?.cut ?? "jeans";
+  const bottomMat = bottomCut === "jeans" ? "denim" : protagonist ? "cotton" : (app.bottom === 1 || app.bottom === 0 ? "denim" : "cotton");
+  add(shell(`${kind}:pants:${bottomCut === "palazzo" ? "wide" : "fit"}`, g, bones, ["pelvis", ...THIGH, ...CALF], bottomCut === "palazzo" ? 0.028 : bottomCut === "cargo" ? 0.014 : 0.006, (_, p) => p.y < hipY + 0.12), cloth(botCol, bottomMat));
+  const shoeTop = ps?.cut === "boots" ? kneeY * 0.62 : ps?.cut === "juttis" ? 0.09 : Math.max(0.13, kneeY * 0.25);
+  add(shell(`${kind}:shoes:${ps?.cut ?? "std"}`, g, bones, [...FEET, ...CALF], 0.014, (_, p) => p.y < shoeTop), cloth(shoeCol, ps?.cut === "boots" ? "leather" : "rubber"));
+  const sleeves = longSleeve ? [...UPPER, ...LOWER] : UPPER;
+  const sleeveKeep = (_: number, p: THREE.Vector3) => longSleeve ? !(cut === "kurti" && Math.abs(p.x) > 0.5) : Math.abs(p.x) < 0.42;
+  add(shell(`${kind}:top:${longSleeve ? (cut === "kurti" ? "k" : "l") : "s"}`, g, bones, [...TORSO, ...sleeves], cut === "jacket" ? 0.02 : 0.012, (v, p) => (Math.abs(p.x) < 0.2 || sleeveKeep(v, p)) && p.y > hipY - 0.06), cloth(topCol, cut === "jacket" && (pt?.color === 0x2a2220 || (!protagonist && app.top === 7)) ? "leather" : cut === "jacket" ? "denim" : "cotton"));
+  if (tunic) add(shell(`${kind}:tunic`, g, bones, ["pelvis", "spine_01", ...THIGH], 0.022, (_, p) => p.y > (hipY + kneeY) / 2 + 0.02), cloth(topCol, "cotton"));
   // accessories on bones
   const headBone = bones.find(x => x.name === "Head"), spine = bones.find(x => x.name === "spine_03"), pelvis = bones.find(x => x.name === "pelvis");
+  const acc = protagonist ? pick(outfit?.acc)?.cut : undefined;
+  if (headBone && acc === "shades") { const shades = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.035, 0.02), cloth(0x0b0b0b, "leather")); shades.position.set(0, 0.08, 0.1); headBone.add(shades); }
+  if (headBone && acc === "cap") { const cap = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cloth(0xb3122e, "cotton")); cap.position.set(0, 0.15, 0); headBone.add(cap); }
   if (protagonist && spine && pelvis) {
     // video journalist kit: cross-body strap and a compact camera bag
     const bag = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.09), cloth(0x3b2a1e, "leather")); bag.position.set(0.17, -0.02, 0.06); pelvis.add(bag);
@@ -166,3 +185,19 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean) {
 
 /** Preload once the world is up, so the first character swap does not stall. */
 export function preloadCharacters() { useLoader.preload(GLTFLoader, [CHARACTER_FILES.female, CHARACTER_FILES.male, CHARACTER_FILES.hair, CHARACTER_FILES.anims]); }
+
+/** Original, code-built held items. Grip at the origin; the item extends along the hand bone's +Y (toward the fingers). */
+const heldCache = new Map<string, THREE.Object3D>();
+export function weaponMesh(id: string): THREE.Object3D {
+  let proto = heldCache.get(id);
+  if (!proto) {
+    const g = new THREE.Group(); const mk = (geo: THREE.BufferGeometry, color: number, p: [number, number, number], r: [number, number, number] = [0, 0, 0], metal = 0) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: metal ? 0.35 : 0.7, metalness: metal })); m.position.set(...p); m.rotation.set(...r); m.castShadow = true; g.add(m); };
+    if (id === "w_lathi") mk(new THREE.CylinderGeometry(0.018, 0.022, 1.45, 8), 0xc9a861, [0, 0.45, 0]);
+    else if (id === "w_bat") { mk(new THREE.CylinderGeometry(0.016, 0.018, 0.32, 8), 0x3a2a1a, [0, 0.12, 0]); mk(new THREE.BoxGeometry(0.1, 0.55, 0.04), 0xe0c58f, [0, 0.55, 0]); }
+    else if (id === "w_baton") { mk(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 10), 0x15161a, [0, 0.25, 0]); mk(new THREE.CylinderGeometry(0.022, 0.022, 0.05, 10), 0xf2c400, [0, 0.52, 0], [0, 0, 0], 0.4); }
+    else if (id === "w_spray") { mk(new THREE.CylinderGeometry(0.022, 0.022, 0.13, 12), 0xb3122e, [0, 0.07, 0.02]); mk(new THREE.CylinderGeometry(0.012, 0.012, 0.03, 8), 0x111111, [0, 0.15, 0.02]); }
+    else if (id === "w_pellet") { mk(new THREE.BoxGeometry(0.035, 0.11, 0.03), 0x2b2b30, [0, 0.04, 0.02], [0, 0, 0], 0.3); mk(new THREE.BoxGeometry(0.035, 0.03, 0.17), 0x3a3d44, [0, 0.1, 0.08], [0, 0, 0], 0.6); mk(new THREE.BoxGeometry(0.02, 0.01, 0.03), 0xf2c400, [0, 0.12, 0.15]); }
+    heldCache.set(id, g); proto = g;
+  }
+  return proto.clone();
+}

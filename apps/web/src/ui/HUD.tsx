@@ -13,7 +13,10 @@ import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
 import { Cutscene, Credits } from "./Story";
 import { ControlsGuide } from "./Controls";
+import { ShopPanel } from "./ShopPanel";
+import { StatusBars, VehicleNotice, KnockOut, InventoryPanel } from "./StatusHud";
 import { vehicleTelemetry } from "../game/refs";
+import { driftHud } from "../game/Vehicles";
 import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
@@ -51,8 +54,8 @@ export function HUD() {
       {/* top-left stats */}
       <div className="hud-stats">
         <Logo size={14} /><small aria-live="polite">{s.saveState === "error" ? "⚠ सेव नहीं हुआ" : s.lastSavedAt ? "✓ इस डिवाइस पर सेव" : ""}</small>
-        <div className="story-chip">{(() => { const n = nextChapter(s.profile?.missionsCompleted ?? []); return n ? t(`Chapter ${n.n}/8 · ${n.title}`, `अध्याय ${n.n}/8 · ${n.titleHi}`) : t("Story complete · free roam", "कहानी पूरी · खुला शहर"); })()}</div><div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
-        <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
+        <div className="story-chip">{(() => { const n = nextChapter(s.profile?.missionsCompleted ?? []); return n ? t(`Chapter ${n.n}/8 · ${n.title}`, `अध्याय ${n.n}/8 · ${n.titleHi}`) : t("Story complete · free roam", "कहानी पूरी · खुला शहर"); })()}</div>
+        <div>₹{(s.profile?.coins ?? 0).toLocaleString("en-IN")} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
   {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       </div>
@@ -70,16 +73,20 @@ export function HUD() {
       {s.settings.touch && <TouchControls onPause={() => setPanel("pause")} onChat={() => setPanel("quests")} onMap={() => setPanel("map")} />}
       {!s.settings.touch && !panel && <div className="hud-hint muted">{t("Esc menu · M map · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · 1-6 इमोट · F1 मदद")}</div>}
       <DialoguePanel />
+      <ShopPanel />
+      <StatusBars />
+      <VehicleNotice />
+      <KnockOut />
       <Cutscene />
       <Credits />
       {panel && <Panel kind={panel} close={() => setPanel(null)} open={setPanel} />}
     </div>
   );
 }
-function Speedo() { const [t, setT] = useState({ v: 0, name: "", rev: false, ind: 0, hl: "auto", cond: 100 }); useEffect(() => { const i = setInterval(() => { const s = useStore.getState(); setT({ v: Math.round(vehicleTelemetry.speed * 3.6), name: vehicleTelemetry.name, rev: vehicleTelemetry.reverse, ind: vehicleTelemetry.indicator, hl: s.settings.headlights ?? "auto", cond: s.vehicleCondition ?? 100 }); }, 100); return () => clearInterval(i); }, []);
+function Speedo() { const [t, setT] = useState({ v: 0, name: "", rev: false, ind: 0, hl: "auto", cond: 100 }); useEffect(() => { const i = setInterval(() => { const s = useStore.getState(); setT({ v: Math.round(vehicleTelemetry.speed * 3.6), name: vehicleTelemetry.name, rev: vehicleTelemetry.reverse, ind: vehicleTelemetry.indicator, hl: s.settings.headlights ?? "auto", cond: (() => { const id = s.inVehicle; const vh = id ? s.game.vehicleHealth[id] : undefined; return vh ? Math.round(Math.min(vh.engine, vh.body)) : 100; })() }); }, 100); return () => clearInterval(i); }, []);
   const max = Math.max(60, Math.round((SPECS_KMH[vehicleTelemetry.kind] ?? 120) / 20) * 20); const a = -120 + Math.min(1, t.v / max) * 240;
   return <div className="hud-speedo v2" aria-label={`${t.v} km/h`}><svg viewBox="0 0 120 80" className="speedo-dial"><path d="M14 70 A50 50 0 1 1 106 70" stroke="#ffffff22" strokeWidth="6" fill="none" /><path d="M14 70 A50 50 0 1 1 106 70" stroke="#e5c17b" strokeWidth="6" fill="none" strokeDasharray={`${Math.min(1, t.v / max) * 236} 400`} /><line x1="60" y1="60" x2="60" y2="22" stroke="#ff5a3c" strokeWidth="2.5" transform={`rotate(${a} 60 60)`} /></svg>
-    <b>{t.v}</b><small>km/h · {t.rev ? "R" : t.v > 0 ? "D" : "N"}</small><div className="speedo-meta"><span className={t.ind === -1 || t.ind === 2 ? "ind on" : "ind"}>◀</span><span title="Headlights">💡{t.hl === "auto" ? "A" : t.hl === "on" ? "●" : "○"}</span><span title="Condition">🔧{t.cond}%</span><span className={t.ind === 1 || t.ind === 2 ? "ind on" : "ind"}>▶</span></div><div className="speedo-name">{t.name}</div></div>; }
+    <b>{t.v}</b><small>km/h · {t.rev ? "R" : t.v > 0 ? "D" : "N"}</small><div className="speedo-meta"><span className={t.ind === -1 || t.ind === 2 ? "ind on" : "ind"}>◀</span><span title="Headlights">💡{t.hl === "auto" ? "A" : t.hl === "on" ? "●" : "○"}</span><span title="Condition">🔧{t.cond}%</span><span className={t.ind === 1 || t.ind === 2 ? "ind on" : "ind"}>▶</span></div><div className="speedo-name">{t.name}</div>{driftHud.active && <div className="drift-score">{useStore.getState().settings.lang === "english" ? "DRIFT" : "ड्रिफ्ट"} {driftHud.score}</div>}</div>; }
 const SPECS_KMH: Record<string, number> = Object.fromEntries(Object.entries(VEHICLE_SPECS).map(([k, v]) => [k, v.max * 3.6]));
 function Compass() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -164,8 +171,8 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
         <button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
 
       {kind === "quests" && <QuestPanel close={close} />}
-      {kind === "shop" && <ShopPanel close={close} />}
-      {kind === "inventory" && <ShopPanel close={close} inventory />}
+      {kind === "shop" && <LegacyMarket close={close} />}
+      {kind === "inventory" && <InventoryPanel close={close} />}
       {kind === "garage" && <GaragePanel close={close} />}
     </div>
   </div>;
@@ -189,7 +196,7 @@ function MapPanel({ close }: { close: () => void }) {
   return <><h2>{t("Kanpur — Civil Lines, The Mall, Kanpur Central", "कानपुर — सिविल लाइंस, मॉल रोड, कानपुर सेंट्रल")}</h2><canvas ref={ref} width={520} height={520} className="bigmap" /><p className="muted">{t("Map data © OpenStreetMap contributors (ODbL). Yellow dots: missions. 2.4 km view around you.", "नक्शा © OpenStreetMap contributors (ODbL)। पीले बिंदु: मिशन। आपके आसपास 2.4 किमी।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 
-function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolean }) {
+function LegacyMarket({ close, inventory }: { close: () => void; inventory?: boolean }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const equip = (slot: string, value: number) => { const a = { ...s.appearance, [slot]: value } as typeof s.appearance; s.set({ appearance: a }); s.saveLocal(); net.send({ t: "profile.update", appearance: a }); };
   const items = inventory ? SHOP_ITEMS.filter(i => s.profile?.unlocked.includes(i.id)) : SHOP_ITEMS;

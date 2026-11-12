@@ -38,7 +38,7 @@ await hair.transform(unpartition(), weld(), dedup(), prune(), tex(1024));
 await io.write(path.join(out, "kc_hair.glb"), hair);
 
 // Animations: keep only the clips the game maps to, drop the mannequin mesh.
-const KEEP = new Set(["Idle_Loop", "Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Jump_Start", "Jump_Loop", "Jump_Land", "Driving_Loop", "Sitting_Idle_Loop", "Sitting_Talking_Loop", "Idle_Talking_Loop", "Interact", "Dance_Loop", "PickUp_Table", "Crouch_Idle_Loop", "Walk_Formal_Loop", "Push_Loop", "Hit_Chest", "Punch_Jab", "Roll"]);
+const KEEP = new Set(["Idle_Loop", "Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Jump_Start", "Jump_Loop", "Jump_Land", "Driving_Loop", "Sitting_Idle_Loop", "Sitting_Talking_Loop", "Idle_Talking_Loop", "Interact", "Dance_Loop", "PickUp_Table", "Crouch_Idle_Loop", "Walk_Formal_Loop", "Push_Loop", "Hit_Chest", "Punch_Jab", "Roll", "Death01", "Hit_Head", "Pistol_Idle_Loop", "Pistol_Shoot", "Pistol_Aim_Neutral", "Pistol_Reload", "Sword_Attack", "Punch_Cross"]);
 const anim = await io.read(path.join(animDir, "Unreal-Godot/UAL1_Standard.glb"));
 for (const a of anim.getRoot().listAnimations()) if (!KEEP.has(a.getName())) a.dispose();
 for (const n of anim.getRoot().listNodes()) if (n.getMesh()) { n.getMesh().dispose(); n.setMesh(null); n.setSkin(null); }

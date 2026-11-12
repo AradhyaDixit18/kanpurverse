@@ -9,6 +9,13 @@ import {
   storyUnlocked,
   sideMissionsOpen,
   FINALE_ID,
+  newGameState,
+  item,
+  SHOPS,
+  VEHICLE_INFO,
+  shopDeliveryPoint,
+  type VehicleKind,
+  type GameState,
   SHOP_ITEMS,
   NPCS,
   PAAN_VENDOR,
@@ -106,6 +113,8 @@ class SoloSession {
         q: [0, Math.sin(v.ry / 2), 0, Math.cos(v.ry / 2)],
         v: 0,
       };
+    const savedGame = (save?.game as GameState | undefined) ?? newGameState();
+    savedGame.boughtVehicles.forEach((kind, i) => { const v = ownedVehicleSnapshot(kind as VehicleKind, i); vehicles[v.id] = v; });
     const def = MISSIONS.find((m) => m.id === save?.mission?.id),
       m = save?.mission;
     const mission =
@@ -142,11 +151,13 @@ class SoloSession {
       paused: false,
       missionResult: undefined,
       health: save?.health ?? 100,
+      game: savedGame, cleared: [], dead: undefined, shop: undefined, previewOutfit: undefined,
       ownedVehicles: save?.ownedVehicles ?? ["v_scooter_1"],
       collectibles: save?.collectibles ?? [],
       dialogue: undefined,
     });
     this.timer = setInterval(() => this.tick(), 250);
+    if (!this.respawnBound && typeof window !== "undefined") { this.respawnBound = true; window.addEventListener("kv:respawn", () => this.respawn()); }
     this.savedAt = Date.now();
     s.toast(
       save
@@ -165,12 +176,24 @@ class SoloSession {
     useStore.getState().set({ connected: false });
   }
   private storageWarned = false;
+  private respawnBound = false;
+  /** Wake up at City Hospital after a knock-out: bill paid from cash, full health, nothing else lost. */
+  respawn() {
+    const s = useStore.getState(); if (!s.profile || !s.dead) return; const bill = s.dead.bill;
+    const h = SHOPS.find(x => x.type === "hospital")!; const [x, z] = shopDeliveryPoint(h); const p: [number, number, number] = [x - 4, 1, z];
+    this.position = p; correction.p = p; correction.at = performance.now();
+    s.set({ dead: undefined, health: 100, inVehicle: undefined, seat: undefined, profile: { ...s.profile, coins: Math.max(0, s.profile.coins - bill) }, game: { ...s.game, stamina: 100, stats: { ...s.game.stats, deaths: s.game.stats.deaths + 1, spent: s.game.stats.spent + bill } } });
+    s.toast(tl(`सिटी हॉस्पिटल में होश आया। इलाज का बिल ₹${bill}।`, `You wake at City Hospital. Bill: ₹${bill}.`), "error"); this.save();
+  }
+  /** Deliver a newly bought vehicle beside the showroom. */
+  spawnOwned(kind: VehicleKind) { const s = useStore.getState(); const v = ownedVehicleSnapshot(kind, s.game.boughtVehicles.indexOf(kind)); s.set({ vehicles: { ...s.vehicles, [v.id]: v } }); }
   save() {
     const s = useStore.getState();
     if (!s.profile) return false;
     const m = s.mission;
     const saved = writeSoloSave({
-      version: 1,
+      version: 2,
+      game: s.game,
       savedAt: Date.now(),
       position: this.position,
       profile: {
@@ -212,7 +235,7 @@ class SoloSession {
   }
   private tick() {
     const s = useStore.getState();
-    if (s.paused || s.dialogue || s.cutscene || s.credits) {
+    if (s.paused || s.dialogue || s.cutscene || s.credits || s.shop || s.dead) {
       if (s.mission)
         s.set({
           mission: { ...s.mission, startedAt: s.mission.startedAt + 250 },
@@ -264,6 +287,7 @@ class SoloSession {
     )
       return;
     if (m.def.needsVehicle && !s.inVehicle) return;
+    if (m.def.enemies?.some(e => e.index === m.index) && !s.cleared.includes(`${m.def.id}:${m.index}`)) return;
     this.lastCheckpoint = Date.now();
     if (m.index + 1 < m.def.checkpoints.length) {
       s.set({ mission: { ...m, index: m.index + 1 } });
@@ -297,6 +321,8 @@ class SoloSession {
             ...new Set([...profile.missionsCompleted, m.def.id]),
           ],
         },
+        game: first && m.def.rewardItems?.length ? grantItems(s.game, m.def.rewardItems) : s.game,
+        cleared: s.cleared.filter(k => !k.startsWith(m.def.id + ":")),
         ownedVehicles:
           m.def.id === "laddoo_chakkar"
             ? [...new Set([...s.ownedVehicles, "v_hatch_1"])]
@@ -346,7 +372,10 @@ class SoloSession {
           Math.hypot(v.p[0] - this.position[0], v.p[2] - this.position[2]) > 6
         )
           return fail("गाड़ी के पास आओ।");
+        const info = VEHICLE_INFO[v.kind];
         s.set({
+          notice: { text: tl(`वाहन में प्रवेश किया: ${info.nameHi}`, `Entered: ${info.name}`), sub: tl(info.clsHi, info.cls), at: Date.now() },
+          lastVehicle: m.id,
           vehicles: { ...s.vehicles, [m.id]: { ...v, driver: "solo" } },
           inVehicle: m.id,
           seat: "driver",
@@ -501,3 +530,19 @@ class SoloSession {
 export const net = new SoloSession();
 if (typeof window !== "undefined")
   window.addEventListener("pagehide", () => net.save());
+
+/** Story/mission rewards: weapons go to the arsenal (with a full clip), consumables and ammo stack. */
+export function grantItems(game: GameState, ids: string[]): GameState {
+  const g = structuredClone(game);
+  for (const id of ids) { const it = item(id); if (!it) continue;
+    if (it.kind === "weapon") { if (!g.weapons.includes(id)) g.weapons.push(id); if (it.weapon?.clip) g.clip[id] = it.weapon.clip; }
+    else if (it.kind === "clothing") { if (!g.wardrobe.includes(id)) g.wardrobe.push(id); }
+    else g.items[id] = (g.items[id] ?? 0) + (it.packOf ?? 1); }
+  return g;
+}
+
+export function ownedVehicleSnapshot(kind: VehicleKind, i: number): VehicleSnapshot {
+  const d = SHOPS.find(x => x.type === "dealership")!; const [x, z] = shopDeliveryPoint(d); const c = Math.cos(d.yaw), n = Math.sin(d.yaw);
+  const ox = x + c * (Math.max(0, i) * 5.5), oz = z - n * (Math.max(0, i) * 5.5); const ry = d.yaw + Math.PI / 2;
+  return { id: `own_${kind}`, kind, p: [ox, VEHICLE_HEIGHT[kind] / 2 + 0.08, oz], q: [0, Math.sin(ry / 2), 0, Math.cos(ry / 2)], v: 0 };
+}

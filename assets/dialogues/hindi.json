@@ -521,6 +521,30 @@
       "text": "टॉमी, घाट चलो। मेरा भाई झील पर इंतज़ार कर रहा है।",
       "emotion": "warm",
       "mission": "story_06_ghat"
+    },
+    {
+      "id": "chai_munna.side_ghat",
+      "npc": "chai_munna",
+      "category": "mission_offer",
+      "text": "टॉमी, घाट पर सेठ के लड़के दीये वालों को धमका रहे हैं। जाकर भगाओगी?",
+      "emotion": "warm",
+      "mission": "side_ghat_guard"
+    },
+    {
+      "id": "shop_gupta.side_goods",
+      "npc": "shop_gupta",
+      "category": "mission_offer",
+      "text": "बेटी, दो लोग मेरे कपड़े के थान लेकर पीछे की गली में भागे हैं। ला दोगी?",
+      "emotion": "warm",
+      "mission": "side_stolen_goods"
+    },
+    {
+      "id": "auto_raju.side_tow",
+      "npc": "auto_raju",
+      "category": "mission_offer",
+      "text": "मैडम, पप्पू मिस्त्री को गाड़ी का टेस्ट ड्राइव चाहिए। पाँच मिनट में चक्कर लगाकर वापस लाना है।",
+      "emotion": "warm",
+      "mission": "side_mechanic_tow"
     }
   ]
 }

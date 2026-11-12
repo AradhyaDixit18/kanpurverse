@@ -519,6 +519,30 @@
       "text": "Tommy, head for the ghat. My brother is waiting at the lake.",
       "emotion": "warm",
       "mission": "story_06_ghat"
+    },
+    {
+      "id": "chai_munna.side_ghat",
+      "npc": "chai_munna",
+      "category": "mission_offer",
+      "text": "Tommy, the Seth's boys are bullying the diya-sellers at the ghat. Will you chase them off?",
+      "emotion": "warm",
+      "mission": "side_ghat_guard"
+    },
+    {
+      "id": "shop_gupta.side_goods",
+      "npc": "shop_gupta",
+      "category": "mission_offer",
+      "text": "Two men ran into the back lane with my cloth bales. Can you get them back?",
+      "emotion": "warm",
+      "mission": "side_stolen_goods"
+    },
+    {
+      "id": "auto_raju.side_tow",
+      "npc": "auto_raju",
+      "category": "mission_offer",
+      "text": "Pappu the mechanic needs a test drive. One loop and back in five minutes.",
+      "emotion": "warm",
+      "mission": "side_mechanic_tow"
     }
   ]
 }

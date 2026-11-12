@@ -16,6 +16,13 @@ afterEach(() => { net.disconnect(); vi.useRealTimers(); vi.unstubAllGlobals(); }
 function playActive() {
   const m = useStore.getState().mission!; const def = m.def;
   for (const [index, p] of def.checkpoints.entries()) {
+    // Combat objectives: the checkpoint must refuse to complete until its goons are knocked out.
+    if (def.enemies?.some(e => e.index === index)) {
+      net.sendState([p[0], 1, p[1]], 0, "walk"); vi.advanceTimersByTime(1000);
+      expect(useStore.getState().mission?.index).toBe(index);
+      useStore.getState().set({ cleared: [...useStore.getState().cleared, `${def.id}:${index}`] });
+      net.sendState([p[0] + 0.5, 1, p[1]], 0, "walk");
+    }
     net.sendState([p[0], 1, p[1]], 0, "walk"); vi.advanceTimersByTime(1000);
     if (def.kind === "photo") net.send({ t: "mission.checkpoint", id: def.id, index, p: [p[0], 1, p[1]] });
   }

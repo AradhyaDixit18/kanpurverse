@@ -21,11 +21,13 @@ export function bindInput(canvas: HTMLElement) {
   canvas.addEventListener("wheel", wheel, { passive: true });
   const pointerlock = () => { input.pointerLocked = document.pointerLockElement === canvas; };
   document.addEventListener("pointerlockchange", pointerlock);
+  const mdown = (e: MouseEvent) => { if (e.button === 0 && input.pointerLocked) input.pressedOnce.add("Mouse0"); };
+  canvas.addEventListener("mousedown", mdown);
   const click = () => { if (!input.pointerLocked && !input.touch.lookActive && !/Mobi|Android/i.test(navigator.userAgent)) canvas.requestPointerLock?.(); };
   canvas.addEventListener("click", click);
   return () => {
     window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", blur);
-    canvas.removeEventListener("mousemove", mousemove); canvas.removeEventListener("wheel", wheel); canvas.removeEventListener("click", click);
+    canvas.removeEventListener("mousemove", mousemove); canvas.removeEventListener("wheel", wheel); canvas.removeEventListener("click", click); canvas.removeEventListener("mousedown", mdown);
     document.removeEventListener("pointerlockchange", pointerlock); blur(); input.pointerLocked = false; bound = false;
   };
 }

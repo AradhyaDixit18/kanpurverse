@@ -18,6 +18,11 @@ import { Avatar } from "./Avatar";
 import { SPECS } from "./vehicleSpecs";
 export { SPECS } from "./vehicleSpecs";
 import { stepDriving, applyVehicleMotion, yawFromQuaternion } from "./driving";
+import { hurtPlayer } from "./combatRuntime";
+import { skid, endSkid } from "./SkidMarks";
+import { isDrifting, slipAngle } from "./driving";
+import { roadsNear, type Seg } from "./roads";
+import { crashDamage } from "./playerStatus";
 import { vehicleTelemetry, vehicleRuntime } from "./refs";
 export { vehicleTelemetry };
 
@@ -28,7 +33,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
   const initialPose = useRef({ p: snap.p, q: snap.q });
   const { world, rapier } = useRapier();
   const speed = useRef(0); const steer = useRef(0); const yaw = useRef(yawFromQuaternion(snap.q)); const spec = SPECS[snap.kind]; const color = VEHICLE_SPAWNS.find(s => s.id === snap.id)?.color ?? 0xffffff;
-  const lastHorn = useRef(0); const q = useMemo(() => new THREE.Quaternion(), []); const state = useRef<VehicleVisualState>({ speed: 0, steer: 0, brake: false }); const slip = useRef(0); const yawRate = useRef(0); const indicator = useRef<-1 | 0 | 1 | 2>(0); const lastSkid = useRef(0);
+  const lastHorn = useRef(0); const q = useMemo(() => new THREE.Quaternion(), []); const state = useRef<VehicleVisualState>({ speed: 0, steer: 0, brake: false }); const slip = useRef(0); const yawRate = useRef(0); const indicator = useRef<-1 | 0 | 1 | 2>(0); const lastSkid = useRef(0); const surfaceRef = useRef(1); const drift = useRef({ score: 0, until: 0 });
   useEffect(() => {
     vehicleBuf.delete(snap.id);
     return () => {
@@ -53,10 +58,18 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       const lv = rb.linvel();
       const actual = lv.x * Math.sin(yaw.current) + lv.z * Math.cos(yaw.current);
       const impact = Math.abs(speed.current) - Math.abs(actual);
-      if (impact > 3.5 && Math.abs(speed.current) > 4) { sfx.crash(Math.min(1, impact / 12)); s.set({ vehicleCondition: Math.max(0, (s.vehicleCondition ?? 100) - Math.round(impact * 1.5)) }); }
-      const next = stepDriving({ speed: speed.current, steer: steer.current, yaw: yaw.current, slip: slip.current, yawRate: yawRate.current }, spec, { throttle: fwd, steer: st, brake: false, handbrake }, actual, dt);
+      if (impact > 3.5 && Math.abs(speed.current) > 4) { sfx.crash(Math.min(1, impact / 12)); const vh = s.game.vehicleHealth[snap.id] ?? { engine: 100, body: 100 }; s.set({ game: { ...s.game, vehicleHealth: { ...s.game.vehicleHealth, [snap.id]: { body: Math.max(0, vh.body - Math.round(impact * 1.8)), engine: Math.max(15, vh.engine - Math.round(Math.max(0, impact - 6) * 1.2)) } } } }); hurtPlayer(crashDamage(impact), "crash"); }
+      const p0 = rb.translation(); const onRoad = roadsNear(p0.x, p0.z, 30).some(r => distToSeg(p0.x, p0.z, r) < r.w / 2 + 2.6); surfaceRef.current = onRoad ? 1 : 0.72;
+      const vh = s.game.vehicleHealth[snap.id]; const engineK = vh ? 0.55 + 0.45 * vh.engine / 100 : 1; const effSpec = engineK < 1 ? { ...spec, max: spec.max * engineK, accel: spec.accel * (0.6 + 0.4 * engineK) } : spec;
+      const next = stepDriving({ speed: speed.current, steer: steer.current, yaw: yaw.current, slip: slip.current, yawRate: yawRate.current }, effSpec, { throttle: fwd, steer: st, brake: false, handbrake, surface: surfaceRef.current, noSlide: spec.cls === "two" || spec.cls === "pedal" }, actual, dt);
       speed.current = next.speed; steer.current = next.steer; yaw.current = next.yaw; slip.current = next.slip ?? 0; yawRate.current = next.yawRate ?? 0;
       const brake = handbrake || (fwd < 0 && speed.current > 0.5) || (fwd > 0 && speed.current < -0.5);
+      // tyre marks + drift score: from the simulated slide, not an animation
+      const sliding = isDrifting(next) || (brake && Math.abs(speed.current) > 9 && spec.cls !== "pedal");
+      if (sliding) { const c = Math.cos(yaw.current), n = Math.sin(yaw.current), rz = -spec.wheelBase / 2, hw = spec.size[0] / 2 - 0.15; for (const side of spec.cls === "two" ? [0] : [-1, 1]) skid(`${snap.id}:${side}`, p0.x + side * hw * c + rz * n, p0.z - side * hw * n + rz * c, spec.cls === "heavy" ? 0.32 : 0.2); if (Math.random() < 0.5) puff(p0.x - Math.sin(yaw.current) * spec.size[2] * 0.4, p0.y - spec.size[1] / 2, p0.z - Math.cos(yaw.current) * spec.size[2] * 0.4, 1.8); }
+      else { endSkid(`${snap.id}:-1`); endSkid(`${snap.id}:1`); endSkid(`${snap.id}:0`); }
+      if (isDrifting(next) && spec.cls === "car") { drift.current.score += Math.abs(next.speed) * Math.abs(slipAngle(next)) * dt * 40; drift.current.until = performance.now() + 900; driftHud.score = Math.round(drift.current.score); driftHud.active = true; }
+      else if (drift.current.score > 0 && performance.now() > drift.current.until) { const best = Math.round(drift.current.score); if (best > 150) { s.toast(tl(`ड्रिफ्ट! +${best} अंक`, `Drift! +${best} points`), "reward"); if (best > s.game.stats.driftBest) s.set({ game: { ...s.game, stats: { ...s.game.stats, driftBest: best } } }); } drift.current.score = 0; driftHud.active = false; }
       if (!paused) { if (once("KeyL")) { const m = s.settings.headlights ?? "auto"; const nm = m === "auto" ? "on" : m === "on" ? "off" : "auto"; s.setSettings({ headlights: nm }); s.toast(tl(`हेडलाइट: ${nm === "auto" ? "अपने-आप" : nm === "on" ? "चालू" : "बंद"}`, `Headlights: ${nm}`)); }
         if (once("KeyZ")) indicator.current = indicator.current === -1 ? 0 : -1; if (once("KeyX")) indicator.current = indicator.current === 1 ? 0 : 1; if (once("KeyB")) indicator.current = indicator.current === 2 ? 0 : 2; }
       if (indicator.current === -1 && steer.current < -0.5 || indicator.current === 1 && steer.current > 0.5) indicator.current = 0;
@@ -128,3 +141,7 @@ function Headlamps({ kind, state }: { kind: VehicleKind; state: React.RefObject<
   const two = SPECS[kind].cls === "two"; const xs = two ? [0] : [-w * 0.3, w * 0.3];
   return <>{xs.map((x, i) => <group key={i}><spotLight ref={i ? b : a} position={[x, -h * 0.1, l / 2]} angle={0.5} penumbra={0.6} intensity={two ? 60 : 45} distance={45} decay={1.4} color="#fff1d6" castShadow={false} /><primitive object={i ? tb : ta} position={[x * 1.4, -h / 2, l / 2 + 14]} /></group>)}</>;
 }
+
+/** Live drift score for the HUD (mutated in the physics step, read on an interval). */
+export const driftHud = { score: 0, active: false };
+function distToSeg(x: number, z: number, r: Seg) { const dx = r.b[0] - r.a[0], dz = r.b[1] - r.a[1]; const l2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - r.a[0]) * dx + (z - r.a[1]) * dz) / l2)); return Math.hypot(x - r.a[0] - t * dx, z - r.a[1] - t * dz); }

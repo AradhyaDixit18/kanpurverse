@@ -9,6 +9,9 @@ import { Avatar } from "./Avatar";
 import { input, pollKeys, once, consumeLook, consumeZoom, clearOnce, camYaw } from "./input";
 export { camYaw };
 import { useStore, tl } from "../state/store";
+import { stepStamina, runtime, fallDamage, FALL } from "./playerStatus";
+import { hurtPlayer, attack, cycleWeapon, reload, equippedWeapon } from "./combatRuntime";
+import { SHOPS, shopCounterPoint } from "@kanpurverse/shared";
 import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
@@ -29,7 +32,7 @@ export function Player() {
   const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const wasGrounded = useRef(true); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
   const lastStreet = useRef(useStore.getState().streetAction?.at ?? -1);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
-  const appearance = useStore(s => s.appearance); const inVehicle = useStore(s => s.inVehicle);
+  const appearance = useStore(s => s.appearance); const outfit = useStore(s => s.previewOutfit ?? s.game.outfit); const weapon = useStore(s => s.game.equipped); const inVehicle = useStore(s => s.inVehicle);
   const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
 
   useEffect(() => { const c = createCharacterController(world); controller.current = c; return () => { world.removeCharacterController(c); }; }, [world]);
@@ -43,7 +46,7 @@ export function Player() {
     const spitting = action?.action === "spit" && elapsed < 450;
     if (action?.action === "spit" && lastStreet.current !== action.at) { lastStreet.current = action.at; window.dispatchEvent(new CustomEvent("kv:spit")); }
     if (consuming && lastStreet.current !== action?.at) { lastStreet.current = action!.at; sfx.packet(); vel.current = { x: 0, z: 0 }; }
-    const paused = s.paused || !!s.dialogue || !!s.cutscene || !!s.credits || consuming || spitting; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
+    const paused = s.paused || !!s.dialogue || !!s.cutscene || !!s.credits || !!s.shop || !!s.dead || consuming || spitting; const sens = s.settings.sensitivity * (s.settings.invertY ? -1 : 1);
     // camera orbit
     const look = consumeLook(); if (!paused) { camYaw.v -= look.dx * 0.0025 * s.settings.sensitivity; camYaw.pitch = THREE.MathUtils.clamp(camYaw.pitch + look.dy * 0.0025 * sens, -0.6, 1.1); }
     camYaw.dist = THREE.MathUtils.clamp(camYaw.dist + consumeZoom() * 0.6, 2.5, 12);
@@ -81,7 +84,8 @@ export function Player() {
     // movement relative to camera yaw
     let mx = 0, mz = 0; const fwd = paused ? 0 : input.fwd, right = paused ? 0 : input.right;
     if (fwd || right) { const len = Math.hypot(fwd, right) || 1; const f = fwd / len, r = right / len; const cy = camYaw.v; mx = -Math.sin(cy) * f + Math.cos(cy) * r; mz = -Math.cos(cy) * f - Math.sin(cy) * r; }
-    const moving = !!(mx || mz); const speed = input.sprint ? SPRINT : (Math.hypot(fwd, right) > 0.75 ? RUN : WALK);
+    const moving = !!(mx || mz); const st = stepStamina(runtime, input.sprint, moving, dt); runtime.stamina = st.stamina; runtime.exhausted = st.exhausted; runtime.sinceSprint = st.sinceSprint;
+    const speed = st.sprinting ? SPRINT : (Math.hypot(fwd, right) > 0.75 ? (runtime.exhausted ? WALK : RUN) : WALK);
     if (moving) { playerYaw.v = Math.atan2(mx, mz); emoteUntil.current = 0; }
     // gravity / jump
     if (grounded.current && once("Space") && !paused) { vy.current = JUMP_V; grounded.current = false; sfx.step(); }
@@ -89,7 +93,8 @@ export function Player() {
     // smooth acceleration/deceleration so starts, stops and turns don't snap
     const k = 1 - Math.exp(-dt * (moving ? 9 : 14)); vel.current.x += (mx * speed - vel.current.x) * k; vel.current.z += (mz * speed - vel.current.z) * k;
     const desired = { x: vel.current.x * dt, y: vy.current * dt, z: vel.current.z * dt };
-    const result = moveCharacter(rb, c, desired); const np = result.next;
+    const impactVy = vy.current; const result = moveCharacter(rb, c, desired); const np = result.next;
+    if (result.grounded && !grounded.current && impactVy < -FALL.safeSpeed) hurtPlayer(fallDamage(-impactVy), "fall");
     grounded.current = result.grounded; if (grounded.current && vy.current < 0) vy.current = -0.5;
     if (np.y < 0.3) { np.y = 2.2; vy.current = 0; } // never let the capsule sink below the ground plane (e.g. after a world reload)
     rb.setNextKinematicTranslation(np); playerPos.set(np.x, np.y - 0.95, np.z);
@@ -100,7 +105,7 @@ export function Player() {
     // animation state
     const now = performance.now();
     const movingVis = Math.hypot(vel.current.x, vel.current.z) > 0.4;
-    if (consuming) anim.current = elapsed < 650 ? "packet" : elapsed < 1250 ? "openpacket" : "consume"; else if (spitting) anim.current = "spit"; else if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = input.sprint && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
+    if (consuming) anim.current = elapsed < 650 ? "packet" : elapsed < 1250 ? "openpacket" : "consume"; else if (spitting) anim.current = "spit"; else if (emoteUntil.current > now) { /* keep emote */ } else if (!grounded.current) anim.current = vy.current > 0 ? "jump" : "fall"; else if (movingVis) anim.current = st.sprinting && moving ? "sprint" : Math.hypot(vel.current.x, vel.current.z) > WALK + 0.5 ? "run" : "walk"; else anim.current = "idle";
     if (moving && grounded.current) { stepT.current += dt * speed; if (stepT.current > 2.2) { stepT.current = 0; sfx.step(); if (speed >= RUN) puff(playerPos.x, playerPos.y, playerPos.z, speed === SPRINT ? 1 : 0.6); } }
     if (grounded.current && !wasGrounded.current) { puff(playerPos.x, playerPos.y, playerPos.z, 1.4); sfx.step(); } wasGrounded.current = grounded.current;
     if (vis.current) { vis.current.position.copy(playerPos); const prev = vis.current.rotation.y; vis.current.rotation.y = lerpAngle(prev, playerYaw.v, 1 - Math.exp(-dt * 12)); let dyaw = vis.current.rotation.y - prev; while (dyaw > Math.PI) dyaw -= 2 * Math.PI; while (dyaw < -Math.PI) dyaw += 2 * Math.PI; vis.current.rotation.z = THREE.MathUtils.lerp(vis.current.rotation.z, turnLean(dyaw, dt, Math.hypot(vel.current.x, vel.current.z)), 1 - Math.exp(-dt * 12)); }
@@ -111,6 +116,17 @@ export function Player() {
     // interaction probe
     probe(s, np);
     if ((once("KeyE") || once("KeyF")) && !paused) interact(s);
+    if (!paused && once("KeyT")) cycleWeapon();
+    if (!paused && once("KeyR")) reload();
+    if (!paused && (once("Mouse0") || once("KeyK"))) {
+      const w = equippedWeapon().def; const ranged = w?.cls === "ranged";
+      const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+      if (ranged) playerYaw.v = Math.atan2(camDir.x, camDir.z);
+      const facing = new THREE.Vector3(Math.sin(playerYaw.v), 0, Math.cos(playerYaw.v));
+      const origin = ranged ? camera.position.clone() : new THREE.Vector3(playerPos.x, playerPos.y + 1, playerPos.z);
+      attack(origin, ranged ? camDir : facing, target => { const d = target.clone().setY(target.y + 1.2).sub(origin); const len = d.length(); const hit = world.castRay(new rapier.Ray(origin, d.normalize()), len, true, undefined, undefined, undefined, rb); return !!hit && hit.timeOfImpact < len - 0.8; });
+      anim.current = ranged ? "shoot" : w ? "swing" : "punch"; emoteUntil.current = performance.now() + (ranged ? 260 : 480);
+    }
     const self = s.selfId ? s.players[s.selfId] : undefined;
     if (s.selfId !== "solo" && self && Math.hypot(self.p[0] - np.x, self.p[2] - np.z) > 6) { rb.setNextKinematicTranslation({ x: self.p[0], y: self.p[1] + 0.95, z: self.p[2] }); playerPos.set(self.p[0], self.p[1], self.p[2]); }
     if (anim.current !== animState) setAnimState(anim.current);
@@ -153,12 +169,14 @@ export function Player() {
     for (const v of Object.values(s.vehicles)) { const d = Math.hypot(v.p[0] - p.x, v.p[2] - p.z); if (d < Math.max(bd, 4.5) && !best) { bd = d; best = { kind: "vehicle", id: v.id, label: v.driver ? (s.settings.lang === "english" ? "Ride along" : "सवारी बनो") : (s.settings.lang === "english" ? `Drive the ${VEHICLE_INFO[v.kind].name} (${VEHICLE_INFO[v.kind].cls})` : `${VEHICLE_INFO[v.kind].nameHi} चलाओ (${VEHICLE_INFO[v.kind].clsHi})`) }; } }
     const m = s.mission; if (m && (m.def.kind === "photo" || m.def.kind === "social")) { const cp = m.def.checkpoints[m.index]; if (cp && Math.hypot(cp[0] - p.x, cp[1] - p.z) < m.def.radius) best = { kind: "checkpoint", id: m.def.id, label: m.def.id === "laddoo_chakkar" ? (s.settings.lang === "english" ? "Story action" : "कहानी आगे बढ़ाओ") : m.def.kind === "photo" ? (s.settings.lang === "english" ? "Take photo" : "फ़ोटो लो") : (s.settings.lang === "english" ? "Sit together" : "साथ बैठो") }; }
     if (!best) { for (const l of LANDMARKS) if (l.kind !== "park" && l.kind !== "ghat" && Math.hypot(l.p[0] - p.x, l.p[1] - p.z) < Math.min(l.r, 12) + 2) { best = { kind: "landmark", id: l.id, label: s.settings.lang === "english" ? l.name : l.nameHi }; break; } }
+    for (const sh of SHOPS) { const [cx, cz] = shopCounterPoint(sh); if (Math.hypot(cx - p.x, cz - p.z) < 2.2) best = { kind: "shop", id: sh.id, label: s.settings.lang === "english" ? `Talk to ${sh.keeper.name}` : `${sh.keeper.nameHi} से बात करो` }; }
     if (Math.hypot(p.x-456,p.z+345)<3) best = {kind:"checkpoint",id:"safehouse",label:"विश्राम / Save & heal"};
     if (best?.id !== s.nearby?.id || best?.label !== s.nearby?.label) s.set({ nearby: best });
   }
   function interact(s: ReturnType<typeof useStore.getState>) {
     const n = s.nearby; if (!n) return;
     if(n.id === "safehouse") { s.set({health:100}); if(net.save()) s.toast("सुरक्षित · Game saved", "reward"); return; }
+    if (n.kind === "shop") { s.set({ shop: n.id }); if (document.pointerLockElement) document.exitPointerLock(); return; }
     if (n.kind === "npc") { s.set({ dialogue: { npc: n.id, lineId: "" } }); if (document.pointerLockElement) document.exitPointerLock(); }
     else if (n.kind === "vehicle") { if (s.vehicleTransition) return; s.set({ vehicleTransition: "entering" }); const v = s.vehicles[n.id]; net.send({ t: "vehicle.enter", id: n.id, seat: v?.driver ? "passenger" : "driver" }); sfx.doorOpen(); }
     else if (n.kind === "checkpoint" && s.mission) { net.send({ t: "mission.checkpoint", id: s.mission.def.id, index: s.mission.index, p: [playerPos.x, playerPos.y, playerPos.z] }); if (s.mission.def.kind === "photo") { sfx.camera(); s.set({ toasts: s.toasts }); flash(); } }
@@ -179,7 +197,7 @@ export function Player() {
       <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[SPAWN_POINT[0], SPAWN_POINT[1] + 1, SPAWN_POINT[2]]} enabledRotations={[false, false, false]}>
         <CapsuleCollider args={[CHARACTER.halfHeight, CHARACTER.radius]} />
       </RigidBody>
-      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} protagonist speed={animState === "sprint" ? SPRINT : animState === "run" ? RUN : animState === "walk" ? WALK : undefined} /></group>
+      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} protagonist outfit={outfit} weapon={weapon} speed={animState === "sprint" ? SPRINT : animState === "run" ? RUN : animState === "walk" ? WALK : undefined} /></group>
     </>
   );
 }

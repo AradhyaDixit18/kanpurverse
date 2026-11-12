@@ -528,6 +528,33 @@
       "emotion": "warm",
       "mission": "story_06_ghat",
       "roman": "Tommy bitiya, ghaat pe chalo. Mera bhai jheel pe intezaar kar raha hai."
+    },
+    {
+      "id": "chai_munna.side_ghat",
+      "npc": "chai_munna",
+      "category": "mission_offer",
+      "text": "टॉमी बिटिया, घाट पे सेठ के लौंडे दीये वालों को धमकाय रहे हैं। जाके भगाओगी?",
+      "emotion": "warm",
+      "mission": "side_ghat_guard",
+      "roman": "Tommy bitiya, ghaat pe Seth ke launde diye walon ko dhamkaay rahe hain. Jaake bhagaogi?"
+    },
+    {
+      "id": "shop_gupta.side_goods",
+      "npc": "shop_gupta",
+      "category": "mission_offer",
+      "text": "बिटिया, दो लोग हमरे कपड़े के थान लेके पीछे वाली गली में भागे हैं। ला दोगी?",
+      "emotion": "warm",
+      "mission": "side_stolen_goods",
+      "roman": "Bitiya, do log hamre kapde ke thaan leke peechhe wali gali mein bhaage hain. La dogi?"
+    },
+    {
+      "id": "auto_raju.side_tow",
+      "npc": "auto_raju",
+      "category": "mission_offer",
+      "text": "मैडम, पप्पू मिस्त्री को गाड़ी का टेस्ट ड्राइव चाहिए। पाँच मिनट में चक्कर लगाके वापस लाना है।",
+      "emotion": "warm",
+      "mission": "side_mechanic_tow",
+      "roman": "Madam, Pappu mistri ko gaadi ka test drive chahiye. Paanch minute mein chakkar lagaake wapas laana hai."
     }
   ]
 }

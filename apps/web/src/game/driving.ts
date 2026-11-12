@@ -32,7 +32,7 @@ export interface DriveState {
   /** Last longitudinal and lateral acceleration, for suspension pitch/roll and audio. */
   accel?: number; lat?: number;
 }
-export interface DriveInput { throttle: number; steer: number; brake: boolean; handbrake?: boolean }
+export interface DriveInput { throttle: number; steer: number; brake: boolean; handbrake?: boolean; /** 1 on asphalt, ~0.7 on grass/dirt. */ surface?: number; /** Two-wheelers never slide sideways. */ noSlide?: boolean }
 
 const G = 9.81;
 export function yawFromQuaternion(q: readonly number[]) {
@@ -75,18 +75,28 @@ export function stepDriving(state: DriveState, spec: Handling, input: DriveInput
   const speedFactor = Math.max(0.22, 1 / (1 + (speed / fade) ** 2));
   const delta = steer * lock * speedFactor;
   let target = speed * Math.tan(delta) / wheelBase;                                                       // kinematic yaw rate
-  const grip = (spec.grip ?? 0.9) * (handbrake ? 1.9 : 1);
+  const surface = input.surface ?? 1;
+  const baseGrip = (spec.grip ?? 0.9) * surface;
+  const grip = baseGrip * (handbrake ? 1.9 : 1);
   const maxYaw = grip * G / Math.max(Math.abs(speed), 1);
-  target = Math.max(-maxYaw, Math.min(maxYaw, target));                                                   // understeer at the limit
+  // Rear axle slide (oversteer) feeds extra rotation into the turn; counter-steer (wheel against the slide) recovers.
+  let slip = state.slip ?? 0;
+  const counter = Math.sign(steer) !== 0 && Math.sign(steer) === -Math.sign(slip) && Math.abs(steer) > 0.15;
+  target = Math.max(-maxYaw, Math.min(maxYaw, target)) + (input.noSlide ? 0 : slip * 0.32 / Math.max(1, wheelBase));
   const prevRate = state.yawRate ?? 0;
   const yawRate = prevRate + (target - prevRate) * (1 - Math.exp(-dt * response));
   const yaw = state.yaw - yawRate * dt;
 
-  // Lateral slip: handbrake turns break the rear loose; otherwise grip pulls the car back into line.
-  let slip = state.slip ?? 0;
-  if (handbrake && Math.abs(speed) > 4) slip += Math.sign(yawRate * speed) * Math.min(6, Math.abs(yawRate * speed) * 0.5) * dt;
-  slip *= Math.exp(-dt * (handbrake ? 1.4 : 7 * (spec.grip ?? 0.9)));
-  if (Math.abs(slip) < 0.01) slip = 0;
+  // Lateral demand vs rear grip: handbrake, power-on at the limit or a slippery surface break the rear loose.
+  const lat = speed * yawRate, demand = Math.abs(lat) / G, rearGrip = baseGrip * (handbrake ? 0.45 : input.throttle > 0.6 && Math.abs(speed) > 9 ? 0.82 : 1) * (surface < 0.95 ? 0.7 : 1); // loose surfaces let the rear go first
+  if (!input.noSlide && Math.abs(speed) > 4) {
+    if (handbrake) slip += Math.sign(yawRate * speed) * Math.min(6, Math.abs(lat) * 0.5) * dt;
+    else if (demand > rearGrip) slip += Math.sign(yawRate * speed) * (demand - rearGrip) * G * 0.9 * dt;
+  }
+  const recovery = handbrake ? 1.4 : counter ? 9 * baseGrip : demand > rearGrip ? 1.2 : 7 * baseGrip;
+  slip *= Math.exp(-dt * recovery);
+  slip = Math.max(-9, Math.min(9, slip));
+  if (Math.abs(slip) < 0.01 || input.noSlide) slip = 0;
 
   return { speed, steer, yaw, slip, yawRate, accel: (speed - before) / dt, lat: speed * yawRate };
 }
@@ -101,3 +111,7 @@ export function applyVehicleMotion(body: import("@dimforge/rapier3d-compat").Rig
 
 /** Turning radius (m) at walking pace with full lock: used by tests and the vehicle info card. */
 export function turningRadius(spec: Handling) { const len = spec.size?.[2] ?? 4; return (spec.wheelBase ?? len * 0.6) / Math.tan(spec.steerLock ?? 0.5); }
+
+/** Slip angle (rad) between heading and travel direction; |β| above ~0.2 with speed is a drift. */
+export const slipAngle = (s: DriveState) => Math.atan2(s.slip ?? 0, Math.max(0.5, Math.abs(s.speed)));
+export const isDrifting = (s: DriveState) => Math.abs(s.speed) > 7 && Math.abs(slipAngle(s)) > 0.2;

@@ -26,7 +26,7 @@ export const Appearance = z.object({
 export type Appearance = z.infer<typeof Appearance>;
 
 export const AnimState = z.enum(["idle", "walk", "run", "sprint", "jump", "fall", "sit", "wave", "dance", "laugh",
-  "celebrate", "talk", "highfive", "drive", "punch", "packet", "openpacket", "consume", "spit"]);
+  "celebrate", "talk", "highfive", "drive", "punch", "packet", "openpacket", "consume", "spit", "swing", "shoot", "aim", "hit", "knockdown", "stunned"]);
 export type AnimState = z.infer<typeof AnimState>;
 
 export const Language = z.enum(["kanpuriya", "hindi", "english"]);
