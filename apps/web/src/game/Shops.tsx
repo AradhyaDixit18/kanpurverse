@@ -46,7 +46,7 @@ function Shop({ site }: { site: ShopSite }) {
   const accent = useMemo(() => m(`acc:${site.color}`, () => new THREE.MeshStandardMaterial({ color: site.color, roughness: 0.6 })), [site.color]);
   const signGlow = useMemo(() => new THREE.MeshStandardMaterial({ color: site.color, emissive: site.color, emissiveIntensity: 0.4, roughness: 0.5 }), [site.color]);
   const doorL = useRef<THREE.Group>(null), doorR = useRef<THREE.Group>(null), keeper = useRef<THREE.Group>(null), lamp = useRef<THREE.PointLight>(null);
-  const open = useRef(0); const garage = site.type === "garage"; const half = (W - DOOR) / 2;
+  const open = useRef(0); const garage = site.type === "garage"; const half = (W - DOOR) / 2; const inside = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     const c = Math.cos(site.yaw), n = Math.sin(site.yaw); const dx = playerPos.x - site.p[0], dz = playerPos.z - site.p[1];
     const lx = dx * c - dz * n, lz = dx * n + dz * c; // player in shop space
@@ -54,6 +54,8 @@ function Shop({ site }: { site: ShopSite }) {
     open.current += ((near ? 1 : 0) - open.current) * (1 - Math.exp(-dt * 6));
     if (doorL.current) doorL.current.position.x = -DOOR / 4 - open.current * DOOR / 2; if (doorR.current) doorR.current.position.x = DOOR / 4 + open.current * DOOR / 2;
     if (keeper.current) { const want = Math.abs(lx) < W / 2 && lz > -D / 2 && lz < D / 2 + 3 ? Math.atan2(lx - 0, lz + 2.4) : 0; keeper.current.rotation.y += (want - keeper.current.rotation.y) * (1 - Math.exp(-dt * 4)); }
+    // interior detail (racks, stock, keeper, lamp) only draws when the player is close: ~60 meshes per shop otherwise
+    if (inside.current) { const near2 = Math.hypot(dx, dz) < 28; if (inside.current.visible !== near2) inside.current.visible = near2; }
     if (lamp.current) lamp.current.intensity = 6 + nightFactor() * 10; signGlow.emissiveIntensity = 0.3 + nightFactor() * 1.8;
   });
   const talking = useStore(s => s.shop === site.id);
@@ -88,6 +90,7 @@ function Shop({ site }: { site: ShopSite }) {
     <Text position={[0, H + 0.72, D / 2 + 0.18]} fontSize={0.52} color="#fff6e0" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#1a1208">{site.sign}</Text>
     <Text position={[0, H + 0.28, D / 2 + 0.18]} fontSize={0.2} color="#f1e3c2" anchorX="center" anchorY="middle">{site.name}</Text>
     {/* counter + keeper */}
+    <group ref={inside}>
     <Box p={[0, 0.55, -1.9]} s={[4.4, 1.1, 0.7]} mat={site.type === "weapons" ? MAT.glass() : MAT.wood()} />
     <Box p={[0, 1.12, -1.9]} s={[4.5, 0.06, 0.8]} mat={MAT.dark()} />
     <group ref={keeper} position={[0, 0.12, -2.7]}><Avatar appearance={keeperLook(site)} anim={talking ? "talk" : "idle"} name={site.keeper.nameHi} nameColor="#ffd23f" /></group>
@@ -95,6 +98,7 @@ function Shop({ site }: { site: ShopSite }) {
     <pointLight ref={lamp} position={[0, H - 0.6, 0]} intensity={8} distance={14} decay={1.6} color="#fff0d8" />
     <Box p={[0, H - 0.04, 0]} s={[W * 0.6, 0.04, 0.6]} mat={m("panel", () => new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff3dc, emissiveIntensity: 1.4 }))} cast={false} />
     <Interior site={site} accent={accent} />
+    </group>
   </group>;
 }
 

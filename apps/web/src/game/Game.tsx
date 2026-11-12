@@ -50,12 +50,15 @@ function CameraFar() { const far = useGraphics().cameraFar; const { camera } = u
  * clean frames, and never change more often than every 6 s.
  */
 function AdaptiveResolution() {
-  const setDpr = useThree(s => s.setDpr); const g = useGraphics(); const cur = useRef(g.dpr[1]); const acc = useRef({ t: 0, n: 0, slow: 0, slowWindows: 0, cleanFor: 0, lastChange: 0 });
+  const setDpr = useThree(s => s.setDpr); const g = useGraphics(); const cur = useRef(g.dpr[1]); const acc = useRef<{ t: number; n: number; slow: number; slowWindows: number; cleanFor: number; lastChange: number; dropShare?: number; holdUntil?: number }>({ t: 0, n: 0, slow: 0, slowWindows: 0, cleanFor: 0, lastChange: 0 });
   useEffect(() => { cur.current = Math.min(window.devicePixelRatio, g.dpr[1]); setDpr(cur.current); }, [g.dpr, setDpr]);
   useFrame(({ clock }, dt) => { if (!g.adaptive) return; const a = acc.current; a.t += dt; a.n++; if (dt > 0.021) a.slow++; if (a.t < 2) return;
     const share = a.slow / a.n; a.t = 0; a.n = 0; a.slow = 0; a.slowWindows = share > 0.3 ? a.slowWindows + 1 : 0; a.cleanFor = share < 0.02 ? a.cleanFor + 2 : 0;
     const now = clock.elapsedTime; if (now - a.lastChange < 6) return; const max = Math.min(window.devicePixelRatio, g.dpr[1]), min = g.dpr[0];
-    if (a.slowWindows >= 2 && cur.current > min + 0.01) { cur.current = Math.max(min, cur.current - 0.15); a.lastChange = now; a.slowWindows = 0; setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); }
+    // CPU-bound guard: if the previous drop did not help, lowering resolution only blurs the image. Restore and hold.
+    if (a.dropShare !== undefined && now - a.lastChange >= 6 && now - a.lastChange < 12) { if (share > a.dropShare * 0.8) { cur.current = Math.min(max, cur.current + 0.15); setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); a.holdUntil = now + 60; } a.dropShare = undefined; return; }
+    if (now < (a.holdUntil ?? 0)) return;
+    if (a.slowWindows >= 2 && cur.current > min + 0.01) { a.dropShare = share; cur.current = Math.max(min, cur.current - 0.15); a.lastChange = now; a.slowWindows = 0; setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); }
     else if (a.cleanFor >= 10 && cur.current < max - 0.01) { cur.current = Math.min(max, cur.current + 0.1); a.lastChange = now; a.cleanFor = 0; setDpr(cur.current); useStore.getState().set({ renderScale: cur.current }); } });
   return null;
 }

@@ -130,7 +130,7 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   const src = app.body === "f" ? a.female : a.male;
   const root = cloneSkinned(src.scene) as THREE.Group;
   let body: THREE.SkinnedMesh | null = null;
-  root.traverse(o => { const m = o as THREE.SkinnedMesh; if (m.isSkinnedMesh) { m.castShadow = true; m.frustumCulled = false; if (!body || m.geometry.getAttribute("position").count > body.geometry.getAttribute("position").count) body = m; } });
+  root.traverse(o => { const m = o as THREE.SkinnedMesh; if (m.isSkinnedMesh) { m.castShadow = protagonist || /Superhero|SuperHero/.test(m.name); m.frustumCulled = false; if (!body || m.geometry.getAttribute("position").count > body.geometry.getAttribute("position").count) body = m; } });
   if (!body) return { root };
   const b = body as THREE.SkinnedMesh; const bones = b.skeleton.bones;
   // skin tone
@@ -141,7 +141,7 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   for (const hn of hairNames) {
     let hm: THREE.SkinnedMesh | undefined; for (const sc of a.hair.scenes) sc.traverse(o => { if ((o as THREE.SkinnedMesh).isSkinnedMesh && o.name === hn) hm = o as THREE.SkinnedMesh; });
     if (hm) { const mat = (hm.material as THREE.MeshStandardMaterial).clone(); mat.color.setHex(HAIR_COLORS[app.hairColor] ?? 0x1a1a1a).multiplyScalar(2.2); mat.roughness = 0.55;
-      const mesh = new THREE.SkinnedMesh(hm.geometry, mat); mesh.castShadow = true; mesh.frustumCulled = false; b.parent!.add(mesh);
+      const mesh = new THREE.SkinnedMesh(hm.geometry, mat); mesh.castShadow = protagonist; mesh.frustumCulled = false; b.parent!.add(mesh);
       mesh.bind(new THREE.Skeleton(bones, hm.skeleton.boneInverses), b.bindMatrix); }
   }
   // clothing shells
@@ -149,7 +149,7 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   const thighL = bones.find(x => x.name === "thigh_l"), calfL = bones.find(x => x.name === "calf_l");
   const kneeY = calfL && thighL ? new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(b.skeleton.boneInverses[bones.indexOf(calfL)]).invert()).y : 0.5;
   const hipY = thighL ? new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(b.skeleton.boneInverses[bones.indexOf(thighL)]).invert()).y : 0.9;
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material) => { const m = new THREE.SkinnedMesh(geo, mat); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; b.parent!.add(m); m.bind(b.skeleton, b.bindMatrix); };
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material) => { const m = new THREE.SkinnedMesh(geo, mat); m.castShadow = protagonist; m.receiveShadow = true; m.frustumCulled = false; b.parent!.add(m); m.bind(b.skeleton, b.bindMatrix); };
   // Protagonist clothes come from the wardrobe (economy catalogue); NPCs from their appearance palette.
   const pick = (id?: string) => (id ? item(id)?.clothing : undefined);
   const pt = protagonist ? pick(outfit?.top) : undefined, pb = protagonist ? pick(outfit?.bottom) : undefined, ps = protagonist ? pick(outfit?.shoes) : undefined;

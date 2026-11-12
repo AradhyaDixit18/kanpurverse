@@ -92,14 +92,16 @@ function greenhouseGeometry(kind: VehicleKind) {
 }
 
 // ───────────────────────────── shared parts ─────────────────────────────
+const fineGroups = new WeakMap<THREE.Group[], THREE.Group[]>();
 function Wheel({ x, y, z, R, width, front, spokes = 5, wheels, fronts, i }: { x: number; y: number; z: number; R: number; width: number; front?: boolean; spokes?: number; wheels: RefObject<THREE.Group[]>; fronts: RefObject<THREE.Group[]>; i: number }) {
+  const register = (g: THREE.Group | null) => { if (!g || !wheels.current) return; const list = fineGroups.get(wheels.current) ?? []; if (!list.includes(g)) list.push(g); fineGroups.set(wheels.current, list); };
   const side = Math.sign(x) || 1;
   return <group position={[x, y, z]} ref={el => { if (el && front) fronts.current[i] = el; }}>
     <group ref={el => { if (el) wheels.current[i] = el; }}>
       <mesh rotation={[0, 0, Math.PI / 2]} material={M.tyre()} castShadow><cylinderGeometry args={[R, R, width, 22]} /></mesh>
       <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.002), 0, 0]} material={M.rim()}><cylinderGeometry args={[R * 0.62, R * 0.62, 0.02, 18]} /></mesh>
-      <group>{Array.from({ length: spokes }, (_, k) => <mesh key={k} position={[side * (width / 2 + 0.012), 0, 0]} rotation={[(k / spokes) * Math.PI * 2, 0, 0]} material={M.trim()}><boxGeometry args={[0.012, R * 1.1, 0.05]} /></mesh>)}</group>
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.02), 0, 0]} material={M.chrome()}><cylinderGeometry args={[R * 0.14, R * 0.14, 0.02, 10]} /></mesh>
+      <group ref={register}>{Array.from({ length: spokes }, (_, k) => <mesh key={k} position={[side * (width / 2 + 0.012), 0, 0]} rotation={[(k / spokes) * Math.PI * 2, 0, 0]} material={M.trim()}><boxGeometry args={[0.012, R * 1.1, 0.05]} /></mesh>)}
+      <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.02), 0, 0]} material={M.chrome()}><cylinderGeometry args={[R * 0.14, R * 0.14, 0.02, 10]} /></mesh></group>
     </group>
   </group>;
 }
@@ -325,7 +327,9 @@ export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lights
     lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.25; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;
     const ind = st?.indicator ?? 0; const blink = Math.floor(clock.elapsedTime * 2.6) % 2 === 0;
     lm.indL.emissiveIntensity = blink && (ind === -1 || ind === 2) ? 3 : 0; lm.indR.emissiveIntensity = blink && (ind === 1 || ind === 2) ? 3 : 0;
-    if (detail.current && body.current) { body.current.getWorldPosition(_me); camera.getWorldPosition(_cam); detail.current.visible = _me.distanceToSquared(_cam) < 45 * 45; }
+    if (body.current) { body.current.getWorldPosition(_me); camera.getWorldPosition(_cam); const d2 = _me.distanceToSquared(_cam);
+      if (detail.current) detail.current.visible = d2 < 45 * 45;
+      const fine = d2 < 28 * 28; for (const g of fineGroups.get(wheels.current) ?? []) if (g.visible !== fine) g.visible = fine; } // spokes/hubs: 24 meshes per car
   });
   const props = { kind, color, lm, wheels, fronts, detail };
   return <group ref={body}>{s.cls === "car" ? <Car {...props} /> : s.cls === "two" ? <TwoWheeler {...props} /> : s.cls === "heavy" ? <Heavy {...props} /> : <ThreeWheeler {...props} />}</group>;
