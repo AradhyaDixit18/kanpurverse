@@ -29,3 +29,7 @@ THIRD_INSTAGRAM_REEL/VOICEOVER/*concat.txt
 
 __pycache__/
 *.pyc
+
+# Preserved pre-overhaul worktree and real capture outputs
+/FEATURES/Graphics_Baseline/
+/docs/visual-overhaul/captures/

@@ -14,7 +14,9 @@ import { PaanKiosk } from "./PaanKiosk";
 import { Player } from "./Player";
 import { NPCs } from "./NPCs";
 import { Vehicles } from "./Vehicles";
-import { RemotePlayers } from "./Remote";
+import { Boulevard } from "./Boulevard";
+import { FestivalChase } from "./FestivalChase";
+import { StoryWorld } from "./StoryWorld";
 import { Sky } from "./Sky";
 import { MissionMarkers } from "./Missions";
 import { Traffic } from "./Traffic";
@@ -40,10 +42,10 @@ export function Game({ qaScenario }: { qaScenario?: "vehicles" } = {}) {
   const qa = process.env.NODE_ENV === "development" && qaScenario === "vehicles";
   const quality = useStore(s => s.settings.quality);
   return (
-    <Canvas data-engine="kanpurverse" shadows={quality !== "low"} dpr={quality === "high" ? [1, 1.75] : quality === "low" ? [0.75, 1] : [1, 1.25]} camera={{ fov: 60, near: 0.1, far: 900, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: quality !== "low", powerPreference: "high-performance" }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
+    <Canvas data-engine="kanpurverse" shadows={quality !== "low"} dpr={quality === "ultra" ? [1, 1.75] : quality === "high" ? [1, 1.5] : quality === "low" ? [0.75, 1] : [1, 1.25]} camera={{ fov: 60, near: 0.1, far: 900, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: quality !== "low", powerPreference: "high-performance" }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
       <Suspense fallback={<SceneLoading />}>
         <WorldClock /><Physics gravity={[0, -18, 0]} timeStep={1 / 60}>
-          {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="animals"><Animals /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <PaanKiosk />}<Vehicles /><RemotePlayers /><Dust />
+          {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="animals"><Animals /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />
         </Physics>
       </Suspense>
       {process.env.NODE_ENV === "development" && <FrameProbe />}<Effects /><Bind /><Fps /><AdaptiveDpr />

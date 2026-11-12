@@ -2,13 +2,13 @@
   "name": "kanpurverse",
   "private": true,
   "version": "0.1.0",
-  "description": "KanpurVerse \u2014 a multiplayer open-world browser game inspired by Kanpur. A Velto Studios product.",
+  "description": "KanpurVerse \u2014 a single-player open-world story browser game inspired by Kanpur. A Velto Studios product.",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/server & npm run dev --workspace=apps/web",
+    "dev": "npm run dev --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:server": "npm run dev --workspace=apps/server",
     "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/server && npm run build --workspace=apps/web",

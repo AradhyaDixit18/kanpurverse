@@ -1,0 +1,5 @@
+apps/web/src/net/client.ts 182ms
+apps/web/src/state/soloSave.ts 16ms
+apps/web/src/game/StoryWorld.tsx 58ms
+apps/web/src/game/Boulevard.tsx 36ms
+tests/solo.test.ts 37ms

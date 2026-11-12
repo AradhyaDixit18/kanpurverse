@@ -1,0 +1,16 @@
+
+> kanpurverse@0.1.0 typecheck
+> npm run typecheck --workspaces --if-present
+
+
+> @kanpurverse/server@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @kanpurverse/web@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @kanpurverse/shared@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+

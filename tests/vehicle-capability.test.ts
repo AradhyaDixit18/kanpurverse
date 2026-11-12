@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { net } from "../apps/web/src/net/client";
+import { net } from "../apps/web/src/net/legacyClient";
 import { useStore } from "../apps/web/src/state/store";
 import { VEHICLE_EXIT_CAPABILITY } from "../packages/shared/src/index";
 let send: ReturnType<typeof vi.fn>;

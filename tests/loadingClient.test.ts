@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { NetClient } from "../apps/web/src/net/client";
+import { NetClient } from "../apps/web/src/net/legacyClient";
 import { useStore } from "../apps/web/src/state/store";
 class SilentSocket {
   static CONNECTING=0;static OPEN=1;static CLOSING=2;static CLOSED=3;static instances:SilentSocket[]=[];

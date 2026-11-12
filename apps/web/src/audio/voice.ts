@@ -33,7 +33,7 @@ export async function speak(line: DialogueLine, npcId: string): Promise<void> {
   stopVoice();
   const m = await manifest(lang); const entry = m[line.id];
   if (entry) {
-    return new Promise<void>(res => { const a = new Audio(entry.file); a.volume = s.settings.dialogue; current = a; a.onended = () => { if (current === a) current = null; res(); }; a.onerror = () => { current = null; speakBrowser(line, npcId, lang).then(res); }; a.play().catch(() => speakBrowser(line, npcId, lang).then(res)); });
+    return new Promise<void>(res => { const a = new Audio(entry.file); a.volume = s.settings.dialogue * useStore.getState().settings.master; current = a; a.onended = () => { if (current === a) current = null; res(); }; a.onerror = () => { current = null; speakBrowser(line, npcId, lang).then(res); }; a.play().catch(() => speakBrowser(line, npcId, lang).then(res)); });
   }
   return speakBrowser(line, npcId, lang);
 }
@@ -43,7 +43,7 @@ function speakBrowser(line: DialogueLine, npcId: string, lang: Language): Promis
     if (typeof speechSynthesis === "undefined") return setTimeout(res, 2500);
     const profKey = line.voice ?? NPCS.find(n => n.id === npcId)?.voice ?? "male_young"; const prof = VOICE_PROFILES[profKey];
     const u = new SpeechSynthesisUtterance(lang === "english" ? line.text : line.text);
-    u.lang = lang === "english" ? "en-IN" : "hi-IN"; u.rate = 0.95 + (parseInt(prof?.rate ?? "0") || 0) / 100; u.pitch = 1 + (parseInt(prof?.pitch ?? "0") || 0) / 40; u.volume = useStore.getState().settings.dialogue;
+    u.lang = lang === "english" ? "en-IN" : "hi-IN"; u.rate = 0.95 + (parseInt(prof?.rate ?? "0") || 0) / 100; u.pitch = 1 + (parseInt(prof?.pitch ?? "0") || 0) / 40; u.volume = useStore.getState().settings.dialogue * useStore.getState().settings.master;
     const v = voicesReady ? pickBrowserVoice(lang, prof?.browserGender ?? "male") : undefined; if (v) u.voice = v;
     u.onend = () => res(); u.onerror = () => res();
     speechSynthesis.speak(u);

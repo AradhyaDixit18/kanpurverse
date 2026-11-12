@@ -16,16 +16,16 @@ import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
-  const s = useStore(useShallow(s => ({ settings:s.settings, profile:s.profile, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
+  const s = useStore(useShallow(s => ({ settings:s.settings, profile:s.profile, missionResult:s.missionResult, health:s.health, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
       if (e.code === "Escape" && useStore.getState().dialogue) return;
       if (e.code === "Escape") { setPanel(p => p ? null : "pause"); if (document.pointerLockElement) document.exitPointerLock(); }
-      if (e.code === "KeyM") setPanel(p => p === "map" ? null : "map"); if (e.code === "Tab") { e.preventDefault(); setPanel(p => p === "social" ? null : "social"); }
-      if (e.code === "Enter" || e.code === "KeyT") { setShowChat(true); if (document.pointerLockElement) document.exitPointerLock(); }
+      if (e.code === "KeyM") setPanel(p => p === "map" ? null : "map"); 
+      
       if (e.code === "F1") { e.preventDefault(); setPanel(p => p === "help" ? null : "help"); }
       if (e.code === "KeyI") setPanel(p => p === "inventory" ? null : "inventory");
       if (e.code === "KeyJ") setPanel(p => p === "quests" ? null : "quests");
@@ -39,21 +39,23 @@ export function HUD() {
   const sub = s.subtitle && s.subtitle.until > Date.now() ? s.subtitle : undefined;
   const [, tick] = useState(0); useEffect(() => { const i = setInterval(() => tick(x => x + 1), 250); return () => clearInterval(i); }, []);
   const m = s.mission; const left = m?.def.timeLimitSec ? Math.max(0, m.def.timeLimitSec - (Date.now() - m.startedAt) / 1000) : undefined;
-  const online = s.online;
+  
 
   if (photo) return <div className="hud photo"><div className="photo-hint">{t("Photo mode — P to exit · drag to look · wheel to zoom", "फ़ोटो मोड — P से बाहर · देखने के लिए खींचो · ज़ूम के लिए व्हील")}</div><Compass /></div>;
   return (
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
+      {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPURVERSE</small><h2>{s.missionResult.success ? "MISSION PASSED" : "MISSION FAILED"}</h2><p>{MISSIONS.find(m=>m.id===s.missionResult?.id)?.nameHi}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>Continue · आगे चलो</button></div>}
       <Compass />
       {/* top-left stats */}
       <div className="hud-stats">
         <Logo size={14} />
+        <div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
-        <div className="muted">{online} online · {s.ping} ms{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
+        <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
       </div>
       {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       {/* mission tracker */}
-      {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
+      {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{m.def.id === "laddoo_chakkar" ? ["बबलू: सुनहरी मिठाई के दरवाज़े तक चलो। E से बात आगे बढ़ाओ।", "अंदर जाओ। सुनहरा लड्डू सामने है — E से उठाओ।", "मेले का खेल! Marshal से बचकर राजू के स्टैंड पहुँचो। E दबाओ।", "बबलू के पास लौटो और E से इनाम लो।"][m.index] : t(m.def.desc, m.def.descHi)}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
       {s.nearby && !s.dialogue && !(s.inVehicle && s.nearby.kind === "vehicle") && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
       {s.inVehicle && s.seat === "driver" && <Speedo />}
@@ -62,11 +64,9 @@ export function HUD() {
       {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && <div className="roman">{sub.roman}</div>}</div>}
       {/* toasts */}
       <div className="hud-toasts">{s.toasts.map(x => <div key={x.id} className={`toast ${x.kind}`}>{x.text}</div>)}</div>
-      {/* invites */}
-      {s.invites.map(i => <div key={i.from} className="hud-invite">{i.name} {t("invited you to a party", "ने पार्टी में बुलाया")} <button className="btn btn-accent" onClick={() => { net.send({ t: "social", action: "party.accept", target: i.from }); s.set({ invites: s.invites.filter(x => x.from !== i.from) }); }}>{t("Join", "जुड़ो")}</button><button className="btn-ghost" onClick={() => s.set({ invites: s.invites.filter(x => x.from !== i.from) })}>✕</button></div>)}
-      <Minimap /> <Chat open={showChat} setOpen={setShowChat} />
-      {s.settings.touch && <TouchControls onPause={() => setPanel("pause")} onChat={() => setShowChat(true)} onMap={() => setPanel("map")} />}
-      {!s.settings.touch && !panel && <div className="hud-hint muted">{t("Esc menu · M map · Tab social · T chat · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · Tab सोशल · T चैट · 1-6 इमोट · F1 मदद")}</div>}
+      <Minimap />
+      {s.settings.touch && <TouchControls onPause={() => setPanel("pause")} onChat={() => setPanel("quests")} onMap={() => setPanel("map")} />}
+      {!s.settings.touch && !panel && <div className="hud-hint muted">{t("Esc menu · M map · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · 1-6 इमोट · F1 मदद")}</div>}
       <DialoguePanel />
       {panel && <Panel kind={panel} close={() => setPanel(null)} open={setPanel} />}
     </div>
@@ -108,22 +108,6 @@ function Minimap() {
   return <canvas ref={ref} width={160} height={160} className="hud-minimap" />;
 }
 
-function Chat({ open, setOpen }: { open: boolean; setOpen: (b: boolean) => void }) {
-  const chat = useStore(s => s.chat); const [text, setText] = useState(""); const inp = useRef<HTMLInputElement>(null); const list = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (open) inp.current?.focus(); }, [open]); useEffect(() => { list.current?.scrollTo(0, 1e6); }, [chat]);
-  const send = () => { const t = text.trim(); if (t) { if (t.startsWith("/")) cmd(t); else net.send({ t: "chat", text: t.slice(0, 160) }); } setText(""); setOpen(false); };
-  return <div className={`hud-chat ${open ? "open" : ""}`}><div ref={list} className="chat-list">{chat.slice(-12).map((m, i) => <div key={i} className={m.system ? "sys" : ""}>{m.system ? m.text : <><b>{m.name}:</b> {m.text}</>}</div>)}</div>
-    {open && <input ref={inp} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); if (e.key === "Escape") { setOpen(false); setText(""); } }} maxLength={160} placeholder="Say something… (/help)" />}</div>;
-}
-function cmd(t: string) {
-  const s = useStore.getState(); const [c, ...rest] = t.slice(1).split(" "); const target = Object.values(s.players).find(p => p.name.toLowerCase() === (rest[0] ?? "").toLowerCase());
-  if (c === "help") return s.pushChat({ from: "sys", name: "", text: "/invite name · /friend name · /mute name · /block name · /report name reason · /leave", at: Date.now(), system: true });
-  if (c === "leave") return net.send({ t: "social", action: "party.leave", target: "-" });
-  if (!target) return s.toast("Player not found", "error");
-  const map: Record<string, string> = { invite: "party.invite", friend: "friend.add", mute: "mute", block: "block", report: "report" };
-  if (map[c]) net.send({ t: "social", action: map[c] as never, target: target.id, reason: rest.slice(1).join(" ") || undefined });
-}
-
 const TouchButton = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button aria-label={label === "⏏" ? "Exit vehicle" : label === "🛑" ? "Brake" : label === "⤒" ? "Jump" : label} className={`tbtn ${cls}`} onClick={() => touchPress(code)} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
 
 function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat: () => void; onMap: () => void }) {
@@ -146,7 +130,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
       {inVehicle && <TouchButton code="KeyH" label="📯" />}{inVehicle && <TouchButton code="Space" label="🛑" />}
       <TouchButton code="Digit1" label="👋" />
     </div>
-    <div className="tbar"><button className="tbtn" onClick={onPause}>☰</button><button className="tbtn" onClick={onMap}>🗺</button><button className="tbtn" onClick={onChat}>💬</button></div>
+    <div className="tbar"><button className="tbtn" onClick={onPause}>☰</button><button className="tbtn" onClick={onMap}>🗺</button><button className="tbtn" onClick={onChat}>◆</button></div>
   </>;
 }
 
@@ -158,7 +142,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
         <div className="menu-col">
           <button className="btn btn-accent" onClick={close}>{t("Resume", "जारी रखो")}</button>
           <button className="btn" onClick={() => open("map")}>{t("Map", "नक्शा")}</button>
-          <button className="btn" onClick={() => open("social")}>{t("Players & party", "खिलाड़ी और पार्टी")}</button>
+          <button className="btn" onClick={() => { if(net.save()) s.toast(t("Game saved on this device", "गेम इसी डिवाइस पर सेव हुआ")); }}>{t("Save game", "गेम सेव करो")}</button>
           <button className="btn" onClick={() => open("quests")}>{t("Missions log", "मिशन लॉग")}</button>
           <button className="btn" onClick={() => open("inventory")}>{t("Inventory & character", "इन्वेंटरी और किरदार")}</button>
           <button className="btn" onClick={() => open("settings")}>{t("Settings", "सेटिंग्स")}</button>
@@ -171,10 +155,10 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
       {kind === "help" && <><h2>{t("Controls", "कंट्रोल")}</h2><div className="help-grid">
         <div><kbd>W A S D</kbd> {t("move", "चलो")}</div><div><kbd>Shift</kbd> {t("sprint", "दौड़ो")}</div><div><kbd>Space</kbd> {t("jump / brake", "कूदो / ब्रेक")}</div><div><kbd>Mouse</kbd> {t("look (click to lock)", "कैमरा (क्लिक करो)")}</div>
         <div><kbd>E</kbd> {t("talk / enter / photo", "बात / चढ़ो / फ़ोटो")}</div><div><kbd>F</kbd> {t("exit vehicle", "गाड़ी से उतरो")}</div><div><kbd>H</kbd> {t("horn", "हॉर्न")}</div><div><kbd>1–6</kbd> {t("emotes: wave, dance, laugh, celebrate, high-five, sit", "इमोट: हाथ हिलाओ, डांस, हँसो, जश्न, हाई-फाइव, बैठो")}</div>
-        <div><kbd>T</kbd> {t("chat", "चैट")}</div><div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>Tab</kbd> {t("players", "खिलाड़ी")}</div><div><kbd>Esc</kbd> {t("menu", "मेन्यू")}</div><div><kbd>C</kbd> {t("camera: normal / close / far / first-person", "कैमरा: सामान्य / पास / दूर / फर्स्ट-पर्सन")}</div><div><kbd>Q</kbd> {t("look back (hold)", "पीछे देखो")}</div><div><kbd>R</kbd> {t("reset vehicle", "गाड़ी रीसेट")}</div><div><kbd>P</kbd> {t("photo mode", "फ़ोटो मोड")}</div><div><kbd>J</kbd> {t("missions log", "मिशन लॉग")}</div><div><kbd>I</kbd> {t("inventory", "इन्वेंटरी")}</div></div>
+        <div><kbd>M</kbd> {t("map", "नक्शा")}</div><div><kbd>Esc</kbd> {t("menu", "मेन्यू")}</div><div><kbd>C</kbd> {t("camera: normal / close / far / first-person", "कैमरा: सामान्य / पास / दूर / फर्स्ट-पर्सन")}</div><div><kbd>Q</kbd> {t("look back (hold)", "पीछे देखो")}</div><div><kbd>R</kbd> {t("reset vehicle", "गाड़ी रीसेट")}</div><div><kbd>P</kbd> {t("photo mode", "फ़ोटो मोड")}</div><div><kbd>J</kbd> {t("missions log", "मिशन लॉग")}</div><div><kbd>I</kbd> {t("inventory", "इन्वेंटरी")}</div></div>
         <p className="muted">{t("Find Babloo Bhaiya at Cafe Chowk for your first mission. Yellow diamonds mark mission givers.", "पहले मिशन के लिए कैफ़े चौक पर बबलू भैया से मिलो। पीले हीरे मिशन देने वालों को दिखाते हैं।")}</p>
         <button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
-      {kind === "social" && <SocialPanel close={close} />}
+
       {kind === "quests" && <QuestPanel close={close} />}
       {kind === "shop" && <ShopPanel close={close} />}
       {kind === "inventory" && <ShopPanel close={close} inventory />}
@@ -185,7 +169,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
 
 function QuestPanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi; const done = s.profile?.missionsCompleted ?? [];
-  return <><h2>{t("Missions", "मिशन")} · {done.length}/{MISSIONS.length}</h2><div className="plist">{MISSIONS.map(m => { const d = Math.round(Math.hypot(m.start[0] - playerPos.x, m.start[1] - playerPos.z)); const active = s.mission?.def.id === m.id; return <div key={m.id} className={`prow ${active ? "active" : ""}`}><span><b>{t(m.name, m.nameHi)}</b> <small className="muted">{m.kind}{m.needsVehicle ? " · 🚗" : ""}{m.coop ? " · 👥" : ""} · {d} m</small><div className="muted small">{t(m.desc, m.descHi)}</div></span><span>{done.includes(m.id) ? "✅" : active ? "▶" : `+${m.reward.coins}🪙`}</span></div>; })}</div><p className="muted">{t("Yellow diamonds in the world and ◆ on the compass mark mission givers and objectives.", "दुनिया में पीले हीरे और कंपास पर ◆ मिशन देने वालों और लक्ष्यों को दिखाते हैं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  return <><h2>{t("Missions", "मिशन")} · {done.length}/{MISSIONS.length}</h2><div className="plist">{MISSIONS.map(m => { const d = Math.round(Math.hypot(m.start[0] - playerPos.x, m.start[1] - playerPos.z)); const active = s.mission?.def.id === m.id; return <div key={m.id} className={`prow ${active ? "active" : ""}`}><span><b>{t(m.name, m.nameHi)}</b> <small className="muted">{m.kind}{m.needsVehicle ? " · 🚗" : ""} · {d} m</small><div className="muted small">{t(m.desc, m.descHi)}</div></span><span>{done.includes(m.id) ? "✅" : active ? "▶" : `+${m.reward.coins}🪙`}</span></div>; })}</div><p className="muted">{t("Yellow diamonds in the world and ◆ on the compass mark mission givers and objectives.", "दुनिया में पीले हीरे और कंपास पर ◆ मिशन देने वालों और लक्ष्यों को दिखाते हैं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 function MapPanel({ close }: { close: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null); const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
@@ -201,18 +185,6 @@ function MapPanel({ close }: { close: () => void }) {
   return <><h2>{t("Kanpur — Civil Lines, The Mall, Kanpur Central", "कानपुर — सिविल लाइंस, मॉल रोड, कानपुर सेंट्रल")}</h2><canvas ref={ref} width={520} height={520} className="bigmap" /><p className="muted">{t("Map data © OpenStreetMap contributors (ODbL). Yellow dots: missions. 2.4 km view around you.", "नक्शा © OpenStreetMap contributors (ODbL)। पीले बिंदु: मिशन। आपके आसपास 2.4 किमी।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 
-function SocialPanel({ close }: { close: () => void }) {
-  const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi; const others = Object.values(s.players).filter(p => p.id !== s.selfId);
-  const act = (action: string, target: string) => { net.send({ t: "social", action: action as never, target, reason: action === "report" ? "in-game report" : undefined }); sfx.ui(); };
-  return <><h2>{t("Players", "खिलाड़ी")} ({others.length + 1})</h2>
-    {s.party.length > 1 && <p>{t("Party", "पार्टी")}: {s.party.map(id => s.players[id]?.name ?? (id === s.selfId ? s.name : "?")).join(", ")} <button className="btn-ghost" onClick={() => act("party.leave", "-")}>{t("Leave", "छोड़ो")}</button></p>}
-    <div className="plist">{others.length === 0 && <p className="muted">{t("No one else here yet. Share the link!", "अभी कोई और नहीं। लिंक शेयर करो!")}</p>}
-      {others.map(p => <div key={p.id} className="prow"><span><b>{p.name}</b> <small className="muted">Lv {p.level} · {Math.round(Math.hypot(p.p[0] - playerPos.x, p.p[2] - playerPos.z))} m</small></span>
-        <span><button className="btn-sm" onClick={() => act("party.invite", p.id)}>{t("Invite", "बुलाओ")}</button><button className="btn-sm" onClick={() => act(s.profile?.friends.includes(p.id) ? "friend.remove" : "friend.add", p.id)}>{s.profile?.friends.includes(p.id) ? "★" : "☆"}</button><button className="btn-sm" onClick={() => act("mute", p.id)}>🔇</button><button className="btn-sm" onClick={() => act(s.profile?.blocked.includes(p.id) ? "unblock" : "block", p.id)}>{s.profile?.blocked.includes(p.id) ? t("Unblock", "अनब्लॉक") : t("Block", "ब्लॉक")}</button><button className="btn-sm danger" onClick={() => act("report", p.id)}>⚑</button></span></div>)}</div>
-    <p className="muted">{t("Couples & friends: sit together at Cafe Chowk, walk the Moti Jheel loop, race Mall Road, or do the photo walk. Party members get bonus rewards.", "जोड़े और दोस्त: कैफ़े चौक पर साथ बैठो, मोती झील का चक्कर लगाओ, मॉल रोड रेस करो, या फ़ोटो वॉक। पार्टी वालों को बोनस।")}</p>
-    <button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
-}
-
 function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolean }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const equip = (slot: string, value: number) => { const a = { ...s.appearance, [slot]: value } as typeof s.appearance; s.set({ appearance: a }); s.saveLocal(); net.send({ t: "profile.update", appearance: a }); };
@@ -224,7 +196,7 @@ function ShopPanel({ close, inventory }: { close: () => void; inventory?: boolea
 }
 function GaragePanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  return <><h2>{t("Rawatpur Garage", "रावतपुर गैराज")}</h2><p>{t("Vehicles parked here: sedan, SUV and bike. Walk up to one and press E. Vehicles are shared in the world — if someone is driving, you can ride along as a passenger.", "यहाँ सेडान, एसयूवी और बाइक खड़ी हैं। पास जाकर E दबाओ। गाड़ियाँ सबकी हैं — कोई चला रहा हो तो सवारी बन जाओ।")}</p>
-    <p className="muted">{t("Vehicle colours and upgrades: planned, not in this build.", "गाड़ी के रंग और अपग्रेड: योजना में, इस बिल्ड में नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  return <><h2>{t("Rawatpur Garage", "रावतपुर गैराज")}</h2><p>{t("All city vehicles are available for solo exploration. Your own scooter is registered from the start; finish Laddoo Ka Chakkar to earn the hatchback.", "शहर की गाड़ियाँ अकेले चलाओ। स्कूटर अपना है; लड्डू का चक्कर पूरा करने पर हैचबैक मिलेगी।")}</p>
+    <p>{t("Owned vehicles", "अपनी गाड़ियाँ")}: {s.ownedVehicles.join(", ")}</p><p className="muted">{t("Vehicle colours and upgrades: planned, not in this build.", "गाड़ी के रंग और अपग्रेड: योजना में, इस बिल्ड में नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 void once; void (0 as unknown as AnimState);

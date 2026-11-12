@@ -1,0 +1,55 @@
+
+> kanpurverse@0.1.0 build
+> npm run build --workspace=packages/shared && npm run build --workspace=apps/server && npm run build --workspace=apps/web
+
+
+> @kanpurverse/shared@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @kanpurverse/server@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @kanpurverse/web@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.29
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 2.5s
+   Linting and checking validity of types ...
+
+./app/page.tsx
+17:546  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/game/Props.tsx
+25:173  Warning: React Hook useMemo has an unnecessary dependency: 'ver'. Either exclude it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/9) ...
+   Generating static pages (2/9) 
+   Generating static pages (4/9) 
+   Generating static pages (6/9) 
+ ✓ Generating static pages (9/9)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    1.11 kB         108 kB
+├ ○ /_not-found                            987 B         104 kB
+├ ƒ /api/dev/street-capture                122 B         103 kB
+├ ○ /play                                8.56 kB         157 kB
+├ ○ /qa/assets                           24.1 kB        1.18 MB
+├ ○ /qa/vehicles                         3.59 kB         135 kB
+└ ○ /qa/world                            93.2 kB        1.26 MB
++ First Load JS shared by all             103 kB
+  ├ chunks/18-68d7739dcfa59da4.js        46.6 kB
+  ├ chunks/87c73c54-24122e7b92478d00.js  54.2 kB
+  └ other shared chunks (total)          2.41 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

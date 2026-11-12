@@ -1,6 +1,7 @@
 "use client";
 /** Vehicles: procedural Indian-city vehicle meshes (auto, hatchback, sedan, SUV, bike, scooter) with spinning wheels, steering,
  * brake/head lights. Driver runs an arcade model on a Rapier dynamic body and streams state; others interpolate. */
+import { RoundedPart } from "./RoundedPart";
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, CuboidCollider, type RapierRigidBody, useBeforePhysicsStep, useRapier } from "@react-three/rapier";
@@ -92,9 +93,9 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
 /** Procedural vehicle. `state` (optional ref) drives wheel spin, steering and brake lights; `wheelSpin` spins wheels constantly (traffic). */
 export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kind: VehicleKind; color: number; state?: React.RefObject<{ speed: number; steer: number; brake: boolean }>; wheelSpin?: boolean; stoppedRef?: React.RefObject<boolean> }) {
   const spec = SPECS[kind]; const [w, h, l] = spec.size; const R = spec.wheelR;
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 }), [color]);
+  const paint = useMemo(() => new THREE.MeshPhysicalMaterial({ color, metalness: 0.65, roughness: 0.25, clearcoat: 1, clearcoatRoughness: .16 }), [color]);
   const trim = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.6, metalness: 0.3 }), []);
-  const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x8ec5ff, metalness: 0.05, roughness: 0.15, transparent: true, opacity: 0.28, depthWrite: false }), []);
+  const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x70968f, metalness: 0.45, roughness: 0.15, transparent: true, opacity: 0.28, depthWrite: false }), []);
   const tyre = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 }), []); const rim = useMemo(() => new THREE.MeshStandardMaterial({ color: 0xc9ccd1, metalness: 0.8, roughness: 0.3 }), []);
   const brake = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x6b0c1b, emissive: 0xc8102e, emissiveIntensity: 0.4 }), []);
   const head = useMemo(() => new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2cc, emissiveIntensity: 1.2 }), []);
@@ -162,7 +163,7 @@ export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kin
   </group>; }
   const cab = kind === "suv" ? 0.62 : 0.55; const cabH = kind === "suv" ? 0.55 : 0.5;
   return <group>
-    <mesh position={[0, -0.12, 0]} material={paint} castShadow><boxGeometry args={[w, h * 0.48, l, 1, 1, 1]} /></mesh>{/* body */}
+    <RoundedPart position={[0,-.12,0]} args={[w,h*.48,l]} radius={.13} material={paint} castShadow />{/* body */}
     <mesh position={[0, -0.36, 0]} material={trim}><boxGeometry args={[w + 0.02, 0.12, l + 0.02]} /></mesh>{/* sill */}
     <mesh position={[0, h * cabH + 0.02, -0.15]} material={paint} castShadow><boxGeometry args={[w * 0.88, 0.08, l * cab]} /></mesh>
     {[-1, 1].flatMap(side => [-1, 1].map(end => <mesh key={`${side}:${end}`} position={[side * w * 0.42, h * cabH * 0.5 + 0.02, end * l * cab / 2 - 0.15]} material={paint}><boxGeometry args={[0.07, h * cabH, 0.07]} /></mesh>))}{/* cabin */}

@@ -1,121 +1,492 @@
 "use client";
-import { AttemptDeadline } from "./attemptDeadline";
-import { visualClock } from "../game/syncedClock";
-/** WebSocket client with reconnect, latency measurement and store wiring. Remote entities are interpolated in the renderer. */
-import { PROTOCOL_VERSION, VEHICLE_EXIT_CAPABILITY, MISSIONS, type C2S, type S2C, type PlayerSnapshot, type VehicleSnapshot, type AnimState } from "@kanpurverse/shared";
+/** Compatibility facade for existing controllers. All gameplay now executes locally; no sockets or auth. */
+import {
+  VEHICLE_SPAWNS,
+  VEHICLE_HEIGHT,
+  SPAWN_POINT,
+  MISSIONS,
+  SHOP_ITEMS,
+  NPCS,
+  PAAN_VENDOR,
+  STREET,
+  levelFromXp,
+  type C2S,
+  type PlayerSnapshot,
+  type VehicleSnapshot,
+  type AnimState,
+} from "@kanpurverse/shared";
 import { useStore } from "../state/store";
-
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8787";
-
-/** Interpolation buffers: id → [{t, p, ry}] */
-export const remoteBuf = new Map<string, { t: number; p: [number, number, number]; ry: number; anim: string }[]>();
-export const vehicleBuf = new Map<string, { t: number; p: [number, number, number]; q: [number, number, number, number]; v: number }[]>();
+import { readSoloSave, writeSoloSave } from "../state/soloSave";
+import { visualClock } from "../game/syncedClock";
+export const WS_URL = "Local single-player";
+export const remoteBuf = new Map<
+  string,
+  { t: number; p: [number, number, number]; ry: number; anim: string }[]
+>();
+export const vehicleBuf = new Map<
+  string,
+  {
+    t: number;
+    p: [number, number, number];
+    q: [number, number, number, number];
+    v: number;
+  }[]
+>();
 export const vehicleCorrections = new Map<string, VehicleSnapshot>();
-export let serverOffset = 0; // serverTime - clientTime
-/** Last authoritative position correction from the server (consumed by the player controller). */
-export const correction: { p: [number, number, number] | null; at: number } = { p: null, at: 0 };
-
-export class NetClient {
-  ws?: WebSocket; seq = 0; room = "kanpur-1"; private pingTimer?: ReturnType<typeof setInterval>; private retry = 0; private wantOpen = false; private lastStateSend = 0;
-  private watchdog?: ReturnType<typeof setInterval>; private reconnectTimer?: ReturnType<typeof setTimeout>; private deadline = new AttemptDeadline(); private joinBudget = new AttemptDeadline();
-  /** QA/diagnostics: connection state without exposing the socket. */
-  status() { return { wantOpen: this.wantOpen, readyState: this.ws?.readyState ?? -1, retry: this.retry, room: this.room }; }
-  connect(room = "kanpur-1") {
-    this.room = room; this.wantOpen = true; this.retry = 0;
-    this.joinBudget.arm(75000, () => { this.disconnect(); useStore.getState().set({ screen: "error", errorText: "The multiplayer server is unavailable. Please retry shortly; your saved character is safe." }); });
-    this.open();
-    // Watchdog: a background tab can lose a socket (and a throttled reconnect timer) without any event we can act on.
-    // Every 5 s, and whenever the tab becomes visible again, reopen if we want a connection and have none.
-    clearInterval(this.watchdog);
-    this.watchdog = setInterval(() => this.ensure(), 5000);
-    if (typeof document !== "undefined" && !this.visBound) { this.visBound = true; document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") this.ensure(); }); }
+export const serverOffset = 0;
+export const correction: { p: [number, number, number] | null; at: number } = {
+  p: null,
+  at: 0,
+};
+class SoloSession {
+  room = "solo";
+  private timer?: ReturnType<typeof setInterval>;
+  private consumeUntil = 0;
+  private spitReady = false;
+  private lastSpit = 0;
+  private lastCheckpoint = 0;
+  private position: [number, number, number] = [...SPAWN_POINT];
+  private savedAt = 0;
+  private time = 0.69;
+  private stateSent = 0;
+  status() {
+    return { wantOpen: !!this.timer, readyState: 1, retry: 0, room: "solo" };
   }
-  private visBound = false;
-  private ensure() {
-    if (!this.wantOpen) return;
-    const rs = this.ws?.readyState;
-    if (rs === WebSocket.OPEN || rs === WebSocket.CONNECTING) return;
-    clearTimeout(this.reconnectTimer); this.open();
-  }
-  private open() {
-    this.deadline.clear(); clearTimeout(this.reconnectTimer);
-    const previous = this.ws; this.ws = undefined;
-    if (previous && previous.readyState < WebSocket.CLOSING) { try { previous.close(); } catch { /* isolate superseded socket */ } }
-    useStore.getState().set({ loadStage: "connecting" });
-    let ws: WebSocket;
-    try { ws = new WebSocket(WS_URL); } catch { this.wantOpen = false; useStore.getState().set({ screen: "error", errorText: "Could not open the multiplayer connection. Please retry." }); return; }
-    this.ws = ws;
-    const expire = () => {
-      if (this.ws !== ws || !this.wantOpen) return;
-      this.ws = undefined; try { ws.close(); } catch { /* CONNECTING must still time out */ }
-      this.lost(0, "timeout");
-    };
-    this.deadline.arm(15000, expire);
-    ws.onopen = () => {
-      if (this.ws !== ws) return ws.close();
-      this.deadline.arm(15000, expire); useStore.getState().set({ loadStage: "auth" });
-      const cur = useStore.getState();
-      this.send({ t: "hello", v: PROTOCOL_VERSION, token: cur.token, guestName: cur.name || undefined, appearance: cur.appearance, lang: cur.settings.lang });
-      clearInterval(this.pingTimer); this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), 3000);
-    };
-    ws.onmessage = ev => { if (this.ws !== ws) return; try { this.handle(JSON.parse(ev.data) as S2C); } catch (e) { console.warn("bad server message", e); } };
-    ws.onclose = ev => { if (this.ws !== ws) return; this.deadline.clear(); this.lost(ev.code, ev.reason); };
-    ws.onerror = () => { /* onclose or deadline supplies bounded recovery */ };
-  }
-  private lost(code: number, reason: string) {
-    clearInterval(this.pingTimer); useStore.getState().set({ connected: false });
-    if (code === 4003 || code === 4005 || code === 4006) { useStore.getState().set({ screen: "error", errorText: reason === "replaced" ? "You signed in from another tab." : "You were removed from the server." }); this.wantOpen = false; return; }
-    if (!this.wantOpen) return;
-    if (this.retry >= 6 && useStore.getState().screen === "loading") { useStore.getState().set({ screen: "error", errorText: "The multiplayer server is not responding. Retry in a moment; your saved character is safe." }); this.wantOpen = false; return; }
-    const delay = Math.min(8000, 500 * 2 ** this.retry++); clearTimeout(this.reconnectTimer);
-    useStore.getState().toast(`Reconnecting in ${Math.round(delay / 1000)}s…`, "error");
-    this.reconnectTimer = setTimeout(() => this.wantOpen && this.open(), delay);
-  }
-  disconnect() { this.wantOpen = false; this.deadline.clear(); this.joinBudget.clear(); clearInterval(this.watchdog); clearTimeout(this.reconnectTimer); const ws = this.ws; this.ws = undefined; ws?.close(); useStore.getState().set({ connected: false }); }
-  send(m: C2S) {
-    if (m.t === "vehicle.enter" && !useStore.getState().serverCapabilities.includes(VEHICLE_EXIT_CAPABILITY)) {
-      useStore.getState().set({ vehicleTransition: undefined });
-      useStore.getState().toast("Vehicle safety update required. Rejoin after the server is updated.", "error"); return;
-    }
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m)); }
-  sendState(p: [number, number, number], ry: number, anim: AnimState) {
-    const now = performance.now(); if (now - this.lastStateSend < 50) return; this.lastStateSend = now;
-    this.send({ t: "state", p: [round(p[0]), round(p[1]), round(p[2])], ry: round(ry), anim, seq: ++this.seq });
-  }
-  sendVehicle(id: string, p: [number, number, number], q: [number, number, number, number], v: number) {
-    const now = performance.now(); if (now - this.lastStateSend < 50) return; this.lastStateSend = now;
-    this.send({ t: "vehicle.state", id, p: p.map(round) as never, q: q.map(round) as never, v: round(v) });
-  }
-  private handle(m: S2C) {
+  connect(_room = "solo", fresh = false) {
+    void _room;
+    clearInterval(this.timer);
     const s = useStore.getState();
+    if (fresh) {
+      try {
+        const old = localStorage.getItem("kanpurverse.solo.v1");
+        if (old)
+          localStorage.setItem("kanpurverse.solo.v1.previous-story", old);
+      } catch {}
+    }
+    const save = fresh ? null : readSoloSave();
+    this.position = save?.position ?? [...SPAWN_POINT];
+    this.time = save?.worldTime ?? 0.69;
+    this.spitReady = false;
+    this.lastCheckpoint = 0;
+    this.consumeUntil = 0;
+    this.lastSpit = 0;
+    const profile = save?.profile ?? {
+      name: s.name || "Kanpuriya",
+      appearance: s.appearance,
+      lang: s.settings.lang,
+      level: 1,
+      xp: 0,
+      coins: 200,
+      missionsCompleted: [],
+      unlocked: [],
+      friends: [],
+      blocked: [],
+      playtimeSec: 0,
+      inventory: { gutka: 0 },
+      civic: 100,
+    };
+    profile.name = s.name || profile.name; profile.appearance=s.appearance; profile.lang=s.settings.lang;
+    const self: PlayerSnapshot = {
+      id: "solo",
+      name: profile.name,
+      p: this.position,
+      ry: 0,
+      anim: "idle",
+      appearance: profile.appearance,
+      level: profile.level,
+    };
+    const vehicles: Record<string, VehicleSnapshot> = {};
+    for (const v of VEHICLE_SPAWNS)
+      vehicles[v.id] = {
+        id: v.id,
+        kind: v.kind,
+        p: [v.p[0], VEHICLE_HEIGHT[v.kind] / 2 + 0.08, v.p[1]],
+        q: [0, Math.sin(v.ry / 2), 0, Math.cos(v.ry / 2)],
+        v: 0,
+      };
+    const def = MISSIONS.find((m) => m.id === save?.mission?.id),
+      m = save?.mission;
+    const mission =
+      def && m && m.index < def.checkpoints.length
+        ? {
+            def,
+            index: m.index,
+            startedAt:
+              Date.now() -
+              (def.timeLimitSec && m.remaining
+                ? (def.timeLimitSec - m.remaining) * 1000
+                : 0),
+            status: "started" as const,
+          }
+        : undefined;
+    visualClock.sync(this.time, performance.now(), true);
+    correction.p = this.position;
+    correction.at = performance.now();
+    s.set({
+      screen: "play",
+      loadStage: "done",
+      profile,
+      name: profile.name,
+      appearance: profile.appearance,
+      selfId: "solo",
+      connected: true,
+      serverCapabilities: ["vehicle-exit-v1"],
+      players: { solo: self },
+      vehicles,
+      worldTime: this.time,
+      mission,
+      inVehicle: undefined,
+      seat: undefined,
+      vehicleTransition: undefined,
+      paused: false,
+      missionResult: undefined,
+      health: save?.health ?? 100,
+      ownedVehicles: save?.ownedVehicles ?? ["v_scooter_1"],
+      collectibles: save?.collectibles ?? [],
+      dialogue: undefined,
+    });
+    this.timer = setInterval(() => this.tick(), 250);
+    this.savedAt = Date.now();
+    s.toast(
+      save
+        ? "स्थानीय सेव से वापसी · Welcome back"
+        : "कानपुर में स्वागत है · Your solo story begins",
+    );
+    this.save();
+  }
+  newGame() {
+    this.connect("solo", true);
+  }
+  disconnect() {
+    this.save();
+    clearInterval(this.timer);
+    this.timer = undefined;
+    useStore.getState().set({ connected: false });
+  }
+  private storageWarned = false;
+  save() {
+    const s = useStore.getState();
+    if (!s.profile) return false;
+    const m = s.mission;
+    const saved = writeSoloSave({
+      version: 1,
+      savedAt: Date.now(),
+      position: this.position,
+      profile: {
+        ...s.profile,
+        inventory: s.profile.inventory ?? { gutka: 0 },
+        civic: s.profile.civic ?? 100,
+      },
+      health: s.health,
+      ownedVehicles: s.ownedVehicles,
+      collectibles: s.collectibles,
+      worldTime: this.time,
+      mission: m
+        ? {
+            id: m.def.id,
+            index: m.index,
+            remaining: m.def.timeLimitSec
+              ? Math.max(
+                  1,
+                  m.def.timeLimitSec - (Date.now() - m.startedAt) / 1000,
+                )
+              : undefined,
+          }
+        : undefined,
+    });
+    if (!saved && !this.storageWarned) { this.storageWarned=true; s.toast("सेव नहीं हुआ। Browser storage उपलब्ध नहीं है।", "error"); }
+    if (saved) this.storageWarned=false;
+    return saved;
+  }
+  private tick() {
+    const s = useStore.getState();
+    if (s.paused || s.dialogue) {
+      if (s.mission)
+        s.set({
+          mission: { ...s.mission, startedAt: s.mission.startedAt + 250 },
+        });
+      return;
+    }
+    this.time =
+      s.settings.atmosphere === "day"
+        ? 0.48
+        : s.settings.atmosphere === "sunset"
+          ? 0.745
+          : s.settings.atmosphere === "night"
+            ? 0.88
+            : (this.time + 8 / 86400) % 1;
+    visualClock.sync(this.time, performance.now());
+    s.set({ worldTime: this.time });
+    const m = s.mission;
+    if (m) {
+      if (
+        m.def.timeLimitSec &&
+        Date.now() - m.startedAt > m.def.timeLimitSec * 1000
+      ) {
+        s.set({
+          mission: undefined,
+          missionResult: { id: m.def.id, success: false, coins: 0, xp: 0 },
+        });
+        s.toast("समय खत्म। Mission log से फिर शुरू करो।", "error");
+        this.save();
+      } else if (m.def.kind !== "photo") this.checkpoint();
+    }
+    if (Date.now() - this.savedAt > 5000) {
+      this.savedAt = Date.now();
+      if (s.profile)
+        s.set({
+          profile: { ...s.profile, playtimeSec: s.profile.playtimeSec + 5 },
+        });
+      this.save();
+    }
+  }
+  private checkpoint() {
+    const s = useStore.getState(),
+      m = s.mission;
+    if (!m || Date.now() - this.lastCheckpoint < 900) return;
+    const p = m.def.checkpoints[m.index];
+    if (
+      !p ||
+      Math.hypot(this.position[0] - p[0], this.position[2] - p[1]) >
+        m.def.radius
+    )
+      return;
+    if (m.def.needsVehicle && !s.inVehicle) return;
+    this.lastCheckpoint = Date.now();
+    if (m.index + 1 < m.def.checkpoints.length) {
+      s.set({ mission: { ...m, index: m.index + 1 } });
+      s.toast("लक्ष्य पूरा · Next objective");
+    } else {
+      const profile = s.profile!;
+      const first = !profile.missionsCompleted.includes(m.def.id);
+      const xp =
+        profile.xp +
+        (first ? m.def.reward.xp : Math.round(m.def.reward.xp * 0.25));
+      s.set({
+        mission: undefined,
+        missionResult: {
+          id: m.def.id,
+          success: true,
+          coins: first
+            ? m.def.reward.coins
+            : Math.round(m.def.reward.coins * 0.25),
+          xp: first ? m.def.reward.xp : Math.round(m.def.reward.xp * 0.25),
+        },
+        profile: {
+          ...profile,
+          xp,
+          level: levelFromXp(xp),
+          coins:
+            profile.coins +
+            (first
+              ? m.def.reward.coins
+              : Math.round(m.def.reward.coins * 0.25)),
+          missionsCompleted: [
+            ...new Set([...profile.missionsCompleted, m.def.id]),
+          ],
+        },
+        ownedVehicles:
+          m.def.id === "laddoo_chakkar"
+            ? [...new Set([...s.ownedVehicles, "v_hatch_1"])]
+            : s.ownedVehicles,
+      });
+      s.toast(
+        `MISSION COMPLETE · ${m.def.nameHi} +${first ? m.def.reward.coins : Math.round(m.def.reward.coins * 0.25)} 🪙`,
+        "reward",
+      );
+    }
+    this.save();
+  }
+  sendState(p: [number, number, number], ry: number, anim: AnimState) {
+    this.position = p;
+    if (performance.now() - this.stateSent < 75) return;
+    this.stateSent = performance.now();
+    const s = useStore.getState(),
+      self = s.players.solo;
+    if (self) s.set({ players: { solo: { ...self, p, ry, anim } } });
+  }
+  sendVehicle(
+    id: string,
+    p: [number, number, number],
+    q: [number, number, number, number],
+    v: number,
+  ) {
+    const s = useStore.getState(),
+      a = s.vehicles[id];
+    this.position = p;
+    if (a) s.set({ vehicles: { ...s.vehicles, [id]: { ...a, p, q, v } } });
+  }
+  send(m: C2S) {
+    const s = useStore.getState(),
+      profile = s.profile;
+    if (!profile) return;
+    const fail = (text: string) => {
+      s.set({ vehicleTransition: undefined });
+      s.toast(text, "error");
+    };
     switch (m.t) {
-      case "welcome": s.set({ selfId: m.id, token: m.token, profile: m.profile, name: m.name, connected: true, serverCapabilities: m.capabilities ?? [] }); s.saveLocal(); serverOffset = m.serverTime - Date.now(); s.set({ loadStage: "joining" }); this.send({ t: "join", room: this.room }); break;
-      case "joined": { this.deadline.clear(); this.joinBudget.clear(); this.retry = 0; visualClock.sync(m.time, performance.now(), true); remoteBuf.clear(); vehicleBuf.clear(); vehicleCorrections.clear(); correction.p = null; s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); const players: Record<string, PlayerSnapshot> = {}; for (const p of m.players) players[p.id] = p; const vehicles: Record<string, VehicleSnapshot> = {}; for (const v of m.vehicles) vehicles[v.id] = v; s.set({ players, vehicles, worldTime: m.time, screen: "play", loadStage: "done" }); s.toast(`Joined ${m.room} · ${m.players.length} online`); break; }
-      case "snapshot": { visualClock.sync(m.time, performance.now()); const now = performance.now(); const players = { ...s.players }; for (const p of m.players) { players[p.id] = p; if (p.id !== s.selfId) { const b = remoteBuf.get(p.id) ?? []; b.push({ t: now, p: p.p, ry: p.ry, anim: p.anim }); if (b.length > 6) b.shift(); remoteBuf.set(p.id, b); } }
-        const vehicles = { ...s.vehicles }; for (const v of m.vehicles) { vehicles[v.id] = v; if (v.driver !== s.selfId) { const b = vehicleBuf.get(v.id) ?? []; b.push({ t: now, p: v.p, q: v.q, v: v.v }); if (b.length > 6) b.shift(); vehicleBuf.set(v.id, b); } }
-        // self correction: if server disagrees strongly, snap (handled in controller via players[selfId])
-        s.set({ players, vehicles, worldTime: m.time }); break; }
-      case "player.join": s.set({ players: { ...s.players, [m.player.id]: m.player } }); s.pushChat({ from: "sys", name: "", text: `${m.player.name} joined`, at: Date.now(), system: true }); break;
-      case "player.leave": { const players = { ...s.players }; const n = players[m.id]?.name; delete players[m.id]; remoteBuf.delete(m.id); s.set({ players }); if (n) s.pushChat({ from: "sys", name: "", text: `${n} left`, at: Date.now(), system: true }); break; }
-      case "chat": s.pushChat(m); break;
-      case "emote": if (s.players[m.id]) s.set({ players: { ...s.players, [m.id]: { ...s.players[m.id], anim: m.anim } } }); break;
-      case "vehicle.update": { vehicleBuf.delete(m.vehicle.id); vehicleCorrections.delete(m.vehicle.id);
-        if (m.vehicle.driver === s.selfId && s.inVehicle === m.vehicle.id) vehicleCorrections.set(m.vehicle.id, m.vehicle);
-        s.set({ vehicles: { ...s.vehicles, [m.vehicle.id]: m.vehicle } }); if (m.vehicle.driver === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "driver", vehicleTransition: undefined }); else if (m.vehicle.passenger === s.selfId) s.set({ inVehicle: m.vehicle.id, seat: "passenger", vehicleTransition: undefined }); else if (s.inVehicle === m.vehicle.id) s.set({ vehicleTransition: "exiting" }); break; }
-      case "mission.update": { const def = MISSIONS.find(d => d.id === m.id)!;
-        if (m.status === "started") { s.set({ mission: { def, index: 0, startedAt: Date.now(), status: "started" } }); s.toast(`Mission: ${def.name}`); }
-        else if (m.status === "checkpoint") { s.set({ mission: s.mission && { ...s.mission, index: m.index ?? s.mission.index + 1 } }); s.toast(`Checkpoint ${m.index}/${def.checkpoints.length}`); }
-        else if (m.status === "completed") { s.set({ mission: undefined }); s.toast(`${def.name} complete! +${m.reward?.coins} coins, +${m.reward?.xp} XP`, "reward"); }
-        else { s.set({ mission: undefined }); s.toast(`${def.name} failed — time's up`, "error"); } break; }
-      case "street.action": useStore.getState().set({ streetAction: { action: m.action, at: performance.now() } }); break;
-      case "profile": s.set({ profile: m.profile }); break;
-      case "toast": s.toast(m.text, m.kind); break;
-      case "social": if (m.event === "party.invite") s.set({ invites: [...s.invites, { from: m.from!, name: m.name! }] }); else if (m.event === "party.update") s.set({ party: m.party ?? [] }); else if (m.event === "friend.added") s.toast(`${m.name} added you as a friend`); break;
-      case "error": s.set({ vehicleTransition: undefined }); if (m.code === "exit_blocked" || m.code === "vehicle_moving" || m.code === "rate" || m.code === "too_far" || m.code === "occupied" || m.code === "need_vehicle" || m.code === "coins" || m.code === "locked" || m.code === "busy" || m.code === "owned") s.toast(m.message, "error"); else if (m.code === "full" || m.code === "bad_name" || m.code === "banned") { this.disconnect(); s.set({ screen: "error", errorText: m.message }); } else console.warn("server error", m); break;
-      case "pong": s.set({ ping: Math.round(performance.now() - m.at) }); break;
-      case "correct": if (m.reason === "vehicle_exit") { s.set({ inVehicle: undefined, seat: undefined, vehicleTransition: undefined }); } correction.p = m.p; correction.at = performance.now(); break;
+      case "vehicle.enter": {
+        const v = s.vehicles[m.id];
+        if (
+          !v ||
+          Math.hypot(v.p[0] - this.position[0], v.p[2] - this.position[2]) > 6
+        )
+          return fail("गाड़ी के पास आओ।");
+        s.set({
+          vehicles: { ...s.vehicles, [m.id]: { ...v, driver: "solo" } },
+          inVehicle: m.id,
+          seat: "driver",
+          vehicleTransition: undefined,
+        });
+        break;
+      }
+      case "vehicle.exit": {
+        const id = s.inVehicle;
+        if (!id || !m.p) return;
+        const v = s.vehicles[id];
+        if (Math.abs(v.v) > 1) return fail("पहले गाड़ी रोको।");
+        s.set({
+          vehicles: { ...s.vehicles, [id]: { ...v, driver: undefined } },
+          inVehicle: undefined,
+          seat: undefined,
+          vehicleTransition: undefined,
+        });
+        this.position = m.p;
+        correction.p = m.p;
+        correction.at = performance.now();
+        this.save();
+        break;
+      }
+      case "mission.start": {
+        const def = MISSIONS.find((d) => d.id === m.id);
+        if (!def || s.mission) return;
+        if (
+          m.id !== "laddoo_chakkar" &&
+          !profile.missionsCompleted.includes("laddoo_chakkar")
+        )
+          return fail("पहले LADDOO KA CHAKKAR पूरा करो।");
+        if (
+          Math.hypot(
+            def.start[0] - this.position[0],
+            def.start[1] - this.position[2],
+          ) > 12
+        )
+          return fail("मिशन के निशान तक आओ।");
+        s.set({
+          mission: { def, index: 0, startedAt: Date.now(), status: "started" },
+        });
+        s.toast(
+          def.id === "laddoo_chakkar"
+            ? "बबलू: मेले का अभिनय है गुरु! सुनहरा लड्डू उठाओ और चाय चौक लौटो।"
+            : "Mission started",
+        );
+        this.save();
+        break;
+      }
+      case "mission.checkpoint":
+        this.checkpoint();
+        break;
+      case "mission.abandon":
+        s.set({ mission: undefined });
+        this.save();
+        break;
+      case "profile.update":
+        s.set({
+          profile: {
+            ...profile,
+            appearance: m.appearance ?? profile.appearance,
+            lang: m.lang ?? profile.lang,
+          },
+        });
+        this.save();
+        break;
+      case "shop.buy": {
+        if (m.item === "gutka") {
+          const vendor = NPCS.find((n) => n.id === PAAN_VENDOR)!;
+          if (
+            s.inVehicle ||
+            Math.hypot(
+              this.position[0] - vendor.path[0][0],
+              this.position[2] - vendor.path[0][1],
+            ) > 5
+          )
+            return fail("पान चाचा के पास आओ।");
+          if (
+            (profile.inventory?.gutka ?? 0) >= 30 ||
+            profile.coins < STREET.price
+          )
+            return fail("झोला भरा या सिक्के कम।");
+          s.set({
+            profile: {
+              ...profile,
+              coins: profile.coins - STREET.price,
+              inventory: { gutka: (profile.inventory?.gutka ?? 0) + 1 },
+            },
+          });
+        } else {
+          const it = SHOP_ITEMS.find((i) => i.id === m.item);
+          if (
+            !it ||
+            profile.coins < it.price ||
+            profile.unlocked.includes(it.id)
+          )
+            return fail("खरीद उपलब्ध नहीं।");
+          s.set({
+            profile: {
+              ...profile,
+              coins: profile.coins - it.price,
+              unlocked: [...profile.unlocked, it.id],
+            },
+          });
+        }
+        this.save();
+        break;
+      }
+      case "street.consume":
+        if (
+          s.inVehicle ||
+          this.spitReady ||
+          Date.now() < this.consumeUntil ||
+          (profile.inventory?.gutka ?? 0) < 1
+        )
+          return fail("पहले पैकेट खरीदो या मौजूदा काम पूरा करो।");
+        this.consumeUntil = Date.now() + STREET.consumeMs;
+        this.spitReady = true;
+        s.set({
+          profile: {
+            ...profile,
+            inventory: { gutka: profile.inventory!.gutka - 1 },
+          },
+          streetAction: { action: "consume", at: performance.now() },
+        });
+        this.save();
+        break;
+      case "street.spit":
+        if (
+          s.inVehicle ||
+          !this.spitReady ||
+          Date.now() < this.consumeUntil ||
+          Date.now() - this.lastSpit < STREET.spitCooldownMs
+        )
+          return fail("अभी तैयार नहीं।");
+        this.spitReady = false;
+        this.lastSpit = Date.now();
+        s.set({
+          profile: {
+            ...profile,
+            civic: Math.max(0, (profile.civic ?? 100) - STREET.penalty),
+          },
+          streetAction: { action: "spit", at: performance.now() },
+        });
+        this.save();
+        break;
+      case "emote":
+        break;
+      default:
+        break;
     }
   }
 }
-const round = (n: number) => Math.round(n * 1000) / 1000;
-export const net = new NetClient();
+export const net = new SoloSession();
+if (typeof window !== "undefined")
+  window.addEventListener("pagehide", () => net.save());

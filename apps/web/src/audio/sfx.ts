@@ -38,5 +38,5 @@ function startMusic() {
   const drone2 = c.createOscillator(); drone2.type = "sine"; drone2.frequency.value = 196; const dg2 = c.createGain(); dg2.gain.value = 0.03; drone2.connect(dg2); dg2.connect(musicGain); drone2.start();
   let i = 0; const step = () => { if (!ctx) return; const n = notes[(i * 3 + (i >> 2)) % notes.length] * (i % 7 === 0 ? 0.5 : 1); i++; const o = c.createOscillator(); o.type = "sine"; o.frequency.value = n; const g = c.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(0.08, c.currentTime + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.6); o.connect(g); g.connect(musicGain); o.start(); o.stop(c.currentTime + 1.7); setTimeout(step, 900 + (i % 3) * 300); };
   step();
-  const tick = () => { if (ctx) musicGain.gain.setTargetAtTime(useStore.getState().settings.music * (useStore.getState().paused ? 0.4 : 1), ctx.currentTime, 0.3); requestAnimationFrame(tick); }; tick();
+  const tick = () => { if(ctx) master.gain.setTargetAtTime(useStore.getState().settings.master,ctx.currentTime,.1); if (ctx) musicGain.gain.setTargetAtTime(useStore.getState().settings.music * (useStore.getState().paused ? 0.4 : 1), ctx.currentTime, 0.3); requestAnimationFrame(tick); }; tick();
 }

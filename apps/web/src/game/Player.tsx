@@ -29,7 +29,7 @@ export function Player() {
   const anim = useRef<AnimState>("idle"); const vel = useRef({ x: 0, z: 0 }); const wasGrounded = useRef(true); const [animState, setAnimState] = useState<AnimState>("idle"); const seat = useStore(s => s.seat); const vy = useRef(0); const grounded = useRef(true); const emoteUntil = useRef(0); const stepT = useRef(0);
   const lastStreet = useRef(useStore.getState().streetAction?.at ?? -1);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
-  const appearance = useStore(s => s.appearance); const name = useStore(s => s.name); const inVehicle = useStore(s => s.inVehicle);
+  const appearance = useStore(s => s.appearance); const inVehicle = useStore(s => s.inVehicle);
   const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
 
   useEffect(() => { const c = createCharacterController(world); controller.current = c; return () => { world.removeCharacterController(c); }; }, [world]);
@@ -149,12 +149,14 @@ export function Player() {
     let best: typeof s.nearby | undefined; let bd = 3.2;
     for (const n of NPCS) { const q = npcPositions.get(n.id) ?? { x: n.path[0][0], z: n.path[0][1] }; const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; best = { kind: "npc", id: n.id, label: s.settings.lang === "english" ? `Talk to ${n.name}` : `${n.nameHi} से बात करो` }; } }
     for (const v of Object.values(s.vehicles)) { const d = Math.hypot(v.p[0] - p.x, v.p[2] - p.z); if (d < Math.max(bd, 4.5) && !best) { bd = d; best = { kind: "vehicle", id: v.id, label: v.driver ? (s.settings.lang === "english" ? "Ride along" : "सवारी बनो") : (s.settings.lang === "english" ? `Drive ${v.kind}` : `${v.kind} चलाओ`) }; } }
-    const m = s.mission; if (m && (m.def.kind === "photo" || m.def.kind === "social")) { const cp = m.def.checkpoints[m.index]; if (cp && Math.hypot(cp[0] - p.x, cp[1] - p.z) < m.def.radius) best = { kind: "checkpoint", id: m.def.id, label: m.def.kind === "photo" ? (s.settings.lang === "english" ? "Take photo" : "फ़ोटो लो") : (s.settings.lang === "english" ? "Sit together" : "साथ बैठो") }; }
+    const m = s.mission; if (m && (m.def.kind === "photo" || m.def.kind === "social")) { const cp = m.def.checkpoints[m.index]; if (cp && Math.hypot(cp[0] - p.x, cp[1] - p.z) < m.def.radius) best = { kind: "checkpoint", id: m.def.id, label: m.def.id === "laddoo_chakkar" ? (s.settings.lang === "english" ? "Story action" : "कहानी आगे बढ़ाओ") : m.def.kind === "photo" ? (s.settings.lang === "english" ? "Take photo" : "फ़ोटो लो") : (s.settings.lang === "english" ? "Sit together" : "साथ बैठो") }; }
     if (!best) { for (const l of LANDMARKS) if (l.kind !== "park" && l.kind !== "ghat" && Math.hypot(l.p[0] - p.x, l.p[1] - p.z) < Math.min(l.r, 12) + 2) { best = { kind: "landmark", id: l.id, label: s.settings.lang === "english" ? l.name : l.nameHi }; break; } }
+    if (Math.hypot(p.x-456,p.z+345)<3) best = {kind:"checkpoint",id:"safehouse",label:"विश्राम / Save & heal"};
     if (best?.id !== s.nearby?.id || best?.label !== s.nearby?.label) s.set({ nearby: best });
   }
   function interact(s: ReturnType<typeof useStore.getState>) {
     const n = s.nearby; if (!n) return;
+    if(n.id === "safehouse") { s.set({health:100}); if(net.save()) s.toast("सुरक्षित · Game saved", "reward"); return; }
     if (n.kind === "npc") { s.set({ dialogue: { npc: n.id, lineId: "" } }); if (document.pointerLockElement) document.exitPointerLock(); }
     else if (n.kind === "vehicle") { if (s.vehicleTransition) return; s.set({ vehicleTransition: "entering" }); const v = s.vehicles[n.id]; net.send({ t: "vehicle.enter", id: n.id, seat: v?.driver ? "passenger" : "driver" }); sfx.doorOpen(); }
     else if (n.kind === "checkpoint" && s.mission) { net.send({ t: "mission.checkpoint", id: s.mission.def.id, index: s.mission.index, p: [playerPos.x, playerPos.y, playerPos.z] }); if (s.mission.def.kind === "photo") { sfx.camera(); s.set({ toasts: s.toasts }); flash(); } }
@@ -175,7 +177,7 @@ export function Player() {
       <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[SPAWN_POINT[0], SPAWN_POINT[1] + 1, SPAWN_POINT[2]]} enabledRotations={[false, false, false]}>
         <CapsuleCollider args={[CHARACTER.halfHeight, CHARACTER.radius]} />
       </RigidBody>
-      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} name={name} nameColor="#ffd23f" /></group>
+      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} /></group>
     </>
   );
 }

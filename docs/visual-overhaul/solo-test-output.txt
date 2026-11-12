@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /Users/aradhyadixit_74/Desktop/VeltoStudios/KanpurVerse
+
+········
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  23:48:49
+   Duration  2.18s (transform 334ms, setup 0ms, collect 389ms, tests 120ms, environment 0ms, prepare 354ms)
+

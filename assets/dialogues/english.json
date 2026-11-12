@@ -455,6 +455,14 @@
       "category": "shop",
       "text": "Welcome to Nukkad Paan, our fictional street shop. What would you like?",
       "emotion": "warm"
+    },
+    {
+      "id": "guide_babloo.laddoo",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "A festival caper, all staged! Bring the golden laddoo back from fictional Sunehri Mithai.",
+      "emotion": "happy",
+      "mission": "laddoo_chakkar"
     }
   ]
 }

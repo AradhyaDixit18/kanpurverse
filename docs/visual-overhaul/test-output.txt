@@ -1,0 +1,86 @@
+
+> kanpurverse@0.1.0 test
+> vitest run --reporter=dot
+
+
+ RUN  v3.2.4 /Users/aradhyadixit_74/Desktop/VeltoStudios/KanpurVerse
+
+stderr | tests/streetContacts.test.ts
+using deprecated parameters for the initialization function; pass a single object instead
+
+··············stderr | tests/physics.test.ts
+using deprecated parameters for the initialization function; pass a single object instead
+
+········stderr | tests/vehicle-exit.test.ts
+using deprecated parameters for the initialization function; pass a single object instead
+
+·stdout | tests/multiplayer.test.ts
+{"t":"2026-11-12T18:30:12.496Z","level":"warn","msg":"SESSION_SECRET not set: using an ephemeral secret (tokens stop working on restart). Set it in .env for persistence."}
+
+··stdout | tests/shared.test.ts > server origin allow-list > supports exact, any and wildcard-subdomain entries
+{"t":"2026-11-12T18:30:12.503Z","level":"warn","msg":"SESSION_SECRET not set: using an ephemeral secret (tokens stop working on restart). Set it in .env for persistence."}
+
+stdout | tests/multiplayer.test.ts
+{"t":"2026-11-12T18:30:12.521Z","level":"info","msg":"storage: file","dir":"/var/folders/xb/kch2w2rn6fqgsh5qp27lwp840000gn/T/kv-H8yWnY"}
+
+···stdout | tests/vehicle-exit.test.ts > moving vehicles reject exit; disconnect still releases a blocked seat
+{"t":"2026-11-12T18:30:12.535Z","level":"info","msg":"leave","room":"exit-test","id":"tester","n":0}
+
+····················stdout | tests/multiplayer.test.ts
+{"t":"2026-11-12T18:30:12.703Z","level":"info","msg":"KanpurVerse server listening","port":0,"origins":["*"],"storage":"file"}
+
+stdout | tests/multiplayer.test.ts > multiplayer > two clients join the same room and see each other
+{"t":"2026-11-12T18:30:12.771Z","level":"info","msg":"join","room":"kanpur-1","id":"e4cac36fbf952b119303156e","name":"Rad","n":1}
+
+···········stdout | tests/multiplayer.test.ts > multiplayer > two clients join the same room and see each other
+{"t":"2026-11-12T18:30:12.780Z","level":"info","msg":"join","room":"kanpur-1","id":"e99f3cdf6f6faec094fd5b11","name":"Priya","n":2}
+
+························stdout | tests/multiplayer.test.ts > multiplayer > two clients join the same room and see each other
+{"t":"2026-11-12T18:30:12.862Z","level":"info","msg":"leave","room":"kanpur-1","id":"e99f3cdf6f6faec094fd5b11","n":1}
+
+stdout | tests/multiplayer.test.ts > multiplayer > rejects teleport and keeps authoritative position
+{"t":"2026-11-12T18:30:12.876Z","level":"info","msg":"leave","room":"kanpur-1","id":"e4cac36fbf952b119303156e","n":0}
+
+·····stdout | tests/multiplayer.test.ts > multiplayer > rejects teleport and keeps authoritative position
+{"t":"2026-11-12T18:30:12.889Z","level":"info","msg":"join","room":"anti","id":"77d1b59e005af81f79c0726c","name":"Cheater","n":1}
+
+stdout | tests/multiplayer.test.ts > multiplayer > vehicle claim is exclusive; passenger seat works
+{"t":"2026-11-12T18:30:12.919Z","level":"info","msg":"leave","room":"anti","id":"77d1b59e005af81f79c0726c","n":0}
+
+stdout | tests/multiplayer.test.ts > multiplayer > vehicle claim is exclusive; passenger seat works
+{"t":"2026-11-12T18:30:12.946Z","level":"info","msg":"join","room":"veh","id":"ae8ed62139c5acbb0424cd31","name":"Driver","n":1}
+
+stderr | tests/ground-scale.test.ts
+using deprecated parameters for the initialization function; pass a single object instead
+
+stderr | tests/trafficContacts.test.ts
+using deprecated parameters for the initialization function; pass a single object instead
+
+stdout | tests/multiplayer.test.ts > multiplayer > vehicle claim is exclusive; passenger seat works
+{"t":"2026-11-12T18:30:12.960Z","level":"info","msg":"join","room":"veh","id":"b723a34b112ad81ef2f33cf7","name":"Rider","n":2}
+
+······················································································stdout | tests/multiplayer.test.ts > multiplayer > mission completes on the server and pays once at full rate; token reconnect restores profile
+{"t":"2026-11-12T18:30:14.464Z","level":"info","msg":"leave","room":"veh","id":"b723a34b112ad81ef2f33cf7","n":1}
+
+stdout | tests/multiplayer.test.ts > multiplayer > mission completes on the server and pays once at full rate; token reconnect restores profile
+{"t":"2026-11-12T18:30:14.464Z","level":"info","msg":"leave","room":"veh","id":"ae8ed62139c5acbb0424cd31","n":0}
+
+stdout | tests/multiplayer.test.ts > multiplayer > mission completes on the server and pays once at full rate; token reconnect restores profile
+{"t":"2026-11-12T18:30:14.477Z","level":"info","msg":"join","room":"mis","id":"d95e85d0aa90314ffcc909a6","name":"Runner","n":1}
+
+stdout | tests/multiplayer.test.ts > multiplayer > mission completes on the server and pays once at full rate; token reconnect restores profile
+{"t":"2026-11-12T18:30:34.955Z","level":"info","msg":"leave","room":"mis","id":"d95e85d0aa90314ffcc909a6","n":0}
+
+·stdout | tests/multiplayer.test.ts > reconciliation > a rejected hop sends a correction and the player can keep moving afterwards (no permanent desync)
+{"t":"2026-11-12T18:30:35.157Z","level":"info","msg":"join","room":"recon","id":"9e0af14bb2d01f0ebb5a74be","name":"Hopper","n":1}
+
+··stdout | tests/multiplayer.test.ts
+{"t":"2026-11-12T18:30:35.537Z","level":"info","msg":"leave","room":"recon","id":"9e0af14bb2d01f0ebb5a74be","n":0}
+
+
+
+ Test Files  21 passed (21)
+      Tests  177 passed (177)
+   Start at  00:00:11
+   Duration  24.53s (transform 1.92s, setup 0ms, collect 6.76s, tests 26.98s, environment 3ms, prepare 1.82s)
+

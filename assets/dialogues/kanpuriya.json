@@ -456,6 +456,15 @@
       "text": "आओ गुरु! नुक्कड़ की काल्पनिक पान दुकान में स्वागत है। क्या चाहिए?",
       "emotion": "warm",
       "roman": "Aao guru! Nukkad ki kalpanik paan dukaan mein swagat hai. Kya chahiye?"
+    },
+    {
+      "id": "guide_babloo.laddoo",
+      "npc": "guide_babloo",
+      "category": "mission_offer",
+      "text": "का गुरु! मेले का नाटक है। सुनहरी मिठाई से सुनहरा लड्डू लाओ, फिर चाय चौक लौटो। सब काल्पनिक है!",
+      "emotion": "happy",
+      "mission": "laddoo_chakkar",
+      "roman": "Ka guru! Mele ka natak hai. Sunehri Mithai se sunehra laddoo lao, phir chai chowk lauto. Sab kalpanik hai!"
     }
   ]
 }
