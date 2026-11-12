@@ -1,12 +1,8 @@
 import { beforeAll, describe, expect, it, afterEach } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { VEHICLE_SPECS, vehicleExitCandidates, DEFAULT_APPEARANCE, type VehicleSnapshot, type S2C } from "../packages/shared/src/index";
+import { VEHICLE_SPECS, vehicleExitCandidates, DEFAULT_APPEARANCE, type VehicleSnapshot } from "../packages/shared/src/index";
 import { CHARACTER, createCharacterController, moveCharacter, placeCharacter } from "../apps/web/src/game/characterPhysics";
 import { findClearVehicleExit } from "../apps/web/src/game/vehicleExit";
-import { createExitBlocker, polygonBlocksPoint, loadExitBlocker } from "../apps/server/src/worldSafety";
-import { Room, Player } from "../apps/server/src/room";
-import type { Storage } from "../apps/server/src/storage";
-import type { WebSocket } from "ws";
 beforeAll(async () => { await RAPIER.init(); });
 describe("safe exits in the actual Rapier scene", () => {
   for (const [kind, spec] of Object.entries(VEHICLE_SPECS)) {
@@ -38,39 +34,6 @@ describe("safe exits in the actual Rapier scene", () => {
     });
   }
 });
-const rooms: Room[] = []; afterEach(() => { rooms.splice(0).forEach(r => r.destroy()); });
-function setup(blocked = (_p: [number, number, number], _r: number) => false) {
-  const room = new Room("exit-test", { putPlayer: async () => {} } as unknown as Storage, 8, blocked); rooms.push(room);
-  const messages: S2C[] = []; const ws = { OPEN: 1, readyState: 1, send: (raw: string) => messages.push(JSON.parse(raw)) } as unknown as WebSocket;
-  const p = new Player(ws, { _id: "tester", name: "tester", appearance: DEFAULT_APPEARANCE, lang: "english", coins: 200, xp: 0, level: 1, missionsCompleted: [], unlocked: [], friends: [], blocked: [], playtimeSec: 0, createdAt: 0, lastSeenAt: 0, reports: 0 });
-  room.players.set(p.id, p); const vehicle = [...room.vehicles.values()][0]; vehicle.p = [0, 1, 0];
-  p.p = [...vehicle.p]; room.enterVehicle(p, vehicle.id, "driver"); return { room, vehicle, p, messages };
-}
-it("server retains seat ownership when every exit is blocked", () => {
-  const { room, vehicle, p, messages } = setup(() => true); room.exitVehicle(p);
-  expect(p.vehicle).toBe(vehicle.id); expect(vehicle.driver).toBe(p.id); expect(messages.at(-1)).toMatchObject({ t: "error", code: "exit_blocked" });
-});
-it("server rejects arbitrary exit teleports and vertical spoofing", () => {
-  const { room, vehicle, p, messages } = setup(); room.exitVehicle(p, [900, 0, 900]);
-  expect(p.vehicle).toBe(vehicle.id); expect(messages.at(-1)).toMatchObject({ code: "exit_blocked" });
-  const candidate = vehicleExitCandidates(vehicle.kind, vehicle.p, vehicle.q, "driver")[0]; candidate[1] = 30; room.exitVehicle(p, candidate);
-  expect(p.vehicle).toBe(vehicle.id);
-});
-it("moving vehicles reject exit; disconnect still releases a blocked seat", () => {
-  const { room, vehicle, p, messages } = setup(() => true); vehicle.v = 10; room.exitVehicle(p);
-  expect(messages.at(-1)).toMatchObject({ code: "vehicle_moving" }); expect(vehicle.driver).toBe(p.id);
-  room.leave(p); expect(vehicle.driver).toBeUndefined(); expect(room.players.has(p.id)).toBe(false);
-});
-it("polygon checks preserve narrow roads beside diagonal buildings", () => {
-  const polygon: [number, number][] = [[0, 0], [10, 10], [12, 8], [2, -2]];
-  expect(polygonBlocksPoint([0, 0, 8], 0.4, polygon)).toBe(false);
-  expect(polygonBlocksPoint([5, 0, 4], 0.4, polygon)).toBe(true);
-  expect(createExitBlocker([polygon])([5, 0, 4], 0.4)).toBe(true);
-});
-it("production geometry loader reads the checked-in extract without credentials", () => {
-  expect(typeof loadExitBlocker()).toBe("function");
-});
-
 it("exiting a disabled occupant capsule refreshes queries before ground snapping", () => {
   const world = new RAPIER.World({ x: 0, y: -18, z: 0 });
   try {

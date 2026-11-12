@@ -1,5 +1,5 @@
 "use client";
-/** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, chat, minimap, mobile controls, menus. */
+/** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, minimap, mobile controls, menus. */
 import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
 import { LANDMARKS, MISSIONS, SHOP_ITEMS, VEHICLE_SPECS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
@@ -18,8 +18,8 @@ import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
-  const s = useStore(useShallow(s => ({ settings:s.settings, saveState:s.saveState, lastSavedAt:s.lastSavedAt, profile:s.profile, missionResult:s.missionResult, health:s.health, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
+  const s = useStore(useShallow(s => ({ settings:s.settings, saveState:s.saveState, lastSavedAt:s.lastSavedAt, profile:s.profile, missionResult:s.missionResult, health:s.health, subtitle:s.subtitle, mission:s.mission, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
+  const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
   
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -102,14 +102,13 @@ function Minimap() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     let raf = 0; const draw = () => {
-      const { players, selfId, mission, party } = useStore.getState();
+      const { mission } = useStore.getState();
       const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const S = c.width; const R = 90; // metres radius
       x.clearRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); x.clip(); x.fillStyle = "rgba(11,11,13,0.7)"; x.fillRect(0, 0, S, S);
       const k = S / (R * 2); x.translate(S / 2, S / 2); x.rotate(-playerYaw.v); x.translate(-playerPos.x * k, -playerPos.z * k);
       x.strokeStyle = "#666"; for (const r of roadsNear(playerPos.x, playerPos.z, R + 40)) { x.lineWidth = Math.max(1.5, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
       for (const l of LANDMARKS) { x.fillStyle = l.kind === "lake" ? "#2f6f8f" : l.kind === "park" ? "#3f6f3a" : "#8a8070"; x.beginPath(); x.arc(l.p[0] * k, l.p[1] * k, Math.min(l.r, 40) * k, 0, Math.PI * 2); x.fill(); }
       if (mission) { const cp = mission.def.checkpoints[mission.index]; x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 5, 0, Math.PI * 2); x.fill(); }
-      for (const p of Object.values(players)) if (p.id !== selfId) { x.fillStyle = party.includes(p.id) ? "#3d8bff" : "#fff"; x.beginPath(); x.arc(p.p[0] * k, p.p[2] * k, 3, 0, Math.PI * 2); x.fill(); }
       x.restore(); x.fillStyle = "#c8102e"; x.beginPath(); x.moveTo(S / 2, S / 2 - 7); x.lineTo(S / 2 - 5, S / 2 + 5); x.lineTo(S / 2 + 5, S / 2 + 5); x.closePath(); x.fill();
       raf = requestAnimationFrame(draw); }; draw(); return () => cancelAnimationFrame(raf);
   }, []);
@@ -142,7 +141,7 @@ function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat
   </>;
 }
 
-function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests") => void }) {
+function Panel({ kind, close, open }: { kind: string; close: () => void; open: (k: "pause" | "map" | "shop" | "settings" | "garage" | "help" | "inventory" | "quests") => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   return <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
     <div className="modal-card">

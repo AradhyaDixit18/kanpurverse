@@ -14,8 +14,6 @@ export const SoloSave = z.object({
     coins: finite.nonnegative(),
     missionsCompleted: z.array(z.string()),
     unlocked: z.array(z.string()),
-    friends: z.array(z.string()).default([]),
-    blocked: z.array(z.string()).default([]),
     playtimeSec: finite.nonnegative(),
     inventory: z
       .object({ gutka: z.number().int().min(0).max(30) })

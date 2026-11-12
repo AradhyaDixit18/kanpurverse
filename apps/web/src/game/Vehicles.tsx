@@ -118,7 +118,7 @@ function VehicleOccupants({ vehicle }: { vehicle: VehicleSnapshot }) {
 function SeatedOccupant({ id, self, seat, pose, appearance }: { id: string; self: boolean; seat: "driver" | "passenger"; pose: ReturnType<typeof vehicleSeatPose>; appearance: import("@kanpurverse/shared").Appearance }) {
   const group = useRef<THREE.Group>(null);
   useFrame(() => { if (group.current) group.current.visible = !self || camYaw.mode !== 3; });
-  return <group name={`occupant:${id}:${seat}`} ref={group} position={pose.p}><Avatar appearance={appearance} anim={seat === "driver" ? "drive" : "sit"} scale={pose.scale} /></group>;
+  return <group name={`occupant:${id}:${seat}`} ref={group} position={pose.p}><Avatar appearance={appearance} anim={seat === "driver" ? "drive" : "sit"} scale={pose.scale} protagonist={self} /></group>;
 }
 
 function kindEngine(kind: VehicleKind) { return kind === "erickshaw" ? "electric" : kind === "cruiser" ? "thump" : kind === "sportbike" ? "rev" : kind === "auto" ? "putt" : "std"; }

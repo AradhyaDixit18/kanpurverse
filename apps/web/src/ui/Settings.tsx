@@ -31,6 +31,7 @@ export function SettingsPanel() {
       <Row label={t("HDR sky reflections", "HDR आसमान परावर्तन")}><input type="checkbox" checked={g.ibl} onChange={e => gfx({ ibl: e.target.checked })} /></Row>
       <button className="btn-sm" type="button" onClick={() => set({ gfx: undefined })}>{t("Reset to preset", "प्रीसेट पर लौटाओ")}</button>
     </details>
+    <Row label={t("Classic block characters (faster on old devices)", "पुराने ब्लॉक किरदार (कमज़ोर डिवाइस के लिए)")}><input type="checkbox" checked={!!st.classicCharacters} onChange={e => set({ classicCharacters: e.target.checked })} /></Row>
     <Row label={t("Vehicle headlights", "हेडलाइट")}><select value={st.headlights ?? "auto"} onChange={e => set({ headlights: e.target.value as never })}><option value="auto">{t("Auto (dusk to dawn)", "अपने-आप (शाम से सुबह)")}</option><option value="on">{t("Always on", "हमेशा चालू")}</option><option value="off">{t("Off", "बंद")}</option></select></Row>
     <Row label={t("City atmosphere", "शहर का माहौल")}><select value={st.atmosphere} onChange={e=>set({atmosphere:e.target.value as never})}><option value="cycle">Day / night cycle</option><option value="day">Daylight</option><option value="sunset">Golden hour</option><option value="night">Night</option></select></Row>
     <Row label={t("Camera sensitivity", "कैमरा संवेदनशीलता")}><input type="range" min={0.3} max={2.5} step={0.1} value={st.sensitivity} onChange={e => set({ sensitivity: +e.target.value })} /></Row>

@@ -1,0 +1,11 @@
+{
+  "commit": "61ddbefacaeffa448c04847649c049f126b20b83",
+  "draftPR": "https://github.com/AradhyaDixit18/kanpurverse/pull/2",
+  "preview": "https://kanpurverse-git-feature-single-player-fca5af-aradhu74s-projects.vercel.app/play",
+  "previewHttpStatus": 200,
+  "localPreview": "http://localhost:3000/play",
+  "tests": 177,
+  "productionUpdated": false,
+  "migration": "pending recipient acceptance",
+  "finalBrowserQA": "blocked by detached Chrome connection"
+}

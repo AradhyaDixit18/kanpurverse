@@ -1,6 +1,6 @@
 const DAY = 86400;
 const wrap = (s: number) => ((s % DAY) + DAY) % DAY;
-/** Continuous visual clock, anchored to server samples. Gameplay authority stays on server. */
+/** Continuous visual clock, anchored to the local world-time samples from the solo runtime. */
 export class SyncedClock {
   private seconds = 0; private stamp = 0; private ready = false;
   reset() { this.ready = false; }

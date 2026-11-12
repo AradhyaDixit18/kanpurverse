@@ -1,0 +1,9 @@
+KanpurVerse currently requires a shared-world server even for solo exploration. This branch replaces the active transport with a local gameplay adapter and versioned saves, removes multiplayer menus/chat/remote avatars, and adds the original Laddoo Ka Chakkar story mission and enterable Sunehri Mithai shop. It retains the existing OSM map, physics controllers and legacy server source for rollback.
+
+The visual pass adds road-edge planting, separate facade glass/metal materials, physical vehicle paint and rounded car bodies, four graphics tiers, atmospheric lighting, high-tier AO and a styled solo HUD. The first caper includes a physical staged festival chase, local rewards, checkpoint saves, a collectible and a safe-house save/heal marker.
+
+Validation: typecheck, lint (two inherited warnings), 177 tests across 21 suites and production build pass locally. A browser mission run completed all four stages and restored rewards after reload **before** the later physical-chase and final graphics refinements. Final production runtime, chase/catch, vehicle/tier regression and matched performance QA are still required: Chrome automation detached. No final 60 FPS or AAA-quality claim. Draft deliberately remains unmerged; production is unchanged.
+
+GitHub ownership transfer remains pending acceptance by velto-studios. No original deployment, repository, security check, source history or stored data was deleted or bypassed. Detailed audit and honest remaining-work report: docs/visual-overhaul/DELIVERY_REPORT.md.
+
+Branch and PR CI verification both passed on61ddbef. Vercel preview built successfully and /play returns HTTP200: https://kanpurverse-git-feature-single-player-fca5af-aradhu74s-projects.vercel.app/play . HTTP/build success is not final gameplay verification. The optional DCO check requests a signoff; no author attestation was fabricated or approval check disabled.

@@ -7,9 +7,9 @@ export default function Landing() {
     <main className="landing">
       <header className="l-hero"><Skyline />
         <Logo size={44} />
-        <h1>Apna shehar, apni duniya.</h1>
-        <p className="l-sub">A free, browser-based single-player story world built on the <strong>real streets of Kanpur</strong>. Walk The Mall Road, wait at a railway phatak for the train, drive an auto or e-rickshaw to Kanpur Central, talk to Kanpuriya NPCs in their own voice, play Laddoo Ka Chakkar and explore 14 more missions. Your story saves on this device. No download, no account.</p>
-        <div className="l-cta"><Link className="btn btn-accent big" href="/play">Play now</Link><a className="btn" href="#how">How it works</a></div>
+        <h1>कानपुर की कहानी अभी बाकी है।</h1>
+        <p className="l-sub">कनुप्रिया टॉमी चार साल बाद कानपुर लौटी है, और गंगा मेला ख़तरे में है। <strong>असली कानपुर की सड़कों</strong> पर बनी एक अकेले खेलने वाली कहानी: मॉल रोड, रेलवे फाटक, नवीन मार्केट, परमट घाट. <br /><span className="muted">A single-player story game on the real streets of Kanpur. Your progress saves on this device. No download, no account.</span></p>
+        <div className="l-cta"><Link className="btn btn-accent big" href="/play">खेलो · Play</Link><a className="btn" href="#how">क्या है खेल में</a></div>
         <p className="muted small">Works on desktop and phones with WebGL. Best in Brave, Chrome or Safari.</p>
       </header>
 
@@ -18,12 +18,12 @@ export default function Landing() {
       </section>
 
       <section className="l-grid" id="how">
-        <div className="l-card"><h3>Explore real Kanpur</h3><p>Central Kanpur from OpenStreetMap data (© OpenStreetMap contributors): 488 km of real roads, the railway with 49 level crossings, Kanpur Central and Anwarganj, Nana Rao Park, Phool Bagh, Green Park, Christ Church and more — {LANDMARKS.filter(l => l.kind !== "park").map(l => l.name).slice(0, 6).join(", ")}.</p></div>
-        <div className="l-card"><h3>Talk Kanpuriya</h3><p>Every NPC speaks Kanpuriya Hindi with neural voices and subtitles (Devanagari + roman). The whole game is also in standard Hindi and English — choose at the start, switch any time.</p></div>
-        <div className="l-card"><h3>Drive</h3><p>Ten vehicles: hatchback, sedan, SUV, bike, scooter, auto, e-rickshaw, city bus, truck and taxi, in Indian traffic with cows, dogs and pigeons about. Explore the city at your own pace.</p></div>
-        <div className="l-card"><h3>Your Kanpur story</h3><p>An original festival caper at Sunehri Mithai, followed by city missions. Local autosaves, no login and no multiplayer server needed.</p></div>
-        <div className="l-card"><h3>{MISSIONS.length} missions</h3><p>{MISSIONS.map(m => m.name).join(" · ")}. Earn coins and XP; buy a Kanpuriya kurta or shades at Naveen Market.</p></div>
-        <div className="l-card"><h3>Safe by design</h3><p>Solo play, configurable clean dialogue, no real-money purchases, no tracking.</p></div>
+        <div className="l-card"><h3>असली कानपुर · Real Kanpur</h3><p>OpenStreetMap की असली सड़कें, रेलवे और 49 फाटक, कानपुर सेंट्रल, नाना राव पार्क, फूल बाग़ — {LANDMARKS.filter(l => l.kind !== "park").map(l => l.nameHi).slice(0, 5).join(", ")}। Streets © OpenStreetMap contributors.</p></div>
+        <div className="l-card"><h3>कनपुरिया बोली · Kanpuriya first</h3><p>हर किरदार कनपुरिया हिंदी में बोलता है, सबटाइटल के साथ। अंग्रेज़ी सिर्फ़ एक विकल्प है, सेटिंग्स में।</p></div>
+        <div className="l-card"><h3>18 तरह की गाड़ियाँ · Drive</h3><p>हैचबैक, SUV, बुलेट-स्टाइल बाइक, स्कूटर, ऑटो, ई-रिक्शा, साइकिल रिक्शा, स्कूल बस, छोटा हाथी और ट्रक — हर गाड़ी अलग चलती है।</p></div>
+        <div className="l-card"><h3>8 अध्याय की कहानी · Story</h3><p>कनुप्रिया टॉमी, लालटेन सेठ और गंगा मेले की रात। साथ में {MISSIONS.length - 8} साइड मिशन और खुला शहर।</p></div>
+        <div className="l-card"><h3>अकेले खेलो · Single-player</h3><p>सिर्फ़ एक खिलाड़ी का खेल। कोई लॉगिन, चैट या ऑनलाइन सर्वर नहीं; सेव इसी डिवाइस पर।</p></div>
+        <div className="l-card"><h3>Safe by design</h3><p>साफ़ भाषा मोड, कोई असली पैसा नहीं, कोई ट्रैकिंग नहीं।</p></div>
       </section>
 
       <section className="l-note">

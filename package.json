@@ -1,8 +1,8 @@
 {
-  "name": "kanpurverse",
+  "name": "kanpur-chronicles",
   "private": true,
   "version": "0.1.0",
-  "description": "KanpurVerse \u2014 a single-player open-world story browser game inspired by Kanpur. A Velto Studios product.",
+  "description": "Kanpur Chronicles \u2014 a single-player open-world story browser game inspired by Kanpur. A Velto Studios product.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -10,13 +10,10 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
-    "dev:server": "npm run dev --workspace=apps/server",
-    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/server && npm run build --workspace=apps/web",
-    "start:server": "npm run start --workspace=apps/server",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint -w apps/web",
     "test": "vitest run",
-    "test:multiplayer": "vitest run tests/multiplayer.test.ts",
     "voices": "python3 scripts/generate_voices.py",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },

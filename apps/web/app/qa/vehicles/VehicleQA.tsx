@@ -1,5 +1,5 @@
 "use client";
-/** Development-only integration controls operating the real network, player and vehicle controllers. */
+/** Development-only integration controls operating the real player and vehicle controllers (local runtime). */
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useStore } from "../../../src/state/store";
@@ -17,7 +17,7 @@ export default function VehicleQA() {
   return <>
     {s.connected && <Game qaScenario="vehicles" />}
     <section style={{ position: "fixed", top: 12, left: 12, zIndex: 100, padding: 14, background: "#10151dee", color: "white", maxWidth: 390, borderRadius: 10, font: "14px system-ui" }}>
-      <strong>Local vehicle integration fixture</strong><p>Real controllers + isolated server. This is not the city playthrough.</p>
+      <strong>Local vehicle integration fixture</strong><p>Real controllers on the local single-player runtime. This is not the city playthrough.</p>
       {!s.connected ? <><input aria-label="QA player name" value={name} onChange={e => setName(e.target.value)} /><button onClick={() => { s.set({ name, token: undefined, paused: false, screen: "loading" }); s.setSettings({ lang: "english", quality: "low", voice: false, music: 0 }); net.connect(VEHICLE_QA_ROOM); }}>Connect</button></> : <>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           <button onClick={() => car && net.send({ t: "vehicle.enter", id: car.id, seat: "driver" })}>Enter driver</button>
@@ -30,7 +30,7 @@ export default function VehicleQA() {
           <button onClick={() => window.dispatchEvent(new Event("kv:qa:capture"))}>Save frame</button>
           <button onClick={() => window.dispatchEvent(new Event("kv:qa:record"))}>Record 5 seconds</button>
         </div>
-        <p role="status">{Object.keys(s.players).length} online · {s.seat ?? "on foot"} · {s.vehicleTransition ?? "ready"} · {s.fps} FPS · {s.ping} ms</p>
+        <p role="status">{s.seat ?? "on foot"} · {s.vehicleTransition ?? "ready"} · {s.fps} FPS</p>
         <p>Physics: {JSON.stringify(playerPhysicsTelemetry)}</p><p>Driver: {car?.driver ? s.players[car.driver]?.name ?? "claimed" : "empty"} · Passenger: {car?.passenger ? s.players[car.passenger]?.name ?? "claimed" : "empty"}</p>
         <p>Vehicle: {car?.p.map(v => v.toFixed(2)).join(", ")} · {car?.v.toFixed(2)} m/s · q {car?.q.map(v => v.toFixed(3)).join(", ")}</p>
         <p>Self: {s.selfId ? s.players[s.selfId]?.p.map(v => v.toFixed(2)).join(", ") : "joining"}</p>

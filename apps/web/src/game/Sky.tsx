@@ -1,5 +1,5 @@
 "use client";
-/** Day/night: gradient sky dome (shader), sun/moon discs, drifting clouds, fog + lights keyed to the server world clock. */
+/** Day/night: gradient sky dome (shader), sun/moon discs, drifting clouds, fog + lights keyed to the local world clock. */
 import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { renderWorldTime } from "./syncedClock";

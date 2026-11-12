@@ -1,4 +1,4 @@
-/** Client-local NPC simulation, deliberately separate from server-owned money/inventory. */
+/** Local NPC street simulation, kept separate from the save-owned money/inventory. */
 import { NPCS, STREET, STREET_LINES, streetReply, type StreetCategory, type NpcMood } from '@kanpurverse/shared';
 import { npcPositions, playerPos } from './refs';
 import { useStore } from '../state/store';

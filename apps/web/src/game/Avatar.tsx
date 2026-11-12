@@ -1,6 +1,8 @@
 "use client";
 /** Procedural stylised humanoid (rounded primitives), code-driven animation with damped blending between poses. Used for players and NPCs. */
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { HumanAvatar } from "./HumanAvatar";
+import { Boundary } from "./Boundary";
 import { useStore } from "../state/store";
 import { DistantAvatar } from "./DistantAvatar";
 import { useFrame } from "@react-three/fiber";
@@ -44,7 +46,7 @@ function poseFor(anim: AnimState, T: number, blend: { walk: number }): Pose {
   return p;
 }
 
-export interface AvatarProps { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string }
+export interface AvatarProps { appearance: Appearance; anim: AnimState; name?: string; scale?: number; nameColor?: string; speed?: number; protagonist?: boolean }
 export const Avatar = memo(function Avatar(props: AvatarProps) {
   const root = useRef<THREE.Group>(null); const world = useRef(new THREE.Vector3()); const checkAt = useRef(0);
   const [lod, setLod] = useState(0); const band = useRef(0);
@@ -55,8 +57,8 @@ export const Avatar = memo(function Avatar(props: AvatarProps) {
     const next = d > 180 ? 2 : d > near + (band.current === 0 ? 4 : -4) ? 1 : 0;
     if (next !== band.current) { band.current = next; setLod(next); }
   });
-  return <group ref={root} scale={props.scale ?? 1}>{lod === 0 ? <DetailedAvatar {...props} scale={1} /> : lod === 1 ? <DistantAvatar appearance={props.appearance} anim={props.anim} /> : null}</group>;
-}, (a, b) => a.anim === b.anim && a.name === b.name && a.nameColor === b.nameColor && a.scale === b.scale && JSON.stringify(a.appearance) === JSON.stringify(b.appearance));
+  return <group ref={root} scale={props.scale ?? 1}>{lod === 0 ? (useStore.getState().settings.classicCharacters ? <DetailedAvatar {...props} scale={1} /> : <Boundary name="human" fallback={<DetailedAvatar {...props} scale={1} />}><Suspense fallback={<DetailedAvatar {...props} scale={1} />}><HumanAvatar appearance={props.appearance} anim={props.anim} speed={props.speed} protagonist={props.protagonist} />{props.name && <NameTag text={props.name} color={props.nameColor} />}</Suspense></Boundary>) : lod === 1 ? <DistantAvatar appearance={props.appearance} anim={props.anim} /> : null}</group>;
+}, (a, b) => a.anim === b.anim && a.speed === b.speed && a.protagonist === b.protagonist && a.name === b.name && a.nameColor === b.nameColor && a.scale === b.scale && JSON.stringify(a.appearance) === JSON.stringify(b.appearance));
 function DetailedAvatar({ appearance, anim, name, scale = 1, nameColor = "#fff" }: AvatarProps) {
   const refs = { lArm: useRef<THREE.Group>(null), rArm: useRef<THREE.Group>(null), lFore: useRef<THREE.Group>(null), rFore: useRef<THREE.Group>(null), lLeg: useRef<THREE.Group>(null), rLeg: useRef<THREE.Group>(null), lShin: useRef<THREE.Group>(null), rShin: useRef<THREE.Group>(null), body: useRef<THREE.Group>(null), head: useRef<THREE.Group>(null) };
   const eyes = useRef<THREE.Group>(null); const blinkAt = useRef(2 + Math.random() * 4);

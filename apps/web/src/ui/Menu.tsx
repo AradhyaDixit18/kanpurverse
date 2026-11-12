@@ -73,6 +73,6 @@ export function LoadingScreen() {
     <Tips /></div>;
 }
 export function ErrorScreen() { const s = useStore(); const en = s.settings.lang === "english";
-  return <div className="screen center"><Skyline /><Logo size={56} /><h2>{en ? "Couldn't connect" : "जुड़ नहीं पाए"}</h2><p>{s.errorText}</p>
+  return <div className="screen center"><Skyline /><Logo size={56} /><h2>{en ? "Couldn't start the game" : "गेम शुरू नहीं हो पाया"}</h2><p>{s.errorText}</p>
     <div className="row"><button className="btn btn-accent" onClick={() => { preloadGameEngine(); s.set({ screen: "loading", errorText: undefined, loadStage: "connecting" }); net.connect(net.room); }}>{en ? "Retry" : "फिर कोशिश"}</button><button className="btn" onClick={() => { net.disconnect(); s.set({ screen: "menu" }); }}>{en ? "Back to menu" : "मेन्यू"}</button></div></div>; }
 function Tips() { const en = useStore(s => s.settings.lang === "english"); const tips = useMemo(() => en ? ["Press E near anyone to talk.", "Your progress saves automatically on this device.", "Sunset Point is prettiest around 18:00 in-game.", "Space is the handbrake when driving.", "Press I for your inventory, M for the map."] : ["किसी के पास E दबाओ, बात होगी।", "आपकी प्रगति इसी डिवाइस पर अपने आप सेव होती है।", "सनसेट पॉइंट शाम 6 बजे सबसे सुंदर।", "गाड़ी में Space हैंडब्रेक है।", "I से इन्वेंटरी, M से नक्शा।"], [en]); const [i, setI] = useState(0); useEffect(() => { const t = setInterval(() => setI(x => x + 1), 3500); return () => clearInterval(t); }, []); return <p className="tip">{tips[i % tips.length]}</p>; }

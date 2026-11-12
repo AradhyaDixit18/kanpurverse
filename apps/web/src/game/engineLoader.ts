@@ -1,6 +1,6 @@
 import { useStore } from "../state/store";
 let pending: Promise<typeof import("./Game")> | undefined;
-/** Start the same lazy engine download while the multiplayer service is waking up. */
+/** Start the lazy engine download early (menu hover / Play) so the world appears sooner. */
 export function loadGameEngine() {
   if (!pending) {
     useStore.getState().set({ loadProgress: 0 });

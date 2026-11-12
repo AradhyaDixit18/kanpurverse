@@ -1,6 +1,6 @@
-# KanpurVerse — Velto Studios
+# Kanpur Chronicles: City of Stories — Velto Studios
 
-An original single-player browser open world inspired by Kanpur. The solo runtime needs no login, other player, WebSocket service or MongoDB connection. Download world assets once per browser session, then play locally. This is an early playable build, not a claim of AAA fidelity.
+(Repository and code name: KanpurVerse.) An original **single-player** browser open world set in Kanpur, starring Kanupriya Tommy. There is no multiplayer mode: no login, server, chat, lobby or WebSocket connection. Download world assets once per browser session, then play locally. This is an early playable build, not a claim of AAA fidelity.
 
 Play: https://kanpurverse.vercel.app/play
 
@@ -8,11 +8,9 @@ Play: https://kanpurverse.vercel.app/play
 
 Node 20+ and npm are required. `npm install`, then `npm run dev` and open http://localhost:3000/play. `./RUN_ON_MAC.sh` starts only the web client. `npm run verify` runs typecheck, lint, tests and the production build.
 
-## Solo story
+## Story
 
-Talk to Babloo Bhaiya near the starting point. **MISSION 01: LADDOO KA CHAKKAR** is a fictional festival caper at **Sunehri Mithai**, an original sweet shop with no real-business endorsement. Follow four checkpoints and press E for story actions. A physical festival marshal pursues during the getaway; being caught returns the player to the shop checkpoint. Completion grants coins, XP and ownership of the hatchback, and opens the existing city missions. All parked city vehicles remain usable for exploration.
-
-Move with WASD, sprint Shift, jump Space, interact E, exit vehicle F, camera C, horn H, map M, missions J, inventory I, photo mode P, pause Esc. Touch controls remain available in Settings.
+Eight chapters (see `docs/STORY_CAMPAIGN.md`), starting with Babloo Bhaiya at Cafe Chowk. Chapter 2, LADDOO KA CHAKKAR, is a fictional caper at Sunehri Mithai, an original shop with no real-business endorsement. Side missions open after Chapter 2; free roam continues after the credits. Controls: see `docs/CONTROLS.md` or the in-game controls screen (F1).
 
 ## Saves
 
@@ -28,7 +26,8 @@ Low, Medium, High and Ultra tiers scale resolution, shadows, population and arch
 - `apps/web/src/state/soloSave.ts`: validated versioned local save journal.
 - `apps/web/src/game/StoryWorld.tsx`, `FestivalChase.tsx`: original shop, collectible, safe-house marker and physical staged chase.
 - `packages/shared`: existing map, vehicle, mission and dialogue definitions.
-- `apps/server` and `legacyClient.ts`: preserved historical multiplayer implementation and rollback tests. Not part of the active solo client. Existing Render data/service have not been deleted.
+- The historical multiplayer server/client was **removed in Phase C**. It remains recoverable from Git tag `archive/multiplayer-before-removal` (commit 34876e7); its design note is in `docs/archive/`. The external Render service was not touched by this change.
+- `apps/web/src/game/HumanAvatar.tsx`: rigged CC0 characters (see `docs/ASSET_LICENCES.md`).
 - `FEATURES/Graphics_Baseline`: separate ignored Git worktree at pre-upgrade b37f576, retained for comparison and rollback. Do not add it as a submodule.
 - `docs/KANPURVERSE_CURRENT_STATE_AUDIT.md` and `docs/visual-overhaul`: audit, measurements and delivery status.
 

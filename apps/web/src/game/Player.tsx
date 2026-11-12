@@ -170,7 +170,7 @@ export function Player() {
   // a teleport is followed by a server snap unless the test moves gradually; tests use small hops.
   useEffect(() => { if (process.env.NEXT_PUBLIC_QA !== "1") return; (window as unknown as { __kv?: unknown }).__kv = {
     pos: () => [playerPos.x, playerPos.y, playerPos.z], hop: (x: number, z: number) => { const rb = body.current; if (rb) { rb.setNextKinematicTranslation({ x, y: 1.95, z }); playerPos.set(x, 1, z); } },
-    state: () => { const s = useStore.getState(); return { screen: s.screen, players: Object.keys(s.players).length, nearby: s.nearby, mission: s.mission?.def.id, coins: s.profile?.coins, inVehicle: s.inVehicle, dialogue: s.dialogue, fps: s.fps, ping: s.ping }; },
+    state: () => { const s = useStore.getState(); return { screen: s.screen, players: Object.keys(s.players).length, nearby: s.nearby, mission: s.mission?.def.id, coins: s.profile?.coins, inVehicle: s.inVehicle, dialogue: s.dialogue, fps: s.fps }; },
     raw: () => scene, face: (yaw: number) => { camYaw.v = yaw; }, net: () => ({ ...net.status(), connected: useStore.getState().connected }),
     scene: () => { const by: Record<string, number> = {}; let meshes = 0, tris = 0; scene.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { meshes++; const n = m.name || m.geometry?.type || "?"; by[n] = (by[n] || 0) + 1; const idx = m.geometry?.getIndex(); tris += idx ? idx.count / 3 : (m.geometry?.getAttribute("position")?.count || 0) / 3; } }); return { meshes, tris: Math.round(tris), by, calls: gl.info.render.calls, groups: scene.children.map(c => c.name || c.type) }; } }; }, [scene, gl]);
 
@@ -179,7 +179,7 @@ export function Player() {
       <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[SPAWN_POINT[0], SPAWN_POINT[1] + 1, SPAWN_POINT[2]]} enabledRotations={[false, false, false]}>
         <CapsuleCollider args={[CHARACTER.halfHeight, CHARACTER.radius]} />
       </RigidBody>
-      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} /></group>
+      <group ref={vis} visible={!inVehicle}><Avatar appearance={appearance} anim={animState} protagonist speed={animState === "sprint" ? SPRINT : animState === "run" ? RUN : animState === "walk" ? WALK : undefined} /></group>
     </>
   );
 }

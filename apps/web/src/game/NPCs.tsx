@@ -40,7 +40,7 @@ function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: numbe
   const sample=(d:number)=>{const path=((d%(w.seg.len*2))+w.seg.len*2)%(w.seg.len*2),fwd=path<w.seg.len,s=fwd?path:w.seg.len*2-path,forward=(fwd?1:-1)*w.dir>0;const [x,z]=segPoint(w.seg,w.dir>0?s:w.seg.len-s,w.off);return {x,y:0,z,yaw:segYaw(w.seg,forward)};};
   const initial=useRef(sample(distance.current)),motion=usePedestrianBody([initial.current.x,0,initial.current.z]),[anim,setAnim]=useState<AnimState>("walk");
   useBeforePhysicsStep(()=>{const next=sample(distance.current+w.speed*motion.world.timestep),moved=motion.resolve(next);if(moved>.001)distance.current+=w.speed*motion.world.timestep;if(g.current){g.current.position.set(next.x,next.y,next.z);g.current.rotation.y=next.yaw;}const want=moved>.001?"walk":"idle";if(anim!==want)setAnim(want);});
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim}/></group></>;
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim} speed={w.speed}/></group></>;
 }
 function NPC({ def }: { def: NpcDef }) {
   const g = useRef<THREE.Group>(null); const idx = useRef(1); const [anim, setAnim] = useState<AnimState>("idle"); const barkAt = useRef(performance.now() + 8000 + Math.random() * 15000);
@@ -79,6 +79,6 @@ function NPC({ def }: { def: NpcDef }) {
     if (performance.now() > barkAt.current) { barkAt.current = performance.now() + 20000 + Math.random() * 25000; if (dPlayer < 14 && !s.dialogue && s.settings.subtitles) { const l = pick(lines, def.id, "idle") ?? pick(lines, "any", "idle"); if (l) speak(l, def.id); } }
   });
   const label = useStore(s => s.settings.lang === "english" ? def.name : def.nameHi);
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} /></group></>;
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} speed={def.speed || undefined} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} /></group></>;
 }
 function pick(lines: DialogueLine[], npc: string, cat: DialogueLine["category"]) { const pool = lines.filter(l => l.category === cat && l.npc === npc); return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined; }
