@@ -101,4 +101,6 @@ describe("single-player runtime", () => {
 
  it('reports storage failure without pretending to save',()=>{vi.stubGlobal('localStorage',{getItem:()=>null,setItem:()=>{throw new Error('Quota exceeded')}});expect(net.save()).toBe(false);expect(useStore.getState().toasts.at(-1)?.kind).toBe('error');});
 
+ it('caught-player recovery persists the recovery position and checkpoint together',()=>{net.sendState([462,1,-336],0,'idle');net.send({t:'mission.start',id:'laddoo_chakkar'});const m=useStore.getState().mission!;useStore.getState().set({mission:{...m,index:2}});net.sendState([494,1,-309],0,'idle');expect(net.recoverCaper()).toBe(true);const saved=parseSoloSave(data.get(SOLO_KEY)!);expect(saved?.position).toEqual([489,1,-316]);expect(saved?.mission?.index).toBe(1);expect(saved?.health).toBe(90);net.disconnect();net.connect();expect(useStore.getState().mission?.index).toBe(1);expect(useStore.getState().players.solo.p).toEqual([489,1,-316]);});
+
 });

@@ -12,6 +12,7 @@ const LS = "kanpurverse.v1";
 function loadLocal(): Partial<{ settings: Settings; appearance: Appearance; name: string; token: string }> { try { return JSON.parse(localStorage.getItem(LS) ?? "{}"); } catch { return {}; } }
 
 interface Store {
+  saveState?: "saved" | "error"; lastSavedAt?: number;
   missionResult?: {id:string;success:boolean;coins:number;xp:number}; health: number; ownedVehicles: string[]; collectibles: string[];
   screen: "landing" | "menu" | "character" | "loading" | "play" | "error";
   name: string; appearance: Appearance; token?: string; settings: Settings;

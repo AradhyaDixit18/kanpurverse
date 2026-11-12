@@ -112,7 +112,7 @@ export function Player() {
     probe(s, np);
     if ((once("KeyE") || once("KeyF")) && !paused) interact(s);
     const self = s.selfId ? s.players[s.selfId] : undefined;
-    if (self && Math.hypot(self.p[0] - np.x, self.p[2] - np.z) > 6) { rb.setNextKinematicTranslation({ x: self.p[0], y: self.p[1] + 0.95, z: self.p[2] }); playerPos.set(self.p[0], self.p[1], self.p[2]); }
+    if (s.selfId !== "solo" && self && Math.hypot(self.p[0] - np.x, self.p[2] - np.z) > 6) { rb.setNextKinematicTranslation({ x: self.p[0], y: self.p[1] + 0.95, z: self.p[2] }); playerPos.set(self.p[0], self.p[1], self.p[2]); }
     if (anim.current !== animState) setAnimState(anim.current);
     refPos.set(playerPos.x, playerPos.y, playerPos.z);
     net.sendState([playerPos.x, playerPos.y, playerPos.z], playerYaw.v, anim.current);

@@ -196,7 +196,18 @@ class SoloSession {
     });
     if (!saved && !this.storageWarned) { this.storageWarned=true; s.toast("सेव नहीं हुआ। Browser storage उपलब्ध नहीं है।", "error"); }
     if (saved) this.storageWarned=false;
+    s.set({saveState:saved?"saved":"error",lastSavedAt:saved?Date.now():s.lastSavedAt});
     return saved;
+  }
+  /** Gameplay checkpoint recovery updates both save authority and physics together. */
+  recoverCaper() {
+    const s=useStore.getState(),m=s.mission;
+    if(!m || m.def.id!=="laddoo_chakkar" || m.index!==2)return false;
+    const p:[number,number,number]=[489,1,-316];
+    this.position=p; correction.p=p; correction.at=performance.now();
+    const vehicles={...s.vehicles};if(s.inVehicle&&vehicles[s.inVehicle])vehicles[s.inVehicle]={...vehicles[s.inVehicle],driver:undefined};
+    s.set({players:s.players.solo?{solo:{...s.players.solo,p}}:s.players,health:Math.max(10,s.health-10),mission:{...m,index:1},inVehicle:undefined,seat:undefined,vehicleTransition:undefined,vehicles});
+    s.toast("पकड़े गए गुरु! दुकान वाला checkpoint फिर करो।","error");this.save();return true;
   }
   private tick() {
     const s = useStore.getState();

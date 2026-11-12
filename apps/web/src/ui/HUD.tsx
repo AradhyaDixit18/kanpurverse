@@ -16,7 +16,7 @@ import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
-  const s = useStore(useShallow(s => ({ settings:s.settings, profile:s.profile, missionResult:s.missionResult, health:s.health, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
+  const s = useStore(useShallow(s => ({ settings:s.settings, saveState:s.saveState, lastSavedAt:s.lastSavedAt, profile:s.profile, missionResult:s.missionResult, health:s.health, subtitle:s.subtitle, mission:s.mission, online:Object.keys(s.players).length, ping:s.ping, fps:s.fps, timeLabel:clock(s.worldTime), nearby:s.nearby, dialogue:s.dialogue, inVehicle:s.inVehicle, seat:s.seat, toasts:s.toasts, invites:s.invites, set:s.set }))); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
   const [panel, setPanel] = useState<null | "pause" | "map" | "shop" | "social" | "settings" | "garage" | "help" | "inventory" | "quests">(null); const [photo, setPhoto] = useState(false);
   
   useEffect(() => {
@@ -48,7 +48,7 @@ export function HUD() {
       <Compass />
       {/* top-left stats */}
       <div className="hud-stats">
-        <Logo size={14} />
+        <Logo size={14} /><small aria-live="polite">{s.saveState === "error" ? "⚠ सेव नहीं हुआ" : s.lastSavedAt ? "✓ इस डिवाइस पर सेव" : ""}</small>
         <div className="solo-health" aria-label="Player health">♥ {s.health} / 100</div>
         <div>🪙 {s.profile?.coins ?? 0} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
         <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
