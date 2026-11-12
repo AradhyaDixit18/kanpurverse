@@ -13,6 +13,7 @@ import { sfx } from "../audio/sfx";
 import { DialoguePanel } from "./Dialogue";
 import { Cutscene, Credits } from "./Story";
 import { ControlsGuide } from "./Controls";
+import { Minimap, Guidance, WorldMap } from "./MapUI";
 import { ShopPanel } from "./ShopPanel";
 import { StatusBars, VehicleNotice, KnockOut, InventoryPanel } from "./StatusHud";
 import { vehicleTelemetry } from "../game/refs";
@@ -51,6 +52,7 @@ export function HUD() {
     <div className={`hud ${s.settings.largeText ? "large" : ""} ${s.settings.colorblind ? "cb" : ""}`}>
       {s.missionResult && <div className="story-result" role="status"><small>VELTO STUDIOS · KANPUR CHRONICLES</small><h2>{s.missionResult.success ? (chapterFor(s.missionResult.id) ? t("CHAPTER COMPLETE", "अध्याय पूरा") : t("MISSION PASSED", "मिशन पूरा")) : t("MISSION FAILED", "मिशन फेल")}</h2><p>{(() => { const md = MISSIONS.find(m=>m.id===s.missionResult?.id); return md ? t(md.name, md.nameHi) : ""; })()}</p><p>{s.missionResult.success ? `+${s.missionResult.coins} 🪙 · +${s.missionResult.xp} XP` : "मिशन देने वाले से फिर मिलो।"}</p><button className="btn" onClick={()=>s.set({missionResult:undefined})}>{t("Continue", "आगे चलो")}</button></div>}
       <Compass />
+      <Guidance />
       {/* top-left stats */}
       <div className="hud-stats">
         <Logo size={14} /><small aria-live="polite">{s.saveState === "error" ? "⚠ सेव नहीं हुआ" : s.lastSavedAt ? "✓ इस डिवाइस पर सेव" : ""}</small>
@@ -105,23 +107,6 @@ function Compass() {
 const clock = (t: number) => { const h = Math.floor(t * 24), mm = Math.floor((t * 24 - h) * 60); return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`; };
 const dist = (p: [number, number]) => Math.round(Math.hypot(p[0] - playerPos.x, p[1] - playerPos.z));
 
-function Minimap() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    let raf = 0; const draw = () => {
-      const { mission } = useStore.getState();
-      const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const S = c.width; const R = 90; // metres radius
-      x.clearRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); x.clip(); x.fillStyle = "rgba(11,11,13,0.7)"; x.fillRect(0, 0, S, S);
-      const k = S / (R * 2); x.translate(S / 2, S / 2); x.rotate(-playerYaw.v); x.translate(-playerPos.x * k, -playerPos.z * k);
-      x.strokeStyle = "#666"; for (const r of roadsNear(playerPos.x, playerPos.z, R + 40)) { x.lineWidth = Math.max(1.5, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
-      for (const l of LANDMARKS) { x.fillStyle = l.kind === "lake" ? "#2f6f8f" : l.kind === "park" ? "#3f6f3a" : "#8a8070"; x.beginPath(); x.arc(l.p[0] * k, l.p[1] * k, Math.min(l.r, 40) * k, 0, Math.PI * 2); x.fill(); }
-      if (mission) { const cp = mission.def.checkpoints[mission.index]; x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 5, 0, Math.PI * 2); x.fill(); }
-      x.restore(); x.fillStyle = "#c8102e"; x.beginPath(); x.moveTo(S / 2, S / 2 - 7); x.lineTo(S / 2 - 5, S / 2 + 5); x.lineTo(S / 2 + 5, S / 2 + 5); x.closePath(); x.fill();
-      raf = requestAnimationFrame(draw); }; draw(); return () => cancelAnimationFrame(raf);
-  }, []);
-  return <canvas ref={ref} width={160} height={160} className="hud-minimap" />;
-}
-
 const TouchButton = ({ code, label, cls = "" }: { code: string; label: string; cls?: string }) => <button aria-label={label === "⏏" ? "Exit vehicle" : label === "🛑" ? "Brake" : label === "⤒" ? "Jump" : label} className={`tbtn ${cls}`} onClick={() => touchPress(code)} onTouchStart={(e) => { e.preventDefault(); touchPress(code); if (code === "Space") input.touch.jump = true; }} onTouchEnd={() => { if (code === "Space") input.touch.jump = false; }} onTouchCancel={() => { if (code === "Space") input.touch.jump = false; }}>{label}</button>;
 
 function TouchControls({ onPause, onChat, onMap }: { onPause: () => void; onChat: () => void; onMap: () => void }) {
@@ -164,7 +149,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
           {s.mission && <button className="btn" onClick={() => { net.send({ t: "mission.abandon" }); close(); }}>{t("Abandon mission", "मिशन छोड़ो")}</button>}
           <button className="btn-ghost" onClick={() => { net.disconnect(); s.set({ screen: "menu", players: {}, vehicles: {}, mission: undefined, inVehicle: undefined }); }}>{t("Quit to menu", "मेन्यू पर जाओ")}</button>
         </div></>}
-      {kind === "map" && <MapPanel close={close} />}
+      {kind === "map" && <WorldMap close={close} />}
       {kind === "settings" && <><h2>{t("Settings", "सेटिंग्स")}</h2><SettingsPanel /><button className="btn" onClick={close}>{t("Back", "वापस")}</button></>}
       {kind === "help" && <><h2>{t("Controls", "कंट्रोल")}</h2><ControlsGuide />
         <p className="muted">{t("Find Babloo Bhaiya at Cafe Chowk for your first mission. Yellow diamonds mark mission givers.", "पहले मिशन के लिए कैफ़े चौक पर बबलू भैया से मिलो। पीले हीरे मिशन देने वालों को दिखाते हैं।")}</p>
@@ -180,20 +165,7 @@ function Panel({ kind, close, open }: { kind: string; close: () => void; open: (
 
 function QuestPanel({ close }: { close: () => void }) {
   const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi; const done = s.profile?.missionsCompleted ?? [];
-  return <><h2>{t("Missions", "मिशन")} · {done.length}/{MISSIONS.length}</h2><div className="plist">{MISSIONS.map(m => { const d = Math.round(Math.hypot(m.start[0] - playerPos.x, m.start[1] - playerPos.z)); const active = s.mission?.def.id === m.id; return <div key={m.id} className={`prow ${active ? "active" : ""}`}><span><b>{t(m.name, m.nameHi)}</b> <small className="muted">{m.kind}{m.needsVehicle ? " · 🚗" : ""} · {d} m</small><div className="muted small">{t(m.desc, m.descHi)}</div></span><span>{done.includes(m.id) ? "✅" : active ? "▶" : `+${m.reward.coins}🪙`}</span></div>; })}</div><p className="muted">{t("Yellow diamonds in the world and ◆ on the compass mark mission givers and objectives.", "दुनिया में पीले हीरे और कंपास पर ◆ मिशन देने वालों और लक्ष्यों को दिखाते हैं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
-}
-function MapPanel({ close }: { close: () => void }) {
-  const ref = useRef<HTMLCanvasElement>(null); const s = useStore(); const t = (en: string, hi: string) => s.settings.lang === "english" ? en : hi;
-  useEffect(() => { const c = ref.current!; const x = c.getContext("2d")!; const S = c.width; const SPAN = 2400; const k = S / SPAN; x.fillStyle = "#1c1d22"; x.fillRect(0, 0, S, S); x.save(); x.translate(S / 2, S / 2); x.translate(-playerPos.x * k, -playerPos.z * k);
-    for (const l of LANDMARKS) { x.fillStyle = l.kind === "lake" ? "#2f6f8f" : l.kind === "park" ? "#3f6f3a" : l.kind === "ghat" ? "#c9b79c" : "#5a5248"; x.beginPath(); x.arc(l.p[0] * k, l.p[1] * k, Math.min(l.r, 45) * k, 0, Math.PI * 2); x.fill(); }
-    for (const r of getRoads()) { if (Math.abs(r.a[0] - playerPos.x) > SPAN || Math.abs(r.a[1] - playerPos.z) > SPAN) continue; x.strokeStyle = r.cls === "primary" || r.cls === "trunk" ? "#9a9a9a" : r.cls === "secondary" || r.cls === "tertiary" ? "#7a7a7a" : "#4a4a4f"; x.lineWidth = Math.max(1, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
-    x.fillStyle = "#fff"; x.font = "bold 11px Inter, system-ui"; x.textAlign = "left"; const seen = new Set<string>(); for (const r of getRoads()) { if (!r.name || seen.has(r.name) || r.len < 60 || Math.abs(r.a[0] - playerPos.x) > SPAN / 2 || Math.abs(r.a[1] - playerPos.z) > SPAN / 2) continue; seen.add(r.name); x.fillText(r.name, r.a[0] * k + 3, r.a[1] * k - 3); }
-    x.fillStyle = "#fff"; x.font = "11px Inter, system-ui"; x.textAlign = "center"; for (const l of LANDMARKS) if (l.kind !== "park") x.fillText(s.settings.lang === "english" ? l.name : l.nameHi, l.p[0] * k, l.p[1] * k - 4);
-    for (const m of MISSIONS) if (!s.profile?.missionsCompleted.includes(m.id) && (chapterFor(m.id) ? storyUnlocked(m.id, s.profile?.missionsCompleted ?? []) : sideMissionsOpen(s.profile?.missionsCompleted ?? []))) { x.fillStyle = "#ffd23f"; x.beginPath(); x.arc(m.start[0] * k, m.start[1] * k, 4, 0, Math.PI * 2); x.fill(); }
-    if (s.mission) { const cp = s.mission.def.checkpoints[s.mission.index]; x.strokeStyle = "#ffd23f"; x.lineWidth = 2; x.beginPath(); x.arc(cp[0] * k, cp[1] * k, 8, 0, Math.PI * 2); x.stroke(); }
-    for (const p of Object.values(s.players)) { x.fillStyle = p.id === s.selfId ? "#c8102e" : "#3d8bff"; x.beginPath(); x.arc(p.p[0] * k, p.p[2] * k, 4, 0, Math.PI * 2); x.fill(); }
-    x.restore(); }, [s]);
-  return <><h2>{t("Kanpur — Civil Lines, The Mall, Kanpur Central", "कानपुर — सिविल लाइंस, मॉल रोड, कानपुर सेंट्रल")}</h2><canvas ref={ref} width={520} height={520} className="bigmap" /><p className="muted">{t("Map data © OpenStreetMap contributors (ODbL). Yellow dots: missions. 2.4 km view around you.", "नक्शा © OpenStreetMap contributors (ODbL)। पीले बिंदु: मिशन। आपके आसपास 2.4 किमी।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
+  return <><h2>{t("Missions", "मिशन")} · {done.length}/{MISSIONS.length}</h2><div className="plist">{MISSIONS.map(m => { const d = Math.round(Math.hypot(m.start[0] - playerPos.x, m.start[1] - playerPos.z)); const active = s.mission?.def.id === m.id; return <div key={m.id} className={`prow ${active ? "active" : ""}`}><span><b>{t(m.name, m.nameHi)}</b> <small className="muted">{m.kind}{m.needsVehicle ? " · 🚗" : ""} · {d} m</small><div className="muted small">{t(m.desc, m.descHi)}</div></span><span>{done.includes(m.id) ? "✅" : active ? "▶" : <>+₹{m.reward.coins} <button className="btn-sm" onClick={() => { s.set({ waypoint: { p: m.start, label: t(m.name, m.nameHi) }, route: undefined }); close(); }}>{t("GPS", "रास्ता")}</button></>}</span></div>; })}</div><p className="muted">{t("Yellow diamonds in the world and ◆ on the compass mark mission givers and objectives.", "दुनिया में पीले हीरे और कंपास पर ◆ मिशन देने वालों और लक्ष्यों को दिखाते हैं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 
 function LegacyMarket({ close, inventory }: { close: () => void; inventory?: boolean }) {
