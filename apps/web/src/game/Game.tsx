@@ -23,6 +23,7 @@ import { Railway } from "./Railway";
 import { Props } from "./Props";
 import { Animals } from "./Animals";
 import { Effects } from "./Effects";
+import { NightLights } from "./NightLights";
 import { Dust } from "./Dust";
 import { Boundary } from "./Boundary";
 import { OsmCity, useGeo } from "./OsmCity";
@@ -55,7 +56,7 @@ export function Game({ qaScenario }: { qaScenario?: "vehicles" } = {}) {
     <Canvas data-engine="kanpurverse" shadows={g.shadows !== "off" ? (g.softShadows ? "soft" : true) : false} dpr={g.dpr} camera={{ fov: 60, near: 0.1, far: g.cameraFar, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: graphicsNow().aa !== "off", powerPreference: "high-performance", stencil: false }} style={{ position: "fixed", inset: 0 }} onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0; gl.shadowMap.type = graphicsNow().softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; }}>
       <Suspense fallback={<SceneLoading />}>
         <WorldClock /><Physics gravity={[0, -18, 0]} timeStep={1 / 60}>
-          {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="animals"><Animals /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />
+          {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="nightlights"><NightLights /></Boundary><Boundary name="animals"><Animals /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />
         </Physics>
       </Suspense>
       {process.env.NODE_ENV === "development" && <FrameProbe />}<Effects /><Bind /><Fps /><CameraFar /><AdaptiveResolution />

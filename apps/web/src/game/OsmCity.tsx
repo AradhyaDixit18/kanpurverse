@@ -96,6 +96,20 @@ function facadeTex(style: number) { const hit = facadeCache.get(style); if (hit)
   if (style % 2 === 1) { x.fillStyle = "rgba(0,0,0,0.22)"; x.fillRect(30, 190, 196, 40); x.fillStyle = "#8a7a66"; for (let k = 0; k < 10; k++) x.fillRect(34 + k * 20, 194, 3, 32); x.fillRect(30, 192, 196, 3); }
   if (style % 3 === 2) { x.fillStyle = "#cfd3d8"; x.fillRect(200, 100, 40, 32); x.fillStyle = "#777"; x.fillRect(206, 108, 28, 16); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; facadeCache.set(style, t); return t; }
+/** Night window mask: a 4-bay × 3-floor tile so lit windows vary instead of repeating every bay (own texture transform). */
+function windowGlowTex(style: number) { const key = 200 + style; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 192; const x = c.getContext("2d")!; x.fillStyle = "#000"; x.fillRect(0, 0, 256, 192);
+  const warm = ["#ffd9a0", "#ffe7b8", "#ffc777", "#fff1d0", "#bcd4ff"];
+  for (let bx = 0; bx < 4; bx++) for (let fy = 0; fy < 3; fy++) { const r = hash(style * 97 + bx * 13 + fy * 7); if (r < 0.48) continue; x.fillStyle = warm[Math.floor(hash(r * 31 + style) * warm.length)]; x.globalAlpha = 0.55 + r * 0.45; x.fillRect(bx * 64 + 18.5, fy * 64 + 16, 28, 29); }
+  x.globalAlpha = 1; const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.25, 1 / 3); t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
+function shopGlowTex() { const key = 299; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#000"; x.fillRect(0, 0, 256, 256);
+  x.fillStyle = "#ffe2a8"; x.fillRect(24, 72, 208, 150); x.fillStyle = "#ff6a4a"; x.fillRect(8, 8, 240, 44); x.fillStyle = "#fff"; x.font = "bold 26px sans-serif"; x.fillText("दुकान", 20, 40);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
+const nightMats = new Set<THREE.MeshStandardMaterial>(); const matCache = new Map<string, THREE.MeshStandardMaterial>();
+/** Shared per-style facade material (one GPU program per style for the whole city, not per tile). */
+function facadeMat(style: number, plasterN: THREE.Texture) { const k = `f${style}`; let m = matCache.get(k); if (!m) { m = new THREE.MeshStandardMaterial({ map: facadeTex(style), normalMap: plasterN, normalScale: new THREE.Vector2(0.25, 0.25), roughness: 0.92, emissive: 0xffffff, emissiveMap: windowGlowTex(style), emissiveIntensity: 0 }); matCache.set(k, m); nightMats.add(m); } return m; }
+function shopMat() { let m = matCache.get("shop"); if (!m) { m = new THREE.MeshStandardMaterial({ map: shopfrontTex(), roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -1, emissive: 0xffffff, emissiveMap: shopGlowTex(), emissiveIntensity: 0 }); matCache.set("shop", m); nightMats.add(m); } return m; }
+/** Called every frame by NightLights with the 0..1 night factor. */
+export function setCityNight(k: number) { for (const m of nightMats) m.emissiveIntensity = m === matCache.get("shop") ? k * 1.6 : k * 1.15; }
 function shopfrontTex() { const key = 99; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#e9c6a0"; x.fillRect(0, 0, 256, 256);
   x.fillStyle = "#c8102e"; x.fillRect(8, 8, 240, 44); x.fillStyle = "#fff"; x.font = "bold 26px sans-serif"; x.fillText("दुकान", 20, 40); x.fillStyle = "#2a2f3a"; x.fillRect(16, 64, 224, 180); x.fillStyle = "rgba(255,220,150,0.45)"; x.fillRect(24, 72, 208, 150); for (const [k, col] of ["#c8102e", "#2e8b57", "#f2b134", "#3d8bff"].entries()) { x.fillStyle = col; x.fillRect(36 + k * 50, 120, 36, 36); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
@@ -146,8 +160,8 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     {geo.sleepers && <mesh geometry={geo.sleepers}><meshStandardMaterial color="#5a4632" roughness={1} /></mesh>}
     {geo.railL && <mesh geometry={geo.railL}><meshStandardMaterial color="#9a9ea6" metalness={0.8} roughness={0.35} /></mesh>}
     {geo.platforms && <mesh geometry={geo.platforms} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#cfc9bd" /></mesh>}
-    {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} castShadow receiveShadow><meshStandardMaterial map={facadeTex(s.style)} normalMap={plasterN} normalScale={new THREE.Vector2(0.25, 0.25)} roughness={0.92} /></mesh><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
-    {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]}><meshStandardMaterial map={shopfrontTex()} roughness={0.9} polygonOffset polygonOffsetFactor={-1} /></mesh>}
+    {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} material={facadeMat(s.style, plasterN)} castShadow receiveShadow /><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
+    {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]} material={shopMat()} />}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
     {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     {collide && <FacadeDetails buildings={geo.facades} />}<Trees pts={trees} />
