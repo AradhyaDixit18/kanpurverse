@@ -110,3 +110,15 @@ describe("road graph stitching", () => {
     const t0 = performance.now(); buildRoadGraph(segs); expect(performance.now() - t0).toBeLessThan(1500);
   });
 });
+
+describe("minimap orientation", () => {
+  it("is heading-up: her facing direction is drawn straight up, and N points at world north", async () => {
+    const { minimapRotation, minimapNorth } = await import("../apps/web/src/ui/MapUI");
+    const rot = (v: [number, number], a: number): [number, number] => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)]; // canvas rotate(), y down
+    for (const yaw of [0, 0.6, 1.57, 2.4, -2.9, Math.PI]) {
+      const f = rot([Math.sin(yaw), Math.cos(yaw)], minimapRotation(yaw)); expect(f[0]).toBeCloseTo(0); expect(f[1]).toBeCloseTo(-1); // forward → up
+      const n = rot([0, -1], minimapRotation(yaw)); const lbl = minimapNorth(yaw); expect(lbl[0]).toBeCloseTo(n[0]); expect(lbl[1]).toBeCloseTo(n[1]);
+    }
+    expect(minimapNorth(Math.PI)).toEqual([expect.closeTo(0), expect.closeTo(-1)]); // facing north: N at the top
+  });
+});

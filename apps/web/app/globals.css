@@ -252,3 +252,6 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 /* Release QA: when the menu scrolls, the 3D backdrop stays put; the vehicle controls hint moved off the GPS banner. */
 .menu-v2 .menu-scene,.menu-v2 .menu-shade{position:fixed!important;inset:0}
 .hud-vehicle{top:auto!important;bottom:34px}
+/* Release QA (phone widths): the store panel kept its desktop layout and wrapped titles one word per line; the fitting
+   room docks at the top so Kanupriya stays visible below it. */
+@media (max-width:760px){.shop-panel{inset:10px;padding:12px 14px}.shop-panel header{flex-wrap:wrap;gap:6px}.shop-panel h2{font-size:21px;line-height:1.15}.shop-greet{font-size:12.5px;margin:2px 0}.shop-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:10px}.shop-detail{max-height:38vh;overflow:auto}.shop-panel.fitting{inset:8px 8px auto 8px;width:auto;height:46vh}}

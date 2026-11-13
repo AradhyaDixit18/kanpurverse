@@ -40,20 +40,28 @@ function drawRoute(x: CanvasRenderingContext2D, pts: [number, number][], k: numb
 }
 function drawWater(x: CanvasRenderingContext2D, k: number) { const g = getGeo(); if (!g) return; x.fillStyle = "#1f5b78"; for (const w of drawableWater(g)) { x.beginPath(); w.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } x.fillStyle = "#2d4a2c"; for (const p of g.parks) { x.beginPath(); p.pts.forEach(([a, b], i) => i ? x.lineTo(a * k, b * k) : x.moveTo(a * k, b * k)); x.closePath(); x.fill(); } }
 
+/**
+ * Heading-up minimap. Canvas rotate(a) maps a world direction (sin yaw, cos yaw) to (sin(yaw - a), cos(yaw - a)) in
+ * screen space (y down), so a = yaw - π puts her facing direction straight up. Release QA: the old rotate(-yaw) mirrored
+ * the map (neither north-up nor heading-up) and moved the N label the wrong way.
+ */
+export const minimapRotation = (yaw: number) => yaw - Math.PI;
+/** Unit screen offset of world north (−z) on the rotated minimap. */
+export const minimapNorth = (yaw: number): [number, number] => { const a = minimapRotation(yaw); return [Math.sin(a), -Math.cos(a)]; };
 export function Minimap() {
   const ref = useRef<HTMLCanvasElement>(null); const pois = usePois(); const poisRef = useRef(pois); poisRef.current = pois;
   useEffect(() => {
     let raf = 0; const draw = () => {
       const s = useStore.getState(); const c = ref.current; if (!c) return; const x = c.getContext("2d")!; const S = c.width; const R = s.inVehicle ? 170 : 95; const k = S / (R * 2);
       x.clearRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); x.clip(); x.fillStyle = "rgba(14,16,18,0.82)"; x.fillRect(0, 0, S, S);
-      x.translate(S / 2, S / 2); x.rotate(-playerYaw.v); x.translate(-playerPos.x * k, -playerPos.z * k);
+      x.translate(S / 2, S / 2); x.rotate(minimapRotation(playerYaw.v)); x.translate(-playerPos.x * k, -playerPos.z * k);
       drawWater(x, k); x.strokeStyle = "#6b6e74"; x.lineCap = "round"; for (const r of roadsNear(playerPos.x, playerPos.z, R + 60)) { x.lineWidth = Math.max(1.5, r.w * k); x.beginPath(); x.moveTo(r.a[0] * k, r.a[1] * k); x.lineTo(r.b[0] * k, r.b[1] * k); x.stroke(); }
       if (s.route) drawRoute(x, s.route.pts, k, 3.5);
       for (const p of poisRef.current) { if (p.kind === "locked" || p.kind === "done" || p.kind === "landmark") continue; const dx = p.p[0] - playerPos.x, dz = p.p[1] - playerPos.z; const d = Math.hypot(dx, dz); const lim = R * 0.92; const q = d > lim ? [playerPos.x + dx / d * lim, playerPos.z + dz / d * lim] : p.p;
-        x.save(); x.translate(q[0] * k, q[1] * k); x.rotate(playerYaw.v); drawPoi(x, p.kind, 0, 0, p.kind === "objective" ? 7 : 5.5); x.restore(); }
+        x.save(); x.translate(q[0] * k, q[1] * k); x.rotate(-minimapRotation(playerYaw.v)); drawPoi(x, p.kind, 0, 0, p.kind === "objective" ? 7 : 5.5); x.restore(); }
       x.restore();
       x.fillStyle = "#fff"; x.strokeStyle = "#c8102e"; x.lineWidth = 2; x.beginPath(); x.moveTo(S / 2, S / 2 - 8); x.lineTo(S / 2 - 6, S / 2 + 6); x.lineTo(S / 2, S / 2 + 2); x.lineTo(S / 2 + 6, S / 2 + 6); x.closePath(); x.fill(); x.stroke();
-      x.fillStyle = "#e5c17b"; x.font = "bold 10px system-ui"; x.textAlign = "center"; x.fillText("N", S / 2 + Math.sin(-playerYaw.v + Math.PI) * (S / 2 - 12), S / 2 + Math.cos(-playerYaw.v + Math.PI) * (S / 2 - 12) + 3);
+      x.fillStyle = "#e5c17b"; x.font = "bold 10px system-ui"; x.textAlign = "center"; { const [nx, ny] = minimapNorth(playerYaw.v); x.fillText("N", S / 2 + nx * (S / 2 - 12), S / 2 + ny * (S / 2 - 12) + 3); }
       raf = requestAnimationFrame(draw); }; draw(); return () => cancelAnimationFrame(raf);
   }, []);
   return <canvas ref={ref} width={180} height={180} className="hud-minimap" />;
