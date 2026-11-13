@@ -166,7 +166,7 @@ export function Player() {
     // Final QA: a 0.8 m floor pushed the camera through a wall right behind her (the view showed only the wall).
     const blocked = !!hit && hit.timeOfImpact < dist; if (blocked) dist = cameraClampDistance(hit!.timeOfImpact);
     const want = camTarget.current.clone().addScaledVector(dir, dist);
-    if (camYaw.mode === 3) { cam.position.copy(camTarget.current).addScaledVector(dir, 0.0001); cam.lookAt(camTarget.current.clone().addScaledVector(dir, -10)); if (vis.current) vis.current.visible = false; return; } else if (vis.current && !inVehicle) vis.current.visible = true;
+    if (camYaw.mode === 3) { cam.position.copy(camTarget.current).addScaledVector(dir, 0.0001); cam.lookAt(camTarget.current.clone().addScaledVector(dir, -10)); if (vis.current) vis.current.visible = false; return; } else if (vis.current && !inVehicle) vis.current.visible = dist > 0.75; // camera clamped right against her by a wall: hide her rather than render the inside of her head
     if (blocked && want.distanceToSquared(camTarget.current) < cam.position.distanceToSquared(camTarget.current)) cam.position.copy(want); else cam.position.lerp(want, smooth); cam.lookAt(camTarget.current);
   }
   function probe(s: ReturnType<typeof useStore.getState>, p: { x: number; z: number }) {

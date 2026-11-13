@@ -29,6 +29,7 @@ import {
 import { useStore, tl } from "../state/store";
 import { readSoloSave, writeSoloSave } from "../state/soloSave";
 import { visualClock } from "../game/syncedClock";
+import { spawnLift } from "../game/characterPhysics";
 export const WS_URL = "Local single-player";
 export const remoteBuf = new Map<
   string,
@@ -131,7 +132,7 @@ class SoloSession {
           }
         : undefined;
     visualClock.sync(this.time, performance.now(), true);
-    correction.p = this.position;
+    correction.p = spawnLift(this.position); // saves taken on a platform/step load slightly above it and settle, never inside it
     correction.at = performance.now();
     s.set({
       screen: "play",

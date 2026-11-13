@@ -52,3 +52,13 @@ describe("third-person camera collision", () => {
     expect(cameraClampDistance(6)).toBeCloseTo(5.75);
   });
 });
+
+describe("load position", () => {
+  it("lifts saved poses above platforms/steps so a load never starts inside a collider", async () => {
+    const { spawnLift } = await import("../apps/web/src/game/characterPhysics");
+    const { PLATFORM } = await import("../apps/web/src/game/worldGeometry");
+    expect(spawnLift([440, 0.08, 1770])[1]).toBeGreaterThan(PLATFORM.h); // QA: an old save at y≈0 on the platform loaded knee-deep
+    expect(spawnLift([1, -3, 2])).toEqual([1, 0.6, 2]);
+    expect(spawnLift([1, 0.3, 2])[0]).toBe(1);
+  });
+});

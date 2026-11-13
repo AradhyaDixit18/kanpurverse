@@ -248,3 +248,7 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .shop-panel.fitting .shop-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
 .shop-panel.fitting .shop-detail{max-height:34vh;overflow:auto}
 @media (max-width:900px){.shop-panel.fitting{inset:auto 8px 8px 8px;width:auto;height:52vh}}
+
+/* Release QA: when the menu scrolls, the 3D backdrop stays put; the vehicle controls hint moved off the GPS banner. */
+.menu-v2 .menu-scene,.menu-v2 .menu-shade{position:fixed!important;inset:0}
+.hud-vehicle{top:auto!important;bottom:34px}

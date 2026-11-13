@@ -26,3 +26,6 @@ export function placeCharacter(world: World, body: RigidBody, feet: readonly num
 
 /** Third-person camera distance when the view ray hits geometry at `toi`: always on the player's side of the hit. */
 export function cameraClampDistance(toi: number, gap = 0.25, min = 0.3) { return Math.max(Math.min(min, toi * 0.85), toi - gap); }
+
+/** Load position for a saved pose: lifted 0.6 m so a save made on a 0.4 m platform (or older saves at y≈0 there) never starts inside a collider. */
+export function spawnLift(p: readonly number[]): [number, number, number] { return [p[0], Math.max(0, p[1] ?? 0) + 0.6, p[2]]; }
