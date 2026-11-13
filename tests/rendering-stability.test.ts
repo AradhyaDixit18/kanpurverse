@@ -62,3 +62,16 @@ describe("load position", () => {
     expect(spawnLift([1, 0.3, 2])[0]).toBe(1);
   });
 });
+
+describe("embedded-in-geometry recovery", () => {
+  it("steps her up onto a platform whose collider streamed in around her, and leaves normal ground alone", async () => {
+    const { embeddedLift, EMBED_PROBE } = await import("../apps/web/src/game/characterPhysics");
+    const { PLATFORM } = await import("../apps/web/src/game/worldGeometry");
+    // feet at 0.03 inside a 0.4 m slab: probe from 0.58 hits the top after 0.18
+    expect(embeddedLift(0.03, 0.03 + EMBED_PROBE - PLATFORM.h)).toBeCloseTo(PLATFORM.h);
+    expect(embeddedLift(0.0, EMBED_PROBE)).toBeNull(); // hit exactly at her feet: already standing on it
+    expect(embeddedLift(0.0, null)).toBeNull();
+    expect(embeddedLift(0.0, 0)).toBeNull(); // probe origin inside something tall: never teleport up through it
+    expect(EMBED_PROBE).toBeGreaterThan(PLATFORM.h); expect(EMBED_PROBE).toBeLessThan(0.7);
+  });
+});

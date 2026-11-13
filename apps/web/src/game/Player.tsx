@@ -16,7 +16,7 @@ import { net, correction } from "../net/client";
 import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
 import { findClearVehicleExit } from "./vehicleExit";
-import { CHARACTER, createCharacterController, moveCharacter, turnLean, placeCharacter, cameraClampDistance } from "./characterPhysics";
+import { CHARACTER, createCharacterController, moveCharacter, turnLean, placeCharacter, cameraClampDistance, embeddedLift, EMBED_PROBE } from "./characterPhysics";
 import { npcPositions, vehicleRuntime, playerPhysicsTelemetry } from "./refs";
 
 const WALK = 3.2, RUN = 5.5, SPRINT = 8.5, JUMP_V = 6.5, GRAV = -18;
@@ -97,6 +97,11 @@ export function Player() {
     if (result.grounded && !grounded.current && impactVy < -FALL.safeSpeed) hurtPlayer(fallDamage(-impactVy), "fall");
     grounded.current = result.grounded; if (grounded.current && vy.current < 0) vy.current = -0.5;
     if (np.y < 0.3) { np.y = 2.2; vy.current = 0; } // never let the capsule sink below the ground plane (e.g. after a world reload)
+    { // Release QA: city colliders stream in after a load, so she could already be standing at y≈0 when a 0.4 m platform's collider
+      // appeared around her (knee-deep). Probe down from just above her feet and step up onto any walkable top within reach.
+      const feet = np.y - CHARACTER.feetOffset; const hit = world.castRay(new rapier.Ray({ x: np.x, y: feet + EMBED_PROBE, z: np.z }, { x: 0, y: -1, z: 0 }), EMBED_PROBE, true, undefined, undefined, undefined, rb);
+      const lifted = embeddedLift(feet, hit ? hit.timeOfImpact : null); if (lifted !== null) { np.y = lifted + CHARACTER.feetOffset; if (vy.current < 0) vy.current = 0; }
+    }
     rb.setNextKinematicTranslation(np); playerPos.set(np.x, np.y - 0.95, np.z);
     if (process.env.NODE_ENV === "development") {
       const col = rb.collider(0); const shape = col.shape as { halfHeight?: number; radius?: number };

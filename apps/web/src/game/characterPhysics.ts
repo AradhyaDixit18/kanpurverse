@@ -29,3 +29,8 @@ export function cameraClampDistance(toi: number, gap = 0.25, min = 0.3) { return
 
 /** Load position for a saved pose: lifted 0.6 m so a save made on a 0.4 m platform (or older saves at y≈0 there) never starts inside a collider. */
 export function spawnLift(p: readonly number[]): [number, number, number] { return [p[0], Math.max(0, p[1] ?? 0) + 0.6, p[2]]; }
+
+/** How far above her feet the "am I standing inside something walkable?" probe starts (just above the 0.45 m autostep). */
+export const EMBED_PROBE = 0.55;
+/** New feet height when the downward probe from feet+EMBED_PROBE hit a surface above her feet (toi = distance travelled), else null. */
+export function embeddedLift(feet: number, toi: number | null, probe = EMBED_PROBE): number | null { if (toi === null || toi <= 0.001) return null; const top = feet + probe - toi; return top > feet + 0.03 ? top : null; }
