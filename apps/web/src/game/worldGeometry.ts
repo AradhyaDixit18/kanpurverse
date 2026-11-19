@@ -56,7 +56,7 @@ export function platformSlab(pts: [number, number][], w = PLATFORM.w, h = PLATFO
  */
 export function dashPolylines(pts: [number, number][], dash = 3, gap = 4.5, trim = 9): [number, number][][] {
   const out: [number, number][][] = []; let total = 0; for (let i = 0; i + 1 < pts.length; i++) total += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
-  if (total < trim * 2 + dash) return out; const period = dash + gap; let cur: [number, number][] | null = null, d = 0;
+  if (total < trim * 2 + Math.min(dash, 3)) return out; const period = dash + gap; let cur: [number, number][] | null = null, d = 0;
   const painted = (s: number) => s >= trim && s <= total - trim && ((s - trim) % period) < dash;
   for (let i = 0; i + 1 < pts.length; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1]; const len = Math.hypot(bx - ax, bz - az); if (len < 1e-6) continue;
     // walk this segment between the points where paint starts or stops

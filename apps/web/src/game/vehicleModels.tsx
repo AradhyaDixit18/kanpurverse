@@ -84,7 +84,7 @@ function contactShadow() {
 function useLightMats() {
   const m = useMemo(() => ({
     head: new THREE.MeshStandardMaterial({ color: 0xf4f6ff, emissive: 0xfff3d6, emissiveIntensity: 0.3, roughness: 0.1, metalness: 0.3 }),
-    tail: new THREE.MeshStandardMaterial({ color: 0x5a0710, emissive: 0xd0102a, emissiveIntensity: 0.25, roughness: 0.2 }),
+    tail: new THREE.MeshStandardMaterial({ color: 0x9a0c18, emissive: 0xd0102a, emissiveIntensity: 0.45, roughness: 0.2 }),
     rev: new THREE.MeshStandardMaterial({ color: 0xdedede, emissive: 0xffffff, emissiveIntensity: 0, roughness: 0.2 }),
     indL: new THREE.MeshStandardMaterial({ color: 0x8a5a00, emissive: 0xffa000, emissiveIntensity: 0, roughness: 0.3 }),
     indR: new THREE.MeshStandardMaterial({ color: 0x8a5a00, emissive: 0xffa000, emissiveIntensity: 0, roughness: 0.3 }),
@@ -207,14 +207,14 @@ function Car({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind; c
     <Box p={[0, lampY - 0.02, L + 0.03]} s={[w * (0.38 + p.boxy * 0.2), 0.16 + p.boxy * 0.08, 0.05]} m={M.trim()} />
     <Box p={[0, lampY + 0.03, L + 0.058]} s={[w * 0.36, 0.02, 0.01]} m={M.chrome()} />
     <Box p={[0, gy + p.clearance + 0.13, L + 0.085]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), isTaxi)} />
-    <Box p={[0, tailY - 0.22, -L - 0.035]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), isTaxi)} />
+    <Box p={[0, gy + p.clearance + 0.13, -L - 0.086]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), isTaxi)} />{/* on the bumper: at tailgate height it sat inside the bodywork and never showed */}
     {/* lamps: headlights, DRL, tail, reverse, indicators */}
     {[-1, 1].map(sx => <group key={sx}>
       <Box p={[sx * (w / 2 - 0.26), lampY, L + 0.005]} s={[0.36, 0.13, 0.08]} m={lm.head} />
       <Box p={[sx * (w / 2 - 0.12), lampY - 0.1, L + 0.03]} s={[0.12, 0.05, 0.04]} m={sx > 0 ? lm.indL : lm.indR} />
-      <Box p={[sx * (w / 2 - 0.2), tailY, -L - 0.01]} s={[0.3, 0.14, 0.06]} m={lm.tail} />
-      <Box p={[sx * (w / 2 - 0.42), tailY, -L - 0.012]} s={[0.1, 0.1, 0.05]} m={lm.rev} />
-      <Box p={[sx * (w / 2 - 0.2), tailY + 0.1, -L - 0.012]} s={[0.24, 0.04, 0.05]} m={sx > 0 ? lm.indL : lm.indR} />
+      <Box p={[sx * (w / 2 - 0.2), tailY, -L - 0.045]} s={[0.3, 0.14, 0.06]} m={lm.tail} />
+      <Box p={[sx * (w / 2 - 0.42), tailY, -L - 0.047]} s={[0.1, 0.1, 0.05]} m={lm.rev} />
+      <Box p={[sx * (w / 2 - 0.2), tailY + 0.1, -L - 0.047]} s={[0.24, 0.04, 0.05]} m={sx > 0 ? lm.indL : lm.indR} />
     </group>)}
     <group ref={detail}>
       {/* mirrors, handles, door shut lines, interior dash and steering wheel */}
@@ -402,7 +402,7 @@ export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lights
       }
     }
     const lights = lightsRef?.current ?? st?.lights ?? false; const braking = !!st?.brake || !!stoppedRef?.current;
-    lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.25; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;
+    lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.5; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;
     const ind = st?.indicator ?? 0; const blink = Math.floor(clock.elapsedTime * 2.6) % 2 === 0;
     lm.indL.emissiveIntensity = blink && (ind === -1 || ind === 2) ? 3 : 0; lm.indR.emissiveIntensity = blink && (ind === 1 || ind === 2) ? 3 : 0;
     if (body.current) { body.current.getWorldPosition(_me); camera.getWorldPosition(_cam); const d2 = _me.distanceToSquared(_cam);
