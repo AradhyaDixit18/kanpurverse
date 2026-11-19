@@ -13,6 +13,8 @@ import * as THREE from "three";
 import { VEHICLE_SPECS, type VehicleKind } from "@kanpurverse/shared";
 import { graphicsNow } from "../state/store";
 import { vehicleCullDistance } from "./graphics";
+import { roadWheelAngle } from "./driving";
+import { attitudeTarget, bodyPose, wheelLocalMatrix, limitToArch, type BodyPose, type SuspensionClass } from "./suspension";
 
 export interface VehicleVisualState { speed: number; steer: number; brake: boolean; accel?: number; lat?: number; lights?: boolean; indicator?: -1 | 0 | 1 | 2 }
 
@@ -95,10 +97,26 @@ function greenhouseGeometry(kind: VehicleKind) {
 
 // ───────────────────────────── shared parts ─────────────────────────────
 const fineGroups = new WeakMap<THREE.Group[], THREE.Group[]>();
+/**
+ * Wheel anchors (one per wheel: the group that holds the axle position and the steering yaw), keyed by the model's
+ * wheel list. The frame loop keeps these on the road while the chassis pitches and rolls (see suspension.ts).
+ */
+interface WheelAnchor { g: THREE.Group; front: boolean; rest?: THREE.Matrix4; staticInv?: THREE.Matrix4 }
+const anchorGroups = new WeakMap<THREE.Group[], WheelAnchor[]>();
+function registerAnchor(key: THREE.Group[] | null, g: THREE.Group | null, front: boolean) {
+  if (!g || !key) return; const list = anchorGroups.get(key) ?? []; if (!list.some(a => a.g === g)) list.push({ g, front }); anchorGroups.set(key, list);
+}
+/** Capture an anchor's level-chassis matrix in the vehicle frame, plus the inverse of any fixed groups above it. */
+function initAnchor(a: WheelAnchor, body: THREE.Object3D) {
+  const chain = new THREE.Matrix4(); let o = a.g.parent;
+  while (o && o !== body) { o.updateMatrix(); chain.premultiply(o.matrix); o = o.parent; }
+  a.g.updateMatrix(); a.rest = chain.clone().multiply(a.g.matrix); a.staticInv = chain.clone().invert();
+}
 function Wheel({ x, y, z, R, width, front, spokes = 5, wheels, fronts, i }: { x: number; y: number; z: number; R: number; width: number; front?: boolean; spokes?: number; wheels: RefObject<THREE.Group[]>; fronts: RefObject<THREE.Group[]>; i: number }) {
+  void fronts; // wheels register as anchors now; `fronts` carries only extra steering assemblies (forks, handlebars)
   const register = (g: THREE.Group | null) => { if (!g || !wheels.current) return; const list = fineGroups.get(wheels.current) ?? []; if (!list.includes(g)) list.push(g); fineGroups.set(wheels.current, list); };
   const side = Math.sign(x) || 1;
-  return <group position={[x, y, z]} ref={el => { if (el && front) fronts.current[i] = el; }}>
+  return <group position={[x, y, z]} ref={el => registerAnchor(wheels.current, el, !!front)}>
     <group ref={el => { if (el) wheels.current[i] = el; }}>
       <mesh rotation={[0, 0, Math.PI / 2]} material={M.tyre()} castShadow><cylinderGeometry args={[R, R, width, 22]} /></mesh>
       <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.002), 0, 0]} material={M.rim()}><cylinderGeometry args={[R * 0.62, R * 0.62, 0.02, 18]} /></mesh>
@@ -108,7 +126,8 @@ function Wheel({ x, y, z, R, width, front, spokes = 5, wheels, fronts, i }: { x:
   </group>;
 }
 function TwoWheel({ z, y, R, wheels, fronts, i, front, width = 0.1 }: { z: number; y: number; R: number; wheels: RefObject<THREE.Group[]>; fronts: RefObject<THREE.Group[]>; i: number; front?: boolean; width?: number }) {
-  return <group position={[0, y, z]} ref={el => { if (el && front) fronts.current[i] = el; }}>
+  void fronts;
+  return <group position={[0, y, z]} ref={el => registerAnchor(wheels.current, el, !!front)}>
     <group ref={el => { if (el) wheels.current[i] = el; }}>
       <mesh rotation={[0, 0, Math.PI / 2]} material={M.tyre()} castShadow><torusGeometry args={[R - width * 0.45, width * 0.48, 10, 26]} /></mesh>
       <mesh rotation={[0, Math.PI / 2, 0]} material={M.rim()}><torusGeometry args={[R - width * 0.95, 0.014, 6, 24]} /></mesh>
@@ -310,20 +329,33 @@ function Heavy({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind;
 }
 
 // ───────────────────────────── public mesh ─────────────────────────────
-const _cam = new THREE.Vector3(), _me = new THREE.Vector3();
-export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lightsRef }: { kind: VehicleKind; color: number; state?: RefObject<VehicleVisualState>; wheelSpin?: boolean; stoppedRef?: RefObject<boolean>; lightsRef?: RefObject<boolean> }) {
+const _cam = new THREE.Vector3(), _me = new THREE.Vector3(), _wm = new THREE.Matrix4(), _ws = new THREE.Vector3();
+export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lightsRef, poseRef }: { kind: VehicleKind; color: number; state?: RefObject<VehicleVisualState>; wheelSpin?: boolean; stoppedRef?: RefObject<boolean>; lightsRef?: RefObject<boolean>; /** Receives the chassis pose each frame so riders can lean with the frame. */ poseRef?: RefObject<BodyPose> }) {
   const s = VEHICLE_SPECS[kind]; const lm = useLightMats(); const wheels = useRef<THREE.Group[]>([]); const fronts = useRef<THREE.Group[]>([]); const detail = useRef<THREE.Group | null>(null);
-  const body = useRef<THREE.Group>(null); const spin = useRef(0); const susp = useRef({ pitch: 0, roll: 0 });
+  const body = useRef<THREE.Group>(null); const spin = useRef(0); const susp = useRef({ pitch: 0, roll: 0, posed: false });
   useFrame(({ camera, clock }, dt) => {
-    const st = state?.current; const sp = st?.speed ?? (wheelSpin && !stoppedRef?.current ? 8 : 0); spin.current += sp * dt / s.wheelR;
+    // Wheel rotation follows the simulated travel speed and its sign: forwards rolls the tread forwards, reverse rolls it
+    // back, and a stationary vehicle's wheels do not turn. Wrapped so the angle keeps float precision on long drives.
+    const st = state?.current; const sp = st?.speed ?? (wheelSpin && !stoppedRef?.current ? 8 : 0); spin.current = (spin.current + sp * dt / s.wheelR) % (Math.PI * 2);
     for (const g of wheels.current) if (g) g.rotation.x = spin.current;
-    const steer = st?.steer ?? 0; for (const g of fronts.current) if (g) g.rotation.y = -steer * s.steerLock;
-    // suspension: pitch under acceleration/braking, roll in corners; two-wheelers lean into the turn instead
+    // Front wheels show the road-wheel angle the tyre model is using (lock fades with speed), not the raw key position.
+    const steerYaw = -roadWheelAngle(s, st?.steer ?? 0, st?.speed ?? 0); for (const g of fronts.current) if (g) g.rotation.y = steerYaw;
+    // Suspension: the chassis pitches under throttle/brake and rolls in corners (two-wheelers lean about the tyre contact
+    // line); wheels stay planted on the road, so the wheel-arch gap is what moves. See suspension.ts.
     if (body.current) {
-      const two = s.cls === "two" || s.cls === "pedal"; const a = THREE.MathUtils.clamp(st?.accel ?? 0, -12, 12), lat = THREE.MathUtils.clamp(st?.lat ?? 0, -12, 12);
-      const tp = two ? -a * 0.003 : -a * 0.0045 * (s.cls === "heavy" ? 0.6 : 1), tr = two ? THREE.MathUtils.clamp(lat / 9.81, -0.55, 0.55) : -lat * (s.cls === "heavy" ? 0.004 : 0.006);
-      const k = 1 - Math.exp(-dt * 6); susp.current.pitch += (tp - susp.current.pitch) * k; susp.current.roll += (tr - susp.current.roll) * k;
-      body.current.rotation.x = susp.current.pitch; body.current.rotation.z = susp.current.roll;
+      const cls = s.cls as SuspensionClass; const tgt = attitudeTarget(cls, st?.accel ?? 0, st?.lat ?? 0);
+      const k = 1 - Math.exp(-Math.min(dt, 0.1) * 6); susp.current.pitch += (tgt.pitch - susp.current.pitch) * k; susp.current.roll += (tgt.roll - susp.current.roll) * k;
+      const anchors = anchorGroups.get(wheels.current) ?? []; let axle = 0, halfTrack = 0;
+      for (const a of anchors) { if (!a.rest) initAnchor(a, body.current); const e = a.rest!.elements; axle = Math.max(axle, Math.abs(e[14])); halfTrack = Math.max(halfTrack, Math.abs(e[12])); }
+      const lim = cls === "two" ? susp.current : limitToArch(susp.current.pitch, susp.current.roll, axle, halfTrack); // arches never close onto a tyre
+      const pose = bodyPose(cls, lim.pitch, lim.roll, s.size[1] / 2);
+      body.current.rotation.x = pose.pitch; body.current.rotation.z = pose.roll; body.current.position.set(pose.x, pose.y, 0);
+      if (poseRef?.current) { poseRef.current.pitch = pose.pitch; poseRef.current.roll = pose.roll; poseRef.current.x = pose.x; poseRef.current.y = pose.y; }
+      const active = Math.abs(pose.pitch) + Math.abs(pose.roll) + Math.abs(steerYaw) > 1e-5;
+      if (active || susp.current.posed) { // parked and traffic vehicles sit level: skip the matrix work until something moves
+        for (const a of anchors) wheelLocalMatrix(_wm, pose, cls === "two", a.rest!, a.staticInv!, a.front ? steerYaw : 0).decompose(a.g.position, a.g.quaternion, _ws);
+        susp.current.posed = active;
+      }
     }
     const lights = lightsRef?.current ?? st?.lights ?? false; const braking = !!st?.brake || !!stoppedRef?.current;
     lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.25; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;

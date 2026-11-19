@@ -17,7 +17,8 @@ import { sfx } from "../audio/sfx";
 import { puff } from "./Dust";
 import { findClearVehicleExit } from "./vehicleExit";
 import { CHARACTER, createCharacterController, moveCharacter, turnLean, placeCharacter, cameraClampDistance, embeddedLift, EMBED_PROBE } from "./characterPhysics";
-import { npcPositions, vehicleRuntime, playerPhysicsTelemetry } from "./refs";
+import { npcPositions, vehicleRuntime, playerPhysicsTelemetry, drivenRender, vehicleTelemetry } from "./refs";
+import { stepBoom, newBoom, chaseTarget } from "./chaseCamera";
 
 const WALK = 3.2, RUN = 5.5, SPRINT = 8.5, JUMP_V = 6.5, GRAV = -18;
 import { playerPos as refPos, playerYaw, vehicleTelemetry as _vt } from "./refs";
@@ -33,7 +34,7 @@ export function Player() {
   const lastStreet = useRef(useStore.getState().streetAction?.at ?? -1);
   const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
   const appearance = useStore(s => s.appearance); const outfit = useStore(s => s.previewOutfit ?? s.game.outfit); const weapon = useStore(s => s.game.equipped); const inVehicle = useStore(s => s.inVehicle);
-  const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3());
+  const camTarget = useRef(new THREE.Vector3()); const rayDir = useRef(new THREE.Vector3()); const boom = useRef(newBoom());
 
   useEffect(() => { const c = createCharacterController(world); controller.current = c; return () => { world.removeCharacterController(c); }; }, [world]);
 
@@ -150,10 +151,11 @@ export function Player() {
     const s = useStore.getState();
     const vk = s.inVehicle ? s.vehicles[s.inVehicle]?.kind : undefined; const vs = vk ? VEHICLE_SPECS[vk].size : undefined;
     camScale.current += ((vs ? THREE.MathUtils.clamp(vs[2] / 3.6, 0.85, 2.6) : 1) - camScale.current) * (1 - Math.exp(-dt * 3));
-    placeCamera(camera, world, rapier, playerPos, s.settings.reduceMotion ? 1 : 1 - Math.exp(-dt * (vs ? 7 : 12)), vs ? vs[1] * 0.75 + 0.55 : 1.6);
+    // Driving: follow the car where it is drawn (interpolated between physics steps), not the raw step position.
+    placeCamera(camera, world, rapier, chaseTarget(playerPos, drivenRender, s.inVehicle, performance.now()), s.settings.reduceMotion ? 1 : 1 - Math.exp(-dt * (vs ? 7 : 12)), vs ? vs[1] * 0.75 + 0.55 : 1.6, dt);
   });
 
-  function placeCamera(cam: THREE.Camera, w: typeof world, r: typeof rapier, target: THREE.Vector3, smooth: number, h: number) {
+  function placeCamera(cam: THREE.Camera, w: typeof world, r: typeof rapier, target: { x: number; y: number; z: number }, smooth: number, h: number, dt: number) {
     camTarget.current.set(target.x, target.y + h, target.z);
     const store = useStore.getState(); const occupiedVehicle = store.inVehicle ? store.vehicles[store.inVehicle] : undefined;
     if (camYaw.mode === 3 && occupiedVehicle) {
@@ -169,6 +171,13 @@ export function Player() {
     const occupied = useStore.getState().inVehicle; const vehicleHandle = occupied ? vehicleRuntime.get(occupied)?.handle : undefined;
     const ray = new r.Ray(camTarget.current, dir); const hit = w.castRay(ray, dist, true, undefined, undefined, undefined, body.current ?? undefined, collider => collider.parent()?.handle !== vehicleHandle);
     // Final QA: a 0.8 m floor pushed the camera through a wall right behind her (the view showed only the wall).
+    // Chase camera: a continuous boom (no teleport, brief roadside obstructions ignored while moving). See chaseCamera.ts.
+    if (occupied && camYaw.mode !== 3) {
+      const before = boom.current.dist; boom.current = stepBoom(boom.current, dist, hit ? hit.timeOfImpact : null, dt, Math.abs(vehicleTelemetry.speed));
+      const closing = boom.current.dist < before - 1e-4; const wantV = camTarget.current.clone().addScaledVector(dir, boom.current.dist);
+      cam.position.lerp(wantV, closing ? Math.max(smooth, 1 - Math.exp(-dt * 14)) : smooth); cam.lookAt(camTarget.current); return;
+    }
+    boom.current.dist = dist; boom.current.blockedFor = 0;
     const blocked = !!hit && hit.timeOfImpact < dist; if (blocked) dist = cameraClampDistance(hit!.timeOfImpact);
     const want = camTarget.current.clone().addScaledVector(dir, dist);
     if (camYaw.mode === 3) { cam.position.copy(camTarget.current).addScaledVector(dir, 0.0001); cam.lookAt(camTarget.current.clone().addScaledVector(dir, -10)); if (vis.current) vis.current.visible = false; return; } else if (vis.current && !inVehicle) vis.current.visible = dist > 0.75; // camera clamped right against her by a wall: hide her rather than render the inside of her head

@@ -23,7 +23,8 @@ import { skid, endSkid } from "./SkidMarks";
 import { isDrifting, slipAngle } from "./driving";
 import { roadsNear, type Seg } from "./roads";
 import { crashDamage } from "./playerStatus";
-import { vehicleTelemetry, vehicleRuntime, playerYaw } from "./refs";
+import { vehicleTelemetry, vehicleRuntime, playerYaw, drivenRender } from "./refs";
+import type { BodyPose } from "./suspension";
 export { vehicleTelemetry };
 
 export function Vehicles() { const vehicles = useStore(s => s.vehicles); const selfId = useStore(s => s.selfId); return <>{Object.values(vehicles).map(v => <Vehicle key={v.id + ":" + (v.driver === selfId)} snap={v} />)}</>; }
@@ -33,6 +34,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
   const initialPose = useRef({ p: snap.p, q: snap.q });
   const { world, rapier } = useRapier();
   const speed = useRef(0); const steer = useRef(0); const yaw = useRef(yawFromQuaternion(snap.q)); const spec = SPECS[snap.kind]; const color = VEHICLE_SPAWNS.find(s => s.id === snap.id)?.color ?? 0xffffff;
+  const pose = useRef<BodyPose>({ pitch: 0, roll: 0, x: 0, y: 0 }); const riders = useRef<THREE.Group>(null);
   const lastHorn = useRef(0); const q = useMemo(() => new THREE.Quaternion(), []); const state = useRef<VehicleVisualState>({ speed: 0, steer: 0, brake: false }); const slip = useRef(0); const yawRate = useRef(0); const indicator = useRef<-1 | 0 | 1 | 2>(0); const lastSkid = useRef(0); const surfaceRef = useRef(1); const drift = useRef({ score: 0, until: 0 });
   useEffect(() => {
     vehicleBuf.delete(snap.id);
@@ -84,7 +86,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       if (once("KeyR")) { const p0 = rb.translation(); rb.setTranslation({ x: p0.x, y: spec.size[1] / 2 + 0.6, z: p0.z }, true); rb.setLinvel({ x: 0, y: 0, z: 0 }, true); speed.current = 0; s.toast(tl("गाड़ी सीधी कर दी", "Vehicle reset")); }
       playerYaw.v = yaw.current; // Final QA: the minimap/full-map arrow froze at the last on-foot heading while driving
       if (!s.settings.reduceMotion && Math.abs(speed.current) > 2) camYaw.v = lerpAngle(camYaw.v, yaw.current + Math.PI, 1 - Math.exp(-dt * 2.2));
-      if (vis.current) { vis.current.position.set(p.x, p.y, p.z); vis.current.quaternion.copy(q); void grip; void TWO_WHEELERS; }
+      void grip; void TWO_WHEELERS;
       const hl = s.settings.headlights ?? "auto"; const t = s.worldTime;
       state.current = { speed: speed.current, steer: steer.current, brake, accel: next.accel, lat: next.lat, indicator: indicator.current, lights: hl === "on" || (hl === "auto" && (t < 0.26 || t > 0.74)) };
     } else {
@@ -93,11 +95,17 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       const nx = THREE.MathUtils.lerp(cur.x, tgt.p[0], t), ny = Math.max(spec.size[1] / 2 + 0.05, THREE.MathUtils.lerp(cur.y, tgt.p[1], t)), nz = THREE.MathUtils.lerp(cur.z, tgt.p[2], t);
       rb.setNextKinematicTranslation({ x: nx, y: ny, z: nz });
       const cq = rb.rotation(); const tq = new THREE.Quaternion(tgt.q[0], tgt.q[1], tgt.q[2], tgt.q[3]); const nq = new THREE.Quaternion(cq.x, cq.y, cq.z, cq.w).slerp(tq, t); rb.setNextKinematicRotation({ x: nq.x, y: nq.y, z: nq.z, w: nq.w });
-      if (vis.current) { vis.current.position.set(nx, ny, nz); vis.current.quaternion.copy(nq); }
       state.current = { speed: tgt.v, steer: 0, brake: false };
     }
     const p = isDriver ? rb.translation() : rb.nextTranslation();
     vehicleRuntime.set(snap.id, { x: p.x, y: p.y, z: p.z, handle: rb.handle });
+  });
+
+  // Riders follow the chassis pose (a bike's rider leans with the frame), and the driven vehicle publishes the pose it
+  // is actually drawn at, so the chase camera tracks the interpolated car rather than the raw 60 Hz step position.
+  useFrame(() => {
+    const r = riders.current; if (r) { r.position.set(pose.current.x, pose.current.y, 0); r.rotation.set(pose.current.pitch, 0, pose.current.roll); }
+    if (isDriver && vis.current) { vis.current.getWorldPosition(_wp); drivenRender.id = snap.id; drivenRender.x = _wp.x; drivenRender.y = _wp.y; drivenRender.z = _wp.z; drivenRender.at = performance.now(); }
   });
 
   return (
@@ -106,16 +114,20 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
         {/* Arcade traction is controlled by driving.ts. Chassis-ground friction must not act as a brake;
             use Min so the road's default friction does not restore sliding drag. */}
         <CuboidCollider args={[spec.size[0] / 2, spec.size[1] / 2, spec.size[2] / 2]} friction={0} frictionCombineRule={rapier.CoefficientCombineRule.Min} restitution={0} />
+        {/* The model is a child of the body, so the physics provider draws it at the pose interpolated between fixed
+            60 Hz steps. Positioning it by hand inside the step (as before) moved it in whole-step jumps: on any frame
+            that ran zero or two steps the car visibly stuttered against the smoothed camera. */}
+        <group ref={vis}><VehicleMesh kind={snap.kind} color={color} state={state} poseRef={pose} />{isDriver && <Headlamps kind={snap.kind} state={state} />}<group ref={riders}><VehicleOccupants vehicle={snap} /></group></group>
       </RigidBody>
-      <group ref={vis} position={initialPose.current.p} quaternion={initialPose.current.q}><VehicleMesh kind={snap.kind} color={color} state={state} />{isDriver && <Headlamps kind={snap.kind} state={state} />}<VehicleOccupants vehicle={snap} /></group>
     </>
   );
 }
 
+const _wp = new THREE.Vector3();
 /** Procedural vehicle mesh (original models in vehicleModels.tsx). Kept as the public name used by traffic and QA pages. */
-export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef }: { kind: VehicleKind; color: number; state?: React.RefObject<VehicleVisualState>; wheelSpin?: boolean; stoppedRef?: React.RefObject<boolean> }) {
+export function VehicleMesh({ kind, color, state, wheelSpin, stoppedRef, poseRef }: { kind: VehicleKind; color: number; state?: React.RefObject<VehicleVisualState>; wheelSpin?: boolean; stoppedRef?: React.RefObject<boolean>; poseRef?: React.RefObject<BodyPose> }) {
   const night = useRef(false); useFrame(() => { const t = useStore.getState().worldTime; night.current = t < 0.24 || t > 0.76; });
-  return <VehicleModel kind={kind} color={color} state={state} wheelSpin={wheelSpin} stoppedRef={stoppedRef} lightsRef={state ? undefined : night} />;
+  return <VehicleModel kind={kind} color={color} state={state} wheelSpin={wheelSpin} stoppedRef={stoppedRef} lightsRef={state ? undefined : night} poseRef={poseRef} />;
 }
 function lerpAngle(a: number, b: number, t: number) { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return a + d * t; }
 
