@@ -1,5 +1,5 @@
 :root { --bg: #0b0b0d; --panel: #1c1d22; --panel2: #26272e; --text: #f4f4f6; --muted: #b8bcc4; --accent: #c8102e; --accent2: #3d8bff; --gold: #ffd23f; --radius: 14px; --font: Inter, "Segoe UI", system-ui, -apple-system, "Noto Sans Devanagari", sans-serif; }
-* { box-sizing: border-box; } html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+* { box-sizing: border-box; } html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; overscroll-behavior: none; overflow-x: clip; }
 body { touch-action: none; } a { color: inherit; }
 button, input, select { font: inherit; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; padding: .7em 1.2em; border-radius: 10px; border: 1px solid #3a3b42; background: var(--panel2); color: var(--text); cursor: pointer; text-decoration: none; transition: transform .08s, background .15s; }
@@ -123,10 +123,11 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .l-cta { justify-content: flex-start; }
 
 /* language gate */
-.lang-gate { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: clamp(24px, 8vh, 80px) 16px; text-align: center; animation: rise .5s ease-out; }
+.lang-gate { position: relative; z-index: 1; width: min(900px, 100%); margin: 0 auto; padding: clamp(24px, 8vh, 80px) 16px; text-align: center; animation: rise .5s ease-out; }
 .lang-gate h2 { margin-top: 1.2rem; text-shadow: 0 4px 24px rgba(0,0,0,.5); } .lang-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.6rem; }
-.lang-card { background: rgba(11,11,13,.7); border: 1px solid rgba(255,255,255,.14); border-radius: 20px; padding: 1.4rem 1rem; color: #fff; cursor: pointer; display: flex; flex-direction: column; gap: .5rem; align-items: center; transition: transform .12s, border-color .15s; backdrop-filter: blur(10px); }
-.lang-card:hover { transform: translateY(-4px); border-color: #ffd23f; } .lang-card.accent { border-color: #ff5a3c; box-shadow: 0 0 0 1px #ff5a3c inset; } .lang-big { font-size: 2rem; font-weight: 900; } .lang-card small { color: var(--muted); line-height: 1.4; }
+.lang-card { min-width: 0; background: rgba(11,11,13,.7); border: 1px solid rgba(255,255,255,.14); border-radius: 20px; padding: 1.4rem 1rem; color: #fff; cursor: pointer; display: flex; flex-direction: column; gap: .5rem; align-items: center; transition: transform .12s, border-color .15s, box-shadow .15s; backdrop-filter: blur(10px); }
+.lang-card:hover, .lang-card:focus-visible { transform: translateY(-4px); border-color: #ffd23f; box-shadow: 0 12px 36px rgba(0,0,0,.24); outline: none; } .lang-card.accent { border-color: #ff5a3c; box-shadow: 0 0 0 1px #ff5a3c inset; } .lang-big { font-size: 2rem; font-weight: 900; } .lang-card small { color: var(--muted); line-height: 1.4; }
+@media (max-width: 560px) { .lang-gate { padding: 24px 14px 36px; } .lang-gate > .kv-logo { font-size: 42px !important; } .lang-gate .kv-word { font-size: .66em; letter-spacing: .08em; } .lang-gate h2 { font-size: 1.35rem; margin-top: .9rem; } .lang-gate > .muted { font-size: .84rem; } .lang-cards { grid-template-columns: 1fr; gap: .75rem; margin-top: 1rem; } .lang-card { padding: 1rem; } .lang-big { font-size: 1.65rem; } }
 .load-steps { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: .4rem; } .ls { font-size: .75rem; color: #666; padding: .2em .6em; border: 1px solid #333; border-radius: 999px; } .ls.on { color: #ffd23f; border-color: #ffd23f; } .ls.done { color: #8fd18f; border-color: #3a5a3a; }
 
 /* compass + photo mode + quest log */
@@ -242,6 +243,10 @@ h1, h2, h3 { margin: .2em 0 .5em; letter-spacing: -.01em; }
 .menu-v2 .menu-layout{padding-bottom:56px}
 .menu-v2 .menu-foot{position:fixed;bottom:0;padding:10px 0 8px;background:linear-gradient(transparent,#000c 60%);pointer-events:none}
 @media (max-height:900px){.menu-v2 .menu-nav{gap:2px}.menu-v2 .mbtn{padding:.32rem 1rem}.menu-v2 .mbtn span{font-size:1.2rem}.menu-v2 .mbtn small{font-size:.72rem}.menu-v2 .menu-left .tag{margin:.2rem 0 .8rem}}
+/* The cinematic menu has a deliberately wide desktop rail. Collapse that rail before it becomes a horizontal
+   scroller on phones, and scale the inline logo (whose size is set by a prop) with it. */
+@media (max-width:900px){.menu-v2 .menu-layout{grid-template-columns:minmax(0,1fr);gap:0;padding:20px 16px 56px}.menu-v2 .menu-left{min-width:0}.menu-v2 .menu-left .kv-logo{font-size:clamp(38px,10vw,56px)!important}.menu-v2 .menu-left .kv-word{font-size:.64em;letter-spacing:.1em}.menu-v2 .menu-panel{max-width:100%}}
+@media (max-width:560px){.menu-v2 .menu-layout{padding:16px 14px 58px}.menu-v2 .menu-left .kv-logo{font-size:40px!important}.menu-v2 .menu-left .kv-word{font-size:.58em;letter-spacing:.07em}.menu-v2 .mbtn{padding:.42rem .75rem}.menu-v2 .mbtn span{font-size:1.13rem}.menu-v2 .mbtn small{font-size:.7rem}.menu-v2 .menu-foot{font-size:.7rem;padding:8px 12px;line-height:1.3}}
 /* QA (final pass): the full-screen panel hid Kanupriya, so the clothing "preview" could not be seen. The fitting room
    docks the panel to the left and leaves her visible in the centre of the screen. */
 .shop-panel.fitting{inset:5vh auto 5vh 3vw;width:min(460px,42vw);background:linear-gradient(150deg,#101a1aee,#0b1010e6)}

@@ -1,13 +1,13 @@
 "use client";
 /**
- * Draws groundCover.ts: grass tufts, loose stones and soft earth patches on the open ground near the camera. Three
+ * Draws groundCoverData.ts: grass tufts, loose stones and soft earth patches on the open ground near the camera. Three
  * instanced meshes (three draw calls); the field follows the view and fades out in the vertex shader before its edge.
  */
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { LANDMARKS } from "@kanpurverse/shared";
-import { COVER, groundCoverAround } from "./groundCover";
+import { COVER, groundCoverAround } from "./groundCoverData";
 import { distToRoad } from "./propPlacement";
 import { roadsNear, getGeo, roadsVersion } from "./roads";
 import { useStore } from "../state/store";
