@@ -7,8 +7,10 @@ import type { FacadeBuilding } from "./facadeKit";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { drawFacade, drawShopfronts, FACADE_CELL } from "./facadeArt";
+import { foliageGeometry, crownColour } from "./foliage";
 import { LAYER, OFFSET } from "./layers";
-import { ribbon, building, platformSlab } from "./worldGeometry";
+import { ribbon, building, platformSlab, dashPolylines } from "./worldGeometry";
 import { RigidBody, TrimeshCollider, CuboidCollider } from "@react-three/rapier";
 import { Text as DreiText } from "@react-three/drei";
 import { getGeo, loadGeo, drawableWater, type GeoData } from "./roads";
@@ -90,31 +92,25 @@ function bbox(pts: [number, number][]) { let x0 = Infinity, x1 = -Infinity, z0 =
 
 /** Procedural facade atlas shared by all OSM buildings: 4 m bay × 3.2 m floor per UV unit; 5 palette variants selected per building via vertex colour-free trick: separate materials per palette. */
 const facadeCache = new Map<number, THREE.Texture>();
-function facadeTex(style: number) { const hit = facadeCache.get(style); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!;
-  const base = ["#e9c6a0", "#f2d9b1", "#d7b8c9", "#c9d9e8", "#f6e3a1", "#d9cfc0", "#e4b7a0", "#cfd6c2", "#a95c43"][style % 9]; x.fillStyle = base; x.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2500; i++) { x.fillStyle = `rgba(60,40,20,${hash(style*2500+i)*0.08})`; x.fillRect(hash(i*3+style)*256, hash(i*7+style)*256, 2, 2); }
-  // one bay (256 px wide) × one floor (256 px tall): window with sill + grille, balcony on alternate styles
-  x.fillStyle = "rgba(0,0,0,0.14)"; x.fillRect(0, 250, 256, 6); x.fillStyle = "#26304a"; x.fillRect(70, 60, 116, 120); x.fillStyle = "rgba(150,200,255,0.35)"; x.fillRect(74, 64, 52, 50); x.fillStyle = base; x.fillRect(126, 60, 5, 120); x.fillStyle = "#ece6d8"; x.fillRect(62, 180, 132, 10);
-  if (style % 2 === 1) { x.fillStyle = "rgba(0,0,0,0.22)"; x.fillRect(30, 190, 196, 40); x.fillStyle = "#8a7a66"; for (let k = 0; k < 10; k++) x.fillRect(34 + k * 20, 194, 3, 32); x.fillRect(30, 192, 196, 3); }
-  if (style % 3 === 2) { x.fillStyle = "#cfd3d8"; x.fillRect(200, 100, 40, 32); x.fillStyle = "#777"; x.fillRect(206, 108, 28, 16); }
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; facadeCache.set(style, t); return t; }
+/** Facade tile: 2 bays × 2 floors of hand-drawn detail (facadeArt.ts), repeated at half scale so one UV unit is still one bay × one floor. */
+function facadeTex(style: number) { const hit = facadeCache.get(style); if (hit) return hit; const c = document.createElement("canvas"); c.width = c.height = FACADE_CELL * 2; drawFacade(c.getContext("2d")!, style);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.5, 0.5); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; facadeCache.set(style, t); return t; }
 /** Night window mask: a 4-bay × 3-floor tile so lit windows vary instead of repeating every bay (own texture transform). */
 function windowGlowTex(style: number) { const key = 200 + style; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 192; const x = c.getContext("2d")!; x.fillStyle = "#000"; x.fillRect(0, 0, 256, 192);
   const warm = ["#ffd9a0", "#ffe7b8", "#ffc777", "#fff1d0", "#bcd4ff"];
   for (let bx = 0; bx < 4; bx++) for (let fy = 0; fy < 3; fy++) { const r = hash(style * 97 + bx * 13 + fy * 7); if (r < 0.48) continue; x.fillStyle = warm[Math.floor(hash(r * 31 + style) * warm.length)]; x.globalAlpha = 0.55 + r * 0.45; x.fillRect(bx * 64 + 18.5, fy * 64 + 16, 28, 29); }
   x.globalAlpha = 1; const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.25, 1 / 3); t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
-function shopGlowTex() { const key = 299; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#000"; x.fillRect(0, 0, 256, 256);
-  x.fillStyle = "#ffe2a8"; x.fillRect(24, 72, 208, 150); x.fillStyle = "#ff6a4a"; x.fillRect(8, 8, 240, 44); x.fillStyle = "#fff"; x.font = "bold 26px sans-serif"; x.fillText("दुकान", 20, 40);
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
+function shopGlowTex() { const key = 299; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = FACADE_CELL * 4; c.height = FACADE_CELL; drawShopfronts(c.getContext("2d")!, true);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.25, 1); t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
 const nightMats = new Set<THREE.MeshStandardMaterial>(); const matCache = new Map<string, THREE.MeshStandardMaterial>();
 /** Shared per-style facade material (one GPU program per style for the whole city, not per tile). */
 function facadeMat(style: number, plasterN: THREE.Texture) { const k = `f${style}`; let m = matCache.get(k); if (!m) { m = new THREE.MeshStandardMaterial({ map: facadeTex(style), normalMap: plasterN, normalScale: new THREE.Vector2(0.25, 0.25), roughness: 0.92, emissive: 0xffffff, emissiveMap: windowGlowTex(style), emissiveIntensity: 0 }); matCache.set(k, m); nightMats.add(m); } return m; }
 function shopMat() { let m = matCache.get("shop"); if (!m) { m = new THREE.MeshStandardMaterial({ map: shopfrontTex(), roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -1, emissive: 0xffffff, emissiveMap: shopGlowTex(), emissiveIntensity: 0 }); matCache.set("shop", m); nightMats.add(m); } return m; }
 /** Called every frame by NightLights with the 0..1 night factor. */
 export function setCityNight(k: number) { for (const m of nightMats) m.emissiveIntensity = m === matCache.get("shop") ? k * 1.6 : k * 1.15; }
-function shopfrontTex() { const key = 99; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!; x.fillStyle = "#e9c6a0"; x.fillRect(0, 0, 256, 256);
-  x.fillStyle = "#c8102e"; x.fillRect(8, 8, 240, 44); x.fillStyle = "#fff"; x.font = "bold 26px sans-serif"; x.fillText("दुकान", 20, 40); x.fillStyle = "#2a2f3a"; x.fillRect(16, 64, 224, 180); x.fillStyle = "rgba(255,220,150,0.45)"; x.fillRect(24, 72, 208, 150); for (const [k, col] of ["#c8102e", "#2e8b57", "#f2b134", "#3d8bff"].entries()) { x.fillStyle = col; x.fillRect(36 + k * 50, 120, 36, 36); }
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; facadeCache.set(key, t); return t; }
+/** Four distinct shops per four bays, each with its own Hindi signboard and stock (facadeArt.ts). */
+function shopfrontTex() { const key = 99; const hit = facadeCache.get(key); if (hit) return hit; const c = document.createElement("canvas"); c.width = FACADE_CELL * 4; c.height = FACADE_CELL; drawShopfronts(c.getContext("2d")!);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.25, 1); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; facadeCache.set(key, t); return t; }
 
 type TileTex = { asphalt: THREE.Texture; asphaltN: THREE.Texture; pave: THREE.Texture; grass: THREE.Texture; concrete: THREE.Texture; plasterN: THREE.Texture };
 function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: GeoData["roads"]; buildings: GeoData["buildings"]; rails: GeoData["rails"]; water: GeoData["water"]; parks: GeoData["parks"]; platforms: GeoData["platforms"] }; collide: boolean }) {
@@ -122,7 +118,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   const quality = useStore(s => s.settings.quality); const lang = useStore(s => s.settings.lang);
   const geo = useMemo(() => {
     const road = worldUV(merge(t.roads.map(r => ribbon(r.pts, r.w, LAYER.road))), 8); const pavement = worldUV(merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, LAYER.pavement, 4))), 4);
-    const marks = merge(t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8).map(r => ribbon(r.pts, 0.22, LAYER.marks, 4)));
+    const marks = merge(t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8).flatMap(r => dashPolylines(r.pts).map(l => ribbon(l, 0.18, LAYER.marks, 4)))); // dashed centre line that stops short of junctions
     const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, LAYER.rail, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
     const sleepers = merge(t.rails.map(r => ribbon(r.pts, 2.6 * r.tracks, 0.1, 0.7)));
     const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const facades: FacadeBuilding[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
@@ -157,7 +153,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   return <group name={"tile:" + id}>
     {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial map={pave} roughness={0.95} color="#b8b0a2" polygonOffset polygonOffsetFactor={OFFSET.pavement} polygonOffsetUnits={OFFSET.pavement} /></mesh>}
     {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} polygonOffset polygonOffsetFactor={OFFSET.road} polygonOffsetUnits={OFFSET.road} /></mesh>}
-    {geo.marks && quality !== "low" && <mesh geometry={geo.marks}><meshBasicMaterial color="#e8e2c6" polygonOffset polygonOffsetFactor={OFFSET.marks} polygonOffsetUnits={OFFSET.marks} /></mesh>}
+    {geo.marks && quality !== "low" && <mesh geometry={geo.marks} receiveShadow><meshStandardMaterial color="#d8d2bb" roughness={0.75} polygonOffset polygonOffsetFactor={OFFSET.marks} polygonOffsetUnits={OFFSET.marks} /></mesh>}
     {geo.railBed && <mesh geometry={geo.railBed} receiveShadow><meshStandardMaterial color="#6e6a63" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.rail} polygonOffsetUnits={OFFSET.rail} /></mesh>}
     {geo.sleepers && <mesh geometry={geo.sleepers}><meshStandardMaterial color="#5a4632" roughness={1} /></mesh>}
     {geo.railL && <mesh geometry={geo.railL}><meshStandardMaterial color="#9a9ea6" metalness={0.8} roughness={0.35} /></mesh>}
@@ -179,7 +175,9 @@ function inPoly(p: [number, number], poly: [number, number][]) { let inside = fa
 
 function Trees({ pts }: { pts: [number, number][] }) {
   const trunk = useMemo(() => { const m = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25, 0.4, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }), Math.max(1, pts.length)); const o = new THREE.Object3D(); pts.forEach((p, i) => { o.position.set(p[0], 1.7, p[1]); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.count = pts.length; m.castShadow = true; return m; }, [pts]);
-  const crown = useMemo(() => { const m = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(2.6, 1), new THREE.MeshStandardMaterial({ color: 0x3f7a3a, roughness: 1, flatShading: true }), Math.max(1, pts.length)); const o = new THREE.Object3D(); pts.forEach((p, i) => { o.position.set(p[0], 4.6, p[1]); o.scale.setScalar(0.8 + hash(i) * 0.6); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.count = pts.length; m.castShadow = true; return m; }, [pts]);
+  const crown = useMemo(() => { const m = new THREE.InstancedMesh(foliageGeometry(), new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.96 }), Math.max(1, pts.length * 4)); const o = new THREE.Object3D(), c = new THREE.Color();
+    pts.forEach((p, i) => { const s0 = 0.8 + hash(i) * 0.6; for (let j = 0; j < 4; j++) { const a = j * 2.2 + i, r = j ? 1.5 * s0 : 0; o.position.set(p[0] + Math.cos(a) * r, 4.5 + (j % 3) * 0.7 * s0, p[1] + Math.sin(a) * r); const sc = (j ? 1.7 : 2.3) * s0; o.scale.set(sc, sc * 0.85, sc); o.rotation.y = a; o.updateMatrix(); m.setMatrixAt(i * 4 + j, o.matrix); m.setColorAt(i * 4 + j, c.set(crownColour(i + 3, j))); } });
+    m.count = pts.length * 4; m.castShadow = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; return m; }, [pts]);
   useEffect(() => () => { trunk.geometry.dispose(); (trunk.material as THREE.Material).dispose(); crown.geometry.dispose(); (crown.material as THREE.Material).dispose(); }, [trunk, crown]);
   return <><primitive object={trunk} /><primitive object={crown} /></>;
 }

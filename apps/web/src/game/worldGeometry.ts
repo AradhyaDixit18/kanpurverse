@@ -49,3 +49,22 @@ export function platformSlab(pts: [number, number][], w = PLATFORM.w, h = PLATFO
   const count = geo.getAttribute("position").count; geo.setIndex(new THREE.BufferAttribute(Uint32Array.from({ length: count }, (_, i) => i), 1));
   return { geo, boxes };
 }
+
+/**
+ * Split a road centre line into painted dashes: `dash` metres of paint, `gap` metres of road, nothing within `trim`
+ * metres of either end (so lines stop short of junctions instead of crossing each other in an X).
+ */
+export function dashPolylines(pts: [number, number][], dash = 3, gap = 4.5, trim = 9): [number, number][][] {
+  const out: [number, number][][] = []; let total = 0; for (let i = 0; i + 1 < pts.length; i++) total += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+  if (total < trim * 2 + dash) return out; const period = dash + gap; let cur: [number, number][] | null = null, d = 0;
+  const painted = (s: number) => s >= trim && s <= total - trim && ((s - trim) % period) < dash;
+  for (let i = 0; i + 1 < pts.length; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1]; const len = Math.hypot(bx - ax, bz - az); if (len < 1e-6) continue;
+    // walk this segment between the points where paint starts or stops
+    let t = 0; while (t < len - 1e-9) { const s = d + t; const on = painted(s + 1e-6); let next = len;
+      if (s < trim) next = Math.min(len, trim - d); else if (s >= total - trim) next = len; else { const ph = (s - trim) % period; next = Math.min(len, t + (ph < dash ? dash - ph : period - ph), total - trim - d); }
+      if (next <= t + 1e-9) next = Math.min(len, t + 0.01);
+      const P = (u: number): [number, number] => [ax + (bx - ax) * u / len, az + (bz - az) * u / len];
+      if (on) { if (!cur) { cur = [P(t)]; out.push(cur); } cur.push(P(next)); } const still = next >= len - 1e-9 ? on && painted(d + len + 1e-6) : false; if (!still) cur = null; t = next; }
+    d += len; }
+  return out.filter(l => l.length >= 2);
+}

@@ -136,7 +136,7 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   // skin tone
   const skinMat = (b.material as THREE.MeshStandardMaterial).clone(); skinMat.color.setScalar(SKIN_SCALE[app.skin] ?? 1); skinMat.roughness = 0.62; b.material = skinMat;
   // hair: bind the shared hair mesh to this character's skeleton
-  const hairName = protagonist ? "Hair_Long" : HAIR_NAMES[app.hair] ?? "Hair_SimpleParted";
+  const hairName = protagonist && app.body === "f" ? "Hair_Long" : protagonist ? (app.hair === 0 ? "Hair_Buzzed" : "Hair_SimpleParted") : HAIR_NAMES[app.hair] ?? "Hair_SimpleParted"; // Kanupriya keeps her long hair; Kartik wears his short
   const hairNames = app.body === "m" && app.hair === 3 ? [hairName, "Hair_Beard"] : [hairName];
   for (const hn of hairNames) {
     let hm: THREE.SkinnedMesh | undefined; for (const sc of a.hair.scenes) sc.traverse(o => { if ((o as THREE.SkinnedMesh).isSkinnedMesh && o.name === hn) hm = o as THREE.SkinnedMesh; });

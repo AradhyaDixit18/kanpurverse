@@ -4,7 +4,7 @@
  * road A can land in road B's lane at a junction, or on top of a parked story vehicle (the fruit cart that sat
  * inside the red hatchback at Cafe Chowk).
  */
-import { VEHICLE_SPAWNS, VEHICLE_SPECS, NPCS } from "@kanpurverse/shared";
+import { VEHICLE_SPAWNS, VEHICLE_SPECS, NPCS, PETROL_PUMP } from "@kanpurverse/shared";
 
 export interface RoadLike { a: [number, number]; b: [number, number]; w: number }
 export function distToRoad(x: number, z: number, r: RoadLike) {
@@ -26,8 +26,10 @@ export function clearOfParkedVehicles(x: number, z: number, radius: number, gap 
 export function clearOfStandingPeople(x: number, z: number, radius: number, gap = 1) {
   for (const n of NPCS) if (n.speed === 0 && Math.hypot(n.path[0][0] - x, n.path[0][1] - z) < radius + gap) return false; return true;
 }
+/** Built sites (the fuel station forecourt) take no generated props or animals. */
+export function clearOfReserved(x: number, z: number, radius: number) { return Math.hypot(PETROL_PUMP.x - x, PETROL_PUMP.z - z) > PETROL_PUMP.r + radius; }
 export function propSpotClear(x: number, z: number, radius: number, nearRoads: readonly RoadLike[]) {
-  return clearOfCarriageways(x, z, radius, nearRoads) && clearOfParkedVehicles(x, z, radius) && clearOfStandingPeople(x, z, radius);
+  return clearOfCarriageways(x, z, radius, nearRoads) && clearOfParkedVehicles(x, z, radius) && clearOfStandingPeople(x, z, radius) && clearOfReserved(x, z, radius);
 }
 /** Footprint radii (m) used for the checks above. */
 export const PROP_RADIUS = { stall: 1.2, pole: 0.2 } as const;

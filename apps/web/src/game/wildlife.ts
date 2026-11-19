@@ -13,7 +13,7 @@
  * Time is real seconds from a local clock. The old Animals.tsx used the world clock, so with a fixed atmosphere (day,
  * sunset or night) every animal froze, and in the day/night cycle they ran at the cycle's accelerated rate.
  */
-import { kerbDistance, clearOfCarriageways, clearOfParkedVehicles, clearOfStandingPeople, distToRoad, type RoadLike } from "./propPlacement";
+import { kerbDistance, clearOfCarriageways, clearOfParkedVehicles, clearOfStandingPeople, clearOfReserved, distToRoad, type RoadLike } from "./propPlacement";
 
 export interface WRoad extends RoadLike { cls?: string; len: number; dx: number; dz: number; nx: number; nz: number }
 export type RoadQuery = (x: number, z: number, r: number) => WRoad[];
@@ -45,7 +45,7 @@ export interface Flock { id: string; x: number; z: number; radius: number; count
 export interface CellLife { grazers: Grazer[]; dogs: Dog[]; flocks: Flock[] }
 
 function nearestRoad(x: number, z: number, roads: readonly WRoad[]) { let best: WRoad | undefined, d = Infinity; for (const r of roads) { const k = distToRoad(x, z, r) - r.w / 2; if (k < d) { d = k; best = r; } } return { road: best, kerb: d }; }
-const openGround = (x: number, z: number, radius: number) => clearOfParkedVehicles(x, z, radius, 1.2) && clearOfStandingPeople(x, z, radius, 2);
+const openGround = (x: number, z: number, radius: number) => clearOfParkedVehicles(x, z, radius, 1.2) && clearOfStandingPeople(x, z, radius, 2) && clearOfReserved(x, z, radius + 2);
 
 /** Everything that lives in one 96 m cell. Depends only on the cell and the road network, so it never reshuffles. */
 export function cellLife(cx: number, cz: number, roads: RoadQuery): CellLife {
@@ -66,7 +66,7 @@ export function cellLife(cx: number, cz: number, roads: RoadQuery): CellLife {
   if (want.dog) { const mine = near.filter(r => !WILDLIFE.fast.has(r.cls ?? "") && r.len >= 14 && Math.floor((r.a[0] + r.b[0]) / 2 / C) === cx && Math.floor((r.a[1] + r.b[1]) / 2 / C) === cz);
     const road = mine[Math.floor(want.pick * mine.length)];
     if (road) { const off = (road.w / 2 + 2.1) * want.side; const others = near.filter(r => r !== road); let best = { from: 0, len: 0 }, from = -1;
-      for (let d = 0; d <= road.len + 1e-6; d += 2) { const x = road.a[0] + road.dx * d + road.nx * off, z = road.a[1] + road.dz * d + road.nz * off; const ok = clearOfCarriageways(x, z, 0.5, others) && clearOfParkedVehicles(x, z, 0.5, 0.8);
+      for (let d = 0; d <= road.len + 1e-6; d += 2) { const x = road.a[0] + road.dx * d + road.nx * off, z = road.a[1] + road.dz * d + road.nz * off; const ok = clearOfCarriageways(x, z, 0.5, others) && clearOfParkedVehicles(x, z, 0.5, 0.8) && clearOfReserved(x, z, 0.5);
         if (ok && from < 0) from = d; if ((!ok || d + 2 > road.len) && from >= 0) { const end = ok ? d : d - 2; if (end - from > best.len) best = { from, len: end - from }; from = -1; } }
       if (best.len >= 8) out.dogs.push({ id: `d${cx}:${cz}`, kind: "dog", ax: road.a[0] + road.dx * best.from + road.nx * off, az: road.a[1] + road.dz * best.from + road.nz * off, dx: road.dx, dz: road.dz, len: Math.min(best.len, 46), seed: rnd(), tint: Math.floor(rnd() * 4) }); } }
 
