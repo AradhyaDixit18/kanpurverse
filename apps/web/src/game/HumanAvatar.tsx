@@ -85,10 +85,12 @@ export function drapeFill(pos: THREE.BufferAttribute | THREE.InterleavedBufferAt
 }
 /** Triangles of `src` whose three vertices are dominated by `bones`, pushed out by `offset` metres (skin data kept). `drape` rounds of smoothing make it hang like cloth. */
 /** Where a draped garment ended up (bind-pose positions for every body vertex) and how its seam vertices weld. */
-type Lift = { pos: Float32Array; weld: Int32Array };
+export type Lift = { pos: Float32Array; weld: Int32Array };
 /** By shell key: what is worn over a garment (belt, straps, dupatta) rides on that surface instead of on the skin. */
 const hangCache = new Map<string, Lift>();
-interface ShellCut {
+/** The settled surface of a draped garment built earlier, by its shell key (undefined until that shell exists). */
+export const garmentSurface = (key: string) => hangCache.get(key);
+export interface ShellCut {
   /** Rounds of membrane settling and the most it may stand off the skin (m). */
   drape?: number; slack?: number;
   /** Start from this garment's surface; `offset` is then measured from it. */
@@ -129,7 +131,7 @@ export function hangStraight(arr: Float32Array, count: number, top: number, bott
     const k = 1 + Math.min(HANG_MAX, (want - r) * w) / r; arr[v * 3] = x * k; arr[v * 3 + 2] = outline.axisZ + (z - outline.axisZ) * k; }
   return outline;
 }
-function shell(key: string, src: THREE.BufferGeometry, bones: THREE.Bone[], names: string[], offset: number, keep?: (vertex: number, pos: THREE.Vector3) => boolean, cut: ShellCut = {}) {
+export function shell(key: string, src: THREE.BufferGeometry, bones: { name: string }[], names: string[], offset: number, keep?: (vertex: number, pos: THREE.Vector3) => boolean, cut: ShellCut = {}) {
   const hit = shellCache.get(key); if (hit) return hit;
   const idx = new Set(names.map(n => bones.findIndex(b => b.name === n)).filter(i => i >= 0));
   const si = src.getAttribute("skinIndex"), sw = src.getAttribute("skinWeight"), pos = src.getAttribute("position"), nor = src.getAttribute("normal");
@@ -139,14 +141,18 @@ function shell(key: string, src: THREE.BufferGeometry, bones: THREE.Bone[], name
   for (let i = 0; i < index.count; i += 3) { const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2); if (vOk[a] && vOk[b] && vOk[c]) tris.push(a, b, c); }
   const g = src.clone(); const out = g.getAttribute("position") as THREE.BufferAttribute; const n = new THREE.Vector3();
   const draped = cut.drape ? drapeFill(pos, nor, tris, cut.drape, cut.slack ?? 0.03) : null; const weld = draped?.weld ?? cut.under?.weld ?? null;
-  for (let v = 0; v < out.count; v++) { n.fromBufferAttribute(nor, v); const d = offset + (draped ? draped.fill[draped.weld[v]] : 0);
-    if (cut.under) out.setXYZ(v, cut.under.pos[v * 3] + n.x * d, cut.under.pos[v * 3 + 1] + n.y * d, cut.under.pos[v * 3 + 2] + n.z * d); else out.setXYZ(v, out.getX(v) + n.x * d, out.getY(v) + n.y * d, out.getZ(v) + n.z * d); }
-  if (cut.hang) hangStraight(out.array as Float32Array, out.count, cut.hang.top, cut.hang.bottom, cut.hang.halfWidth, v => pos.getX(v));
-  if (draped) hangCache.set(key, { pos: (out.array as Float32Array).slice(), weld: draped.weld });
+  // Work on a plain xyz copy and write back through the attribute: the body's vertex data is interleaved (position,
+  // normal, uv, colour, joints and weights share one buffer), so its raw array is not a list of positions.
+  const P = new Float32Array(out.count * 3);
+  for (let v = 0; v < out.count; v++) { n.fromBufferAttribute(nor, v); const d = offset + (draped ? draped.fill[draped.weld[v]] : 0); const u = cut.under?.pos;
+    P[v * 3] = (u ? u[v * 3] : pos.getX(v)) + n.x * d; P[v * 3 + 1] = (u ? u[v * 3 + 1] : pos.getY(v)) + n.y * d; P[v * 3 + 2] = (u ? u[v * 3 + 2] : pos.getZ(v)) + n.z * d; }
+  if (cut.hang) hangStraight(P, out.count, cut.hang.top, cut.hang.bottom, cut.hang.halfWidth, v => pos.getX(v));
+  for (let v = 0; v < out.count; v++) out.setXYZ(v, P[v * 3], P[v * 3 + 1], P[v * 3 + 2]);
+  if (draped) hangCache.set(key, { pos: P, weld: draped.weld });
   if (weld) {
     // Shade from the garment's own surface, not from the muscles underneath: area-weighted face normals, shared across UV seams.
     const acc = new Float32Array(out.count * 3); const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-    for (let i = 0; i < tris.length; i += 3) { a.fromBufferAttribute(out, tris[i]); b.fromBufferAttribute(out, tris[i + 1]); c.fromBufferAttribute(out, tris[i + 2]); b.sub(a); c.sub(a); b.cross(c); for (let k = 0; k < 3; k++) { const w = weld[tris[i + k]] * 3; acc[w] += b.x; acc[w + 1] += b.y; acc[w + 2] += b.z; } }
+    for (let i = 0; i < tris.length; i += 3) { a.fromArray(P, tris[i] * 3); b.fromArray(P, tris[i + 1] * 3); c.fromArray(P, tris[i + 2] * 3); b.sub(a); c.sub(a); b.cross(c); for (let k = 0; k < 3; k++) { const w = weld[tris[i + k]] * 3; acc[w] += b.x; acc[w + 1] += b.y; acc[w + 2] += b.z; } }
     const on = g.getAttribute("normal") as THREE.BufferAttribute; for (let v = 0; v < on.count; v++) { const w = weld[v] * 3; const l = Math.hypot(acc[w], acc[w + 1], acc[w + 2]); if (l > 1e-12) on.setXYZ(v, acc[w] / l, acc[w + 1] / l, acc[w + 2] / l); }
   }
   g.setIndex(tris); for (const name of Object.keys(g.attributes)) if (/^(uv1|uv2|uv3|color|color_1|color_2)$/.test(name)) g.deleteAttribute(name);
