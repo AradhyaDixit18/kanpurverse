@@ -47,7 +47,7 @@ export function plateText(kind: string, color: number) { const n = (Math.imul(co
 function plateMat(text: string, yellow: boolean) {
   return mat(`plate:${text}:${yellow}`, () => new THREE.MeshStandardMaterial({ roughness: 0.45, map: paintedTex(`plate:${text}:${yellow}`, 256, 64, (x, w, h) => {
     x.fillStyle = yellow ? "#f2c400" : "#f4f4ee"; x.fillRect(0, 0, w, h); x.strokeStyle = "#111"; x.lineWidth = 4; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = "#1c3f94"; x.fillRect(6, 6, 22, h - 12); x.fillStyle = "#fff"; x.font = "700 9px sans-serif"; x.textAlign = "center"; x.fillText("IND", 17, h - 12);
-    x.fillStyle = "#111"; x.font = "800 34px 'Mukta',monospace"; x.textBaseline = "middle"; x.fillText(text, w / 2 + 12, h / 2 + 2); }) }));
+    x.fillStyle = "#111"; x.textBaseline = "middle"; let size = 30; x.font = `800 ${size}px 'Mukta',monospace`; const room = w - 46; const tw = x.measureText(text).width; if (tw > room) { size = Math.floor(size * room / tw); x.font = `800 ${size}px 'Mukta',monospace`; } x.fillText(text, w / 2 + 13, h / 2 + 2); }) })); // sized to fit: at 34 px the first and last characters were cut off
 }
 /** Truck art: the hand-painted tailboard every Indian goods truck carries. */
 function tailboardMat() { return mat("tailboard", () => new THREE.MeshStandardMaterial({ roughness: 0.6, map: paintedTex("tailboard", 512, 128, (x, w, h) => {
