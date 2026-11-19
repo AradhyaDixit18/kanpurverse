@@ -19,3 +19,19 @@ it("road segment and corner-joint triangles all face upwards", () => {
     for (let i = 0; i < n.count; i++) expect(n.getY(i)).toBeGreaterThan(0.99);
   } finally { geometry.dispose(); }
 });
+
+import { describe } from "vitest";
+import { dashPolylines } from "../apps/web/src/game/worldGeometry";
+describe("road centre-line dashes", () => {
+  const len = (l: [number, number][]) => { let d = 0; for (let i = 0; i + 1 < l.length; i++) d += Math.hypot(l[i + 1][0] - l[i][0], l[i + 1][1] - l[i][1]); return d; };
+  it("paints 3 m dashes with 4.5 m gaps and nothing within 9 m of either end", () => {
+    const d = dashPolylines([[0, 0], [0, 100]]); expect(d.length).toBe(11);
+    for (const l of d) { expect(len(l)).toBeGreaterThan(1.9); expect(len(l)).toBeLessThanOrEqual(3 + 1e-6); for (const p of l) { expect(p[1]).toBeGreaterThanOrEqual(9 - 1e-6); expect(p[1]).toBeLessThanOrEqual(91 + 1e-6); } }
+    expect(d[1][0][1] - d[0][0][1]).toBeCloseTo(7.5, 6);
+  });
+  it("follows bends, and leaves a short road unmarked", () => {
+    const d = dashPolylines([[0, 0], [40, 0], [40, 40]]); expect(d.length).toBeGreaterThan(6); expect(d.some(l => l.length === 3)).toBe(true); // a dash that turns the corner keeps its vertex
+    const painted = d.reduce((a, l) => a + len(l), 0); expect(painted).toBeGreaterThan(20); expect(painted).toBeLessThan(80 * 0.5);
+    expect(dashPolylines([[0, 0], [0, 18]])).toEqual([]);
+  });
+});

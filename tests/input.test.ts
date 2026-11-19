@@ -16,3 +16,19 @@ it("input detaches and binds to a new canvas after returning to the game", () =>
   input.touch.jump = true; input.touch.joy.x = 1; win.dispatchEvent(new Event("blur")); pollKeys();
   expect(input.jump).toBe(false); expect(input.right).toBe(0); secondCleanup();
 });
+
+it("a hidden tab, a frozen page, the context menu and releasing Cmd all release held driving keys", () => {
+  const win = new EventTarget(), doc = Object.assign(new EventTarget(), { visibilityState: "visible" });
+  vi.stubGlobal("window", win); vi.stubGlobal("document", doc);
+  const key = (type: string, code: string) => { const event = new Event(type); Object.assign(event, { code, repeat: false }); win.dispatchEvent(event); };
+  const cleanup = bindInput(new EventTarget() as HTMLElement)!;
+  const held = () => { pollKeys(); return [input.fwd || 0, input.right || 0]; };
+  key("keydown", "KeyW"); key("keydown", "KeyD"); expect(held()).toEqual([1, 1]);
+  doc.visibilityState = "hidden"; doc.dispatchEvent(new Event("visibilitychange")); expect(held()).toEqual([0, 0]);
+  doc.visibilityState = "visible"; doc.dispatchEvent(new Event("visibilitychange")); expect(held()).toEqual([0, 0]); // stays released on return
+  key("keydown", "KeyW"); win.dispatchEvent(new Event("pagehide")); expect(held()).toEqual([0, 0]);
+  key("keydown", "KeyS"); win.dispatchEvent(new Event("contextmenu")); expect(held()).toEqual([0, 0]);
+  key("keydown", "MetaLeft"); key("keydown", "KeyW"); key("keyup", "MetaLeft"); expect(held()).toEqual([0, 0]); // Cmd+Tab: W never gets a keyup
+  key("keydown", "KeyW"); key("keyup", "KeyW"); expect(held()).toEqual([0, 0]);
+  cleanup();
+});
