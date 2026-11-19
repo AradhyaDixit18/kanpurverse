@@ -9,6 +9,7 @@ import { SPECS } from "./vehicleSpecs";
 import { type VehicleKind } from "@kanpurverse/shared";
 import { getRoads, roadsNear, roadsVersion, onRoadsChange, type Seg } from "./roads";
 import { VehicleMesh } from "./Vehicles";
+import { LAYER } from "./layers";
 import { useStore, useGraphics } from "../state/store";
 import { playerPos } from "./refs";
 
@@ -39,5 +40,5 @@ function Car({ car }: { car: Car }) {
     distance.current+=car.speed*dt;stopped.current=false;state.current={speed:car.speed,steer:Math.max(-1,Math.min(1,-turn/dt*.15)),brake:false};
     rb.setNextKinematicTranslation(target);rb.setNextKinematicRotation({x:0,y:Math.sin(next.yaw/2),z:0,w:Math.cos(next.yaw/2)});
   });
-  return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={position.current} quaternion={rotation.current} ccd><CuboidCollider args={[spec.size[0]/2,spec.size[1]/2,spec.size[2]/2]} restitution={0}/><VehicleMesh kind={car.kind} color={car.color} state={state} stoppedRef={stopped}/></RigidBody>;
+  return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={position.current} quaternion={rotation.current} ccd><CuboidCollider args={[spec.size[0]/2,spec.size[1]/2,spec.size[2]/2]} restitution={0}/><group position={[0,LAYER.road,0]}><VehicleMesh kind={car.kind} color={car.color} state={state} stoppedRef={stopped}/></group></RigidBody>;
 }

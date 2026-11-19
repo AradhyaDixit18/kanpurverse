@@ -34,4 +34,8 @@ describe("road centre-line dashes", () => {
     const painted = d.reduce((a, l) => a + len(l), 0); expect(painted).toBeGreaterThan(20); expect(painted).toBeLessThan(80 * 0.5);
     expect(dashPolylines([[0, 0], [0, 18]])).toEqual([]);
   });
+  it("a very long dash with no gap is one continuous edge line, trimmed at both ends", () => {
+    const e = dashPolylines([[0, 0], [0, 100], [50, 150]], 1e6, 0, 8); expect(e.length).toBe(1); expect(e[0][0]).toEqual([0, 8]); expect(e[0].length).toBe(3);
+    expect(len(e[0])).toBeCloseTo(100 + Math.hypot(50, 50) - 16, 6); expect(dashPolylines([[0, 0], [0, 17]], 1e6, 0, 8)).toEqual([]);
+  });
 });

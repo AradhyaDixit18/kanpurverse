@@ -24,6 +24,7 @@ import { isDrifting, slipAngle } from "./driving";
 import { roadsNear, type Seg } from "./roads";
 import { crashDamage } from "./playerStatus";
 import { vehicleTelemetry, vehicleRuntime, playerYaw, drivenRender } from "./refs";
+import { LAYER } from "./layers";
 import type { BodyPose } from "./suspension";
 export { vehicleTelemetry };
 
@@ -35,6 +36,9 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
   const { world, rapier } = useRapier();
   const speed = useRef(0); const steer = useRef(0); const yaw = useRef(yawFromQuaternion(snap.q)); const spec = SPECS[snap.kind]; const color = VEHICLE_SPAWNS.find(s => s.id === snap.id)?.color ?? 0xffffff;
   const pose = useRef<BodyPose>({ pitch: 0, roll: 0, x: 0, y: 0 }); const riders = useRef<THREE.Group>(null);
+  // The road surface is drawn 10 cm above the physics ground (layers.ts), so a vehicle resting on the ground showed its
+  // tyres sunk into the tarmac. The drawn vehicle is lifted to the surface it is on; physics is unchanged.
+  const parkedOnRoad = useMemo(() => roadsNear(snap.p[0], snap.p[2], 30).some(r => distToSeg(snap.p[0], snap.p[2], r) < r.w / 2 + 0.4), [snap.p]); const lift = useRef(parkedOnRoad ? LAYER.road : LAYER.pavement);
   const lastHorn = useRef(0); const q = useMemo(() => new THREE.Quaternion(), []); const state = useRef<VehicleVisualState>({ speed: 0, steer: 0, brake: false }); const slip = useRef(0); const yawRate = useRef(0); const indicator = useRef<-1 | 0 | 1 | 2>(0); const lastSkid = useRef(0); const surfaceRef = useRef(1); const drift = useRef({ score: 0, until: 0 });
   useEffect(() => {
     vehicleBuf.delete(snap.id);
@@ -103,8 +107,9 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
 
   // Riders follow the chassis pose (a bike's rider leans with the frame), and the driven vehicle publishes the pose it
   // is actually drawn at, so the chase camera tracks the interpolated car rather than the raw 60 Hz step position.
-  useFrame(() => {
+  useFrame((_, dt) => {
     const r = riders.current; if (r) { r.position.set(pose.current.x, pose.current.y, 0); r.rotation.set(pose.current.pitch, 0, pose.current.roll); }
+    const onRoad = isDriver ? surfaceRef.current === 1 : parkedOnRoad; lift.current += ((onRoad ? LAYER.road : LAYER.pavement) - lift.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 6)); if (vis.current) vis.current.position.y = lift.current;
     if (isDriver && vis.current) { vis.current.getWorldPosition(_wp); drivenRender.id = snap.id; drivenRender.x = _wp.x; drivenRender.y = _wp.y; drivenRender.z = _wp.z; drivenRender.at = performance.now(); }
   });
 

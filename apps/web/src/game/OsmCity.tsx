@@ -118,7 +118,9 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   const quality = useStore(s => s.settings.quality); const lang = useStore(s => s.settings.lang);
   const geo = useMemo(() => {
     const road = worldUV(merge(t.roads.map(r => ribbon(r.pts, r.w, LAYER.road))), 8); const pavement = worldUV(merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, LAYER.pavement, 4))), 4);
-    const marks = merge(t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8).flatMap(r => dashPolylines(r.pts).map(l => ribbon(l, 0.18, LAYER.marks, 4)))); // dashed centre line that stops short of junctions
+    const marked = t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8);
+    // Dashed centre line plus a solid edge line each side on the wider roads; everything stops short of junctions.
+    const marks = merge([...marked.flatMap(r => dashPolylines(r.pts).map(l => ribbon(l, 0.18, LAYER.marks, 4))), ...marked.filter(r => r.w >= 10).flatMap(r => dashPolylines(r.pts, 1e6, 0, 8).flatMap(l => [1, -1].map(side => ribbon(offset(l, side * (r.w / 2 - 0.35)), 0.12, LAYER.marks, 4))))]);
     const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, LAYER.rail, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
     const sleepers = merge(t.rails.map(r => ribbon(r.pts, 2.6 * r.tracks, 0.1, 0.7)));
     const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const facades: FacadeBuilding[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];

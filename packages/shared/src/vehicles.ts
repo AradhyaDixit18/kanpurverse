@@ -66,7 +66,7 @@ export function vehicleSeatPose(kind: VehicleKind, seat: VehicleSeat): { p: [num
   if (kind === "auto" || kind === "erickshaw") return { p: [0, -0.30, driver ? l * 0.21 : -l * 0.26], scale: 0.85 };
   if (kind === "bus" || kind === "schoolbus") return { p: [(driver ? 1 : -1) * w * 0.25, -h / 2 + 0.85, driver ? l * 0.37 : l * 0.12], scale: 0.85 };
   if (kind === "truck" || kind === "van") return { p: [(driver ? 1 : -1) * w * 0.25, -h / 2 + 0.5, l * 0.29], scale: 0.85 };
-  return { p: [(driver ? 1 : -1) * w * 0.23, -h / 2 + 0.10, l * 0.08], scale: 0.82 };
+  return { p: [(driver ? 1 : -1) * w * 0.23, -h / 2 + 0.25, l * 0.08], scale: 0.8 }; // feet rest on the cabin floor (0.16–0.2 m clearance): at 0.10 the driver's shoes showed under the sill
 }
 export function vehicleYaw(q: readonly number[]) { return Math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] ** 2 + q[2] ** 2)); }
 export function vehicleLocalToWorld(p: readonly number[], yaw: number, local: readonly number[]): [number, number, number] {

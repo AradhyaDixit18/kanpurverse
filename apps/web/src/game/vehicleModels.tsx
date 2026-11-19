@@ -36,11 +36,55 @@ const M = {
   wood: () => mat("wood", () => new THREE.MeshStandardMaterial({ color: 0x7a4a24, roughness: 0.85 })),
   steel: () => mat("steel", () => new THREE.MeshStandardMaterial({ color: 0x70757c, roughness: 0.45, metalness: 0.8 })),
 };
+/** Canvas texture drawn once (client only: these factories run at render time, never at import). */
+const texCache = new Map<string, THREE.CanvasTexture>();
+function paintedTex(key: string, w: number, h: number, draw: (x: CanvasRenderingContext2D, w: number, h: number) => void) {
+  let t = texCache.get(key); if (!t) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d")!, w, h); t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; texCache.set(key, t); } return t;
+}
+const SIGN_FONT = "'Mukta','Noto Sans Devanagari','Kohinoor Devanagari',sans-serif";
+/** Registration plate in the Indian layout: IND strip, state and district code (UP 78 is Kanpur Nagar), series and number. Invented numbers. */
+export function plateText(kind: string, color: number) { const n = (Math.imul(color ^ 0x9e3779b9, 2654435761) >>> 0) + kind.length * 7919; const A = "ABCDEFGHJKLMNPRSTUVWXYZ"; return `UP 78 ${A[n % 23]}${A[(n >>> 5) % 23]} ${String(1000 + (n >>> 9) % 9000)}`; }
+function plateMat(text: string, yellow: boolean) {
+  return mat(`plate:${text}:${yellow}`, () => new THREE.MeshStandardMaterial({ roughness: 0.45, map: paintedTex(`plate:${text}:${yellow}`, 256, 64, (x, w, h) => {
+    x.fillStyle = yellow ? "#f2c400" : "#f4f4ee"; x.fillRect(0, 0, w, h); x.strokeStyle = "#111"; x.lineWidth = 4; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = "#1c3f94"; x.fillRect(6, 6, 22, h - 12); x.fillStyle = "#fff"; x.font = "700 9px sans-serif"; x.textAlign = "center"; x.fillText("IND", 17, h - 12);
+    x.fillStyle = "#111"; x.textBaseline = "middle"; let size = 30; x.font = `800 ${size}px 'Mukta',monospace`; const room = w - 46; const tw = x.measureText(text).width; if (tw > room) { size = Math.floor(size * room / tw); x.font = `800 ${size}px 'Mukta',monospace`; } x.fillText(text, w / 2 + 13, h / 2 + 2); }) })); // sized to fit: at 34 px the first and last characters were cut off
+}
+/** Truck art: the hand-painted tailboard every Indian goods truck carries. */
+function tailboardMat() { return mat("tailboard", () => new THREE.MeshStandardMaterial({ roughness: 0.6, map: paintedTex("tailboard", 512, 128, (x, w, h) => {
+  x.fillStyle = "#17603a"; x.fillRect(0, 0, w, h); x.fillStyle = "#f2b705"; x.fillRect(0, 0, w, 10); x.fillRect(0, h - 10, w, 10); x.fillStyle = "#c8102e"; for (let k = 0; k < w; k += 32) { x.beginPath(); x.moveTo(k, 10); x.lineTo(k + 16, 26); x.lineTo(k + 32, 10); x.fill(); x.beginPath(); x.moveTo(k, h - 10); x.lineTo(k + 16, h - 26); x.lineTo(k + 32, h - 10); x.fill(); }
+  x.textAlign = "center"; x.textBaseline = "middle"; x.font = "800 44px 'Mukta',sans-serif"; x.fillStyle = "#111"; x.fillText("HORN  OK  PLEASE", w / 2 + 2, h / 2 + 3); x.fillStyle = "#ffe9a8"; x.fillText("HORN  OK  PLEASE", w / 2, h / 2); }) })); }
+function sloganMat() { return mat("slogan", () => new THREE.MeshStandardMaterial({ roughness: 0.6, map: paintedTex("slogan", 512, 96, (x, w, h) => {
+  x.fillStyle = "#f2b705"; x.fillRect(0, 0, w, h); x.strokeStyle = "#c8102e"; x.lineWidth = 6; x.strokeRect(5, 5, w - 10, h - 10); x.fillStyle = "#7a1010"; x.textAlign = "center"; x.textBaseline = "middle"; x.font = `800 50px ${SIGN_FONT}`; x.fillText("मेरा भारत महान", w / 2, h / 2 + 3); }) })); }
+function routeBoardMat() { const draw = (x: CanvasRenderingContext2D, w: number, h: number) => { x.fillStyle = "#0c0c0c"; x.fillRect(0, 0, w, h); x.fillStyle = "#ffa32b"; x.textAlign = "center"; x.textBaseline = "middle"; x.font = `800 46px ${SIGN_FONT}`; x.fillText("12  कानपुर सेंट्रल", w / 2, h / 2 + 3); };
+  return mat("route", () => { const t = paintedTex("route", 512, 96, draw); return new THREE.MeshStandardMaterial({ color: 0xffffff, map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.85, roughness: 0.4 }); }); }
+
+/**
+ * Wheel geometry, cached per size. The tyre is a lathe profile (rounded shoulders, sidewall bulge, two tread grooves)
+ * instead of a plain cylinder; the rim is a dished alloy face with a lip. Both are built with the axle along x and the
+ * outer face towards +x; the left-hand wheels are mirrored.
+ */
+const wheelGeo = new Map<string, { tyre: THREE.BufferGeometry; rim: THREE.BufferGeometry }>();
+export function wheelGeometry(R: number, width: number) {
+  const key = `${R}:${width}`; let g = wheelGeo.get(key); if (g) return g; const hw = width / 2; const V = (r: number, a: number) => new THREE.Vector2(r, a);
+  const tyre = new THREE.LatheGeometry([V(R * 0.63, -hw * 0.86), V(R * 0.74, -hw), V(R * 0.9, -hw * 1.03), V(R * 0.975, -hw * 0.84), V(R, -hw * 0.62), V(R, -hw * 0.3), V(R * 0.972, -hw * 0.25), V(R * 0.972, -hw * 0.17), V(R, -hw * 0.12),
+    V(R, hw * 0.12), V(R * 0.972, hw * 0.17), V(R * 0.972, hw * 0.25), V(R, hw * 0.3), V(R, hw * 0.62), V(R * 0.975, hw * 0.84), V(R * 0.9, hw * 1.03), V(R * 0.74, hw), V(R * 0.63, hw * 0.86)], 28);
+  const rim = new THREE.LatheGeometry([V(0, hw * 0.52), V(R * 0.14, hw * 0.56), V(R * 0.17, hw * 0.46), V(R * 0.5, hw * 0.5), V(R * 0.58, hw * 0.74), V(R * 0.64, hw * 0.9), V(R * 0.655, hw * 0.78), V(R * 0.64, -hw * 0.8)], 24);
+  for (const geo of [tyre, rim]) { geo.rotateZ(-Math.PI / 2); geo.computeVertexNormals(); }
+  g = { tyre, rim }; wheelGeo.set(key, g); return g;
+}
+/** Soft dark patch under a vehicle: grounds it at any sun angle and when ambient occlusion is off. */
+let shadowBlob: { geo: THREE.PlaneGeometry; mat: THREE.MeshBasicMaterial } | null = null;
+function contactShadow() {
+  if (!shadowBlob) { const t = paintedTex("contact", 128, 128, (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, w * 0.12, w / 2, h / 2, w * 0.5); g.addColorStop(0, "rgba(0,0,0,0.62)"); g.addColorStop(0.55, "rgba(0,0,0,0.34)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+    const geo = new THREE.PlaneGeometry(1, 1); geo.rotateX(-Math.PI / 2); shadowBlob = { geo, mat: new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8, toneMapped: false, color: 0x000000 }) }; }
+  return shadowBlob;
+}
+
 /** Light materials are per vehicle instance because their emissive level is animated. */
 function useLightMats() {
   const m = useMemo(() => ({
     head: new THREE.MeshStandardMaterial({ color: 0xf4f6ff, emissive: 0xfff3d6, emissiveIntensity: 0.3, roughness: 0.1, metalness: 0.3 }),
-    tail: new THREE.MeshStandardMaterial({ color: 0x5a0710, emissive: 0xd0102a, emissiveIntensity: 0.25, roughness: 0.2 }),
+    tail: new THREE.MeshStandardMaterial({ color: 0x9a0c18, emissive: 0xd0102a, emissiveIntensity: 0.45, roughness: 0.2 }),
     rev: new THREE.MeshStandardMaterial({ color: 0xdedede, emissive: 0xffffff, emissiveIntensity: 0, roughness: 0.2 }),
     indL: new THREE.MeshStandardMaterial({ color: 0x8a5a00, emissive: 0xffa000, emissiveIntensity: 0, roughness: 0.3 }),
     indR: new THREE.MeshStandardMaterial({ color: 0x8a5a00, emissive: 0xffa000, emissiveIntensity: 0, roughness: 0.3 }),
@@ -115,13 +159,13 @@ function initAnchor(a: WheelAnchor, body: THREE.Object3D) {
 function Wheel({ x, y, z, R, width, front, spokes = 5, wheels, fronts, i }: { x: number; y: number; z: number; R: number; width: number; front?: boolean; spokes?: number; wheels: RefObject<THREE.Group[]>; fronts: RefObject<THREE.Group[]>; i: number }) {
   void fronts; // wheels register as anchors now; `fronts` carries only extra steering assemblies (forks, handlebars)
   const register = (g: THREE.Group | null) => { if (!g || !wheels.current) return; const list = fineGroups.get(wheels.current) ?? []; if (!list.includes(g)) list.push(g); fineGroups.set(wheels.current, list); };
-  const side = Math.sign(x) || 1;
+  const side = Math.sign(x) || 1; const wg = wheelGeometry(R, width);
   return <group position={[x, y, z]} ref={el => registerAnchor(wheels.current, el, !!front)}>
     <group ref={el => { if (el) wheels.current[i] = el; }}>
-      <mesh rotation={[0, 0, Math.PI / 2]} material={M.tyre()} castShadow><cylinderGeometry args={[R, R, width, 22]} /></mesh>
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.002), 0, 0]} material={M.rim()}><cylinderGeometry args={[R * 0.62, R * 0.62, 0.02, 18]} /></mesh>
-      <group ref={register}>{Array.from({ length: spokes }, (_, k) => <mesh key={k} position={[side * (width / 2 + 0.012), 0, 0]} rotation={[(k / spokes) * Math.PI * 2, 0, 0]} material={M.trim()}><boxGeometry args={[0.012, R * 1.1, 0.05]} /></mesh>)}
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[side * (width / 2 + 0.02), 0, 0]} material={M.chrome()}><cylinderGeometry args={[R * 0.14, R * 0.14, 0.02, 10]} /></mesh></group>
+      <mesh geometry={wg.tyre} material={M.tyre()} castShadow />
+      <mesh geometry={wg.rim} scale={[side, 1, 1]} material={M.rim()} />
+      <group ref={register}>{Array.from({ length: spokes }, (_, k) => <mesh key={k} position={[side * width * 0.262, 0, 0]} rotation={[(k / spokes) * Math.PI * 2, 0, 0]} material={M.trim()}><boxGeometry args={[0.012, R * 0.98, R * 0.13]} /></mesh>)}
+      <mesh rotation={[0, 0, Math.PI / 2]} position={[side * width * 0.285, 0, 0]} material={M.chrome()}><cylinderGeometry args={[R * 0.13, R * 0.15, 0.03, 12]} /></mesh></group>
     </group>
   </group>;
 }
@@ -162,15 +206,15 @@ function Car({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind; c
     <Box p={[0, gy + p.clearance + 0.12, -L - 0.02]} s={[w * 0.98, 0.2, 0.12]} m={M.plastic()} />
     <Box p={[0, lampY - 0.02, L + 0.03]} s={[w * (0.38 + p.boxy * 0.2), 0.16 + p.boxy * 0.08, 0.05]} m={M.trim()} />
     <Box p={[0, lampY + 0.03, L + 0.058]} s={[w * 0.36, 0.02, 0.01]} m={M.chrome()} />
-    <Box p={[0, gy + p.clearance + 0.13, L + 0.085]} s={[0.5, 0.12, 0.012]} m={isTaxi ? M.plateY() : M.plate()} />
-    <Box p={[0, tailY - 0.22, -L - 0.035]} s={[0.5, 0.12, 0.012]} m={isTaxi ? M.plateY() : M.plate()} />
+    <Box p={[0, gy + p.clearance + 0.13, L + 0.085]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), isTaxi)} />
+    <Box p={[0, gy + p.clearance + 0.13, -L - 0.086]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), isTaxi)} />{/* on the bumper: at tailgate height it sat inside the bodywork and never showed */}
     {/* lamps: headlights, DRL, tail, reverse, indicators */}
     {[-1, 1].map(sx => <group key={sx}>
       <Box p={[sx * (w / 2 - 0.26), lampY, L + 0.005]} s={[0.36, 0.13, 0.08]} m={lm.head} />
       <Box p={[sx * (w / 2 - 0.12), lampY - 0.1, L + 0.03]} s={[0.12, 0.05, 0.04]} m={sx > 0 ? lm.indL : lm.indR} />
-      <Box p={[sx * (w / 2 - 0.2), tailY, -L - 0.01]} s={[0.3, 0.14, 0.06]} m={lm.tail} />
-      <Box p={[sx * (w / 2 - 0.42), tailY, -L - 0.012]} s={[0.1, 0.1, 0.05]} m={lm.rev} />
-      <Box p={[sx * (w / 2 - 0.2), tailY + 0.1, -L - 0.012]} s={[0.24, 0.04, 0.05]} m={sx > 0 ? lm.indL : lm.indR} />
+      <Box p={[sx * (w / 2 - 0.2), tailY, -L - 0.045]} s={[0.3, 0.14, 0.06]} m={lm.tail} />
+      <Box p={[sx * (w / 2 - 0.42), tailY, -L - 0.047]} s={[0.1, 0.1, 0.05]} m={lm.rev} />
+      <Box p={[sx * (w / 2 - 0.2), tailY + 0.1, -L - 0.047]} s={[0.24, 0.04, 0.05]} m={sx > 0 ? lm.indL : lm.indR} />
     </group>)}
     <group ref={detail}>
       {/* mirrors, handles, door shut lines, interior dash and steering wheel */}
@@ -292,7 +336,7 @@ function Heavy({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind;
       {Array.from({ length: Math.floor(l / 1.2) }, (_, k) => -L + 0.6 + k * 1.2).map(z => [-1, 1].map(sx => <Box key={`${z}:${sx}`} p={[sx * (w / 2 + 0.008), floor + (gy + h - floor) * 0.62, z]} s={[0.02, (gy + h - floor) * 0.36, 0.1]} m={paint} />))}
       <Box p={[0, floor + 0.35, 0]} s={[w + 0.012, 0.16, l - 0.1]} m={band} />
       <Box p={[0, floor + (gy + h - floor) * 0.6, L + 0.01]} s={[w * 0.92, (gy + h - floor) * 0.48, 0.04]} m={M.glass()} />
-      <Box p={[0, gy + h - 0.28, L + 0.03]} s={[w * 0.7, 0.3, 0.03]} m={mat("route", () => new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xff8a1c, emissiveIntensity: 0.9 }))} />
+      <Box p={[0, gy + h - 0.28, L + 0.03]} s={[w * 0.74, 0.3, 0.03]} m={kind === "bus" ? routeBoardMat() : mat("route-plain", () => new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xff8a1c, emissiveIntensity: 0.9 }))} />
       <Box p={[-(w / 2 + 0.01), floor + 0.8, L - 1.0]} s={[0.02, 1.6, 0.9]} m={M.trim()} />
       <Box p={[0, gy + h + 0.06, 0]} s={[w * 0.8, 0.12, l * 0.5]} m={M.steel()} />
     </> : <>
@@ -309,7 +353,7 @@ function Heavy({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind;
       </> : <>
         <Box p={[0, (floor + gy + h) / 2, -cabLen / 2 + 0.05]} s={[w + 0.04, gy + h - floor, l - cabLen - 0.05]} m={M.wood()} cast />
         <Box p={[0, gy + h - 0.25, -cabLen / 2 + 0.05]} s={[w + 0.06, 0.32, l - cabLen]} m={mat("truckpaint", () => new THREE.MeshStandardMaterial({ color: 0xe0491b, roughness: 0.6 }))} />
-        <Box p={[0, floor + 0.5, -L - 0.01]} s={[w * 0.9, 0.5, 0.03]} m={mat("hornplease", () => new THREE.MeshStandardMaterial({ color: 0x1b6e3a, roughness: 0.6 }))} />
+        <Box p={[0, floor + 0.55, -L - 0.01]} s={[w * 0.92, 0.55, 0.03]} m={tailboardMat()} /><Box p={[0, cabTop - 0.16, L + 0.03]} s={[w * 0.82, 0.26, 0.03]} m={sloganMat()} />
       </>}
     </>}
     <Box p={[0, gy + R + 0.12, 0]} s={[w * 0.7, 0.16, l * 0.9]} m={M.trim()} />
@@ -321,7 +365,7 @@ function Heavy({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind;
     </group>)}
     <group ref={detail}>
       {[-1, 1].map(sx => <group key={sx}><Cyl p={[sx * (w / 2 + 0.18), floor + 1.2, L - 0.2]} rt={0.015} h={0.5} m={M.trim()} /><Box p={[sx * (w / 2 + 0.2), floor + 1.0, L - 0.2]} s={[0.05, 0.32, 0.18]} m={M.trim()} /></group>)}
-      <Box p={[0, floor - 0.02, L + 0.06]} s={[0.5, 0.12, 0.012]} m={M.plateY()} />
+      <Box p={[0, floor - 0.02, L + 0.06]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), true)} /><Box p={[0, floor - 0.02, -L - 0.045]} s={[0.5, 0.125, 0.012]} m={plateMat(plateText(kind, color), true)} />
       <mesh position={[w * 0.28, floor + 0.85, L - 0.55]} rotation={[-0.9, 0, 0]} material={M.trim()}><torusGeometry args={[0.22, 0.025, 8, 20]} /></mesh>
     </group>
     {[fz, rz, ...(kind === "bus" ? [rz + 1.2] : [])].flatMap((z, ai) => [-1, 1].map((sx, k) => <Wheel key={`${ai}:${k}`} i={ai * 2 + k} x={sx * (w / 2 - 0.2)} y={gy + R} z={z} R={R} width={0.32} front={ai === 0} spokes={8} wheels={wheels} fronts={fronts} />))}
@@ -358,7 +402,7 @@ export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lights
       }
     }
     const lights = lightsRef?.current ?? st?.lights ?? false; const braking = !!st?.brake || !!stoppedRef?.current;
-    lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.25; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;
+    lm.head.emissiveIntensity = lights ? 3.2 : 0.25; lm.tail.emissiveIntensity = braking ? 3 : lights ? 0.9 : 0.5; lm.rev.emissiveIntensity = (st?.speed ?? 0) < -0.2 ? 2 : 0;
     const ind = st?.indicator ?? 0; const blink = Math.floor(clock.elapsedTime * 2.6) % 2 === 0;
     lm.indL.emissiveIntensity = blink && (ind === -1 || ind === 2) ? 3 : 0; lm.indR.emissiveIntensity = blink && (ind === 1 || ind === 2) ? 3 : 0;
     if (body.current) { body.current.getWorldPosition(_me); camera.getWorldPosition(_cam); const d2 = _me.distanceToSquared(_cam);
@@ -367,7 +411,8 @@ export function VehicleModel({ kind, color, state, wheelSpin, stoppedRef, lights
       const fine = d2 < 28 * 28; for (const g of fineGroups.get(wheels.current) ?? []) if (g.visible !== fine) g.visible = fine; } // spokes/hubs: 24 meshes per car
   });
   const props = { kind, color, lm, wheels, fronts, detail };
-  return <group ref={body}>{s.cls === "car" ? <Car {...props} /> : s.cls === "two" ? <TwoWheeler {...props} /> : s.cls === "heavy" ? <Heavy {...props} /> : <ThreeWheeler {...props} />}</group>;
+  const blob = contactShadow();
+  return <group ref={body}><mesh geometry={blob.geo} material={blob.mat} position={[0, -s.size[1] / 2 + 0.02, 0]} scale={[s.size[0] * 1.55, 1, s.size[2] * 1.22]} renderOrder={2} />{s.cls === "car" ? <Car {...props} /> : s.cls === "two" ? <TwoWheeler {...props} /> : s.cls === "heavy" ? <Heavy {...props} /> : <ThreeWheeler {...props} />}</group>;
 }
 
 /** Test hook: bounds of the extruded car body + greenhouse, for every car class. */
