@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
-import { clipFor, CLIP_SPEED, CHARACTER_FILES, drapeFill, chestOutline, hangStraight, HANG_MAX } from "../apps/web/src/game/HumanAvatar";
+import { clipFor, CLIP_SPEED, CHARACTER_FILES, drapeFill, chestOutline, hangStraight, HANG_MAX, shell, garmentSurface } from "../apps/web/src/game/HumanAvatar";
 
 /** Read the JSON chunk of a .glb without a DOM. */
 function glbJson(path: string) { const b = readFileSync(new URL(`../apps/web/public${path}`, import.meta.url)); const len = b.readUInt32LE(12); return JSON.parse(b.subarray(20, 20 + len).toString("utf8")); }
@@ -86,5 +86,32 @@ describe("a shirt hangs from the chest", () => {
       for (let i = 0; i < n; i++) { const d = Math.hypot(A[i * 3] - P[i * 3], A[i * 3 + 2] - P[i * 3 + 2]); expect(A[i * 3 + 1]).toBe(P[i * 3 + 1]); if (d > 0) { moved++; max = Math.max(max, d); if (Math.abs(P[i * 3 + 1] - (chest + hip) / 2) < 0.06) { waist += d; waistN++; } } }
       expect(moved).toBeGreaterThan(200); expect(max).toBeLessThanOrEqual(HANG_MAX + 1e-6); expect(waist / waistN).toBeGreaterThan(0.008); expect(waist / waistN).toBeLessThan(0.05);
     }
+  });
+});
+
+describe("garment shells on interleaved body data", () => {
+  // The shipped bodies store position, normal, uv, joints and weights in one interleaved buffer (stride 56 bytes).
+  // A shell that edits the raw array as if it were xyz triples corrupts every other attribute; this builds the same layout.
+  const ring = 24, rows = 26, count = ring * rows, stride = 16; const data = new Float32Array(count * stride); const radius = (y: number) => (y >= 1.1 ? 0.11 + 0.04 * ((y - 1.1) / 0.2) : 0.11 + 0.03 * ((1.1 - y) / 0.15));
+  for (let j = 0; j < rows; j++) for (let k = 0; k < ring; k++) { const v = j * ring + k, y = 0.9 + j * 0.02, a = (k / ring) * Math.PI * 2, r = radius(Math.min(y, 1.3));
+    data.set([Math.sin(a) * r, y, Math.cos(a) * r, Math.sin(a), 0, Math.cos(a), k / ring, j / rows, 0, 0, 0, 0, 1, 0, 0, 0], v * stride); }
+  const index: number[] = []; for (let j = 0; j + 1 < rows; j++) for (let k = 0; k < ring; k++) { const a = j * ring + k, b = j * ring + ((k + 1) % ring), c = a + ring, d = b + ring; index.push(a, b, c, b, d, c); }
+  const make = () => { const buf = new THREE.InterleavedBuffer(data.slice(), stride); const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.InterleavedBufferAttribute(buf, 3, 0)); g.setAttribute("normal", new THREE.InterleavedBufferAttribute(buf, 3, 3)); g.setAttribute("uv", new THREE.InterleavedBufferAttribute(buf, 2, 6));
+    g.setAttribute("skinIndex", new THREE.InterleavedBufferAttribute(buf, 4, 8)); g.setAttribute("skinWeight", new THREE.InterleavedBufferAttribute(buf, 4, 12)); g.setIndex(index); return g; };
+  const bones = [{ name: "spine_03" }];
+  it("moves positions only: weights, joints and uv survive, nothing is pulled in or flung out", () => {
+    const src = make(); const g = shell("test:shirt", src, bones, ["spine_03"], 0.012, undefined, { drape: 12, slack: 0.03, hang: { top: 1.32, bottom: 0.94, halfWidth: 0.2 } });
+    const p = g.getAttribute("position"), w = g.getAttribute("skinWeight"), si = g.getAttribute("skinIndex"), uv = g.getAttribute("uv"), sp = src.getAttribute("position"); expect(p.count).toBe(count);
+    for (let v = 0; v < count; v++) { expect([w.getX(v), w.getY(v), w.getZ(v), w.getW(v)]).toEqual([1, 0, 0, 0]); expect([si.getX(v), si.getY(v)]).toEqual([0, 0]); expect(uv.getX(v)).toBeCloseTo((v % ring) / ring, 6);
+      const before = Math.hypot(sp.getX(v), sp.getZ(v)), after = Math.hypot(p.getX(v), p.getZ(v)); expect(Number.isFinite(after)).toBe(true); expect(after).toBeGreaterThanOrEqual(before + 0.011); expect(after).toBeLessThan(before + 0.012 + 0.03 + HANG_MAX + 1e-6); expect(p.getY(v)).toBeCloseTo(sp.getY(v), 6); }
+    // the waist ring is carried out toward the chest line; the source geometry is untouched
+    const waist = 10 * ring; expect(Math.hypot(p.getX(waist), p.getZ(waist))).toBeGreaterThan(0.14); expect(Math.hypot(sp.getX(waist), sp.getZ(waist))).toBeCloseTo(0.11, 5);
+    const n = g.getAttribute("normal"); for (let v = 0; v < count; v++) expect(Math.hypot(n.getX(v), n.getY(v), n.getZ(v))).toBeCloseTo(1, 4);
+  });
+  it("a belt worn over the shirt rides on the shirt, a fixed distance outside it", () => {
+    const src = make(); const shirt = garmentSurface("test:shirt")!; expect(shirt.pos.length).toBe(count * 3);
+    const belt = shell("test:belt", src, bones, ["spine_03"], 0.01, (_, q) => q.y > 0.99 && q.y < 1.05, { under: shirt }); const p = belt.getAttribute("position"); expect(belt.getIndex()!.count).toBeGreaterThan(0);
+    for (let v = 0; v < count; v++) { const over = Math.hypot(p.getX(v), p.getZ(v)) - Math.hypot(shirt.pos[v * 3], shirt.pos[v * 3 + 2]); expect(over).toBeGreaterThan(0.0099); expect(over).toBeLessThan(0.0101); }
   });
 });
