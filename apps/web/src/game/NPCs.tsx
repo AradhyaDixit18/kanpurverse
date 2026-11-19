@@ -16,36 +16,52 @@ import { speak } from "../audio/voice";
 
 import { streetRuntime } from "./streetRuntime";
 import { npcPositions } from "./refs";
+import { kitFor, type PersonKit } from "./peopleKit";
+import { streetStalls, stallPeople, type StallPerson } from "./propPlacement";
 export { npcPositions };
 
-function appearanceFor(seed: number, role: NpcDef["role"], female: boolean): Appearance {
+function appearanceFor(seed: number, role: NpcDef["role"] | "vendor", female: boolean): Appearance {
   const r = (n: number) => (seed * 9301 + n * 49297) % 233280 / 233280;
-  return { body: female ? "f" : "m", skin: 1 + Math.floor(r(1) * 4), hair: female ? 2 : Math.floor(r(2) * 2), hairColor: Math.floor(r(3) * 2),
-    top: role === "police" ? 1 : role === "shopkeeper" ? 5 : role === "auto" ? 3 : Math.floor(r(4) * 5), bottom: role === "police" ? 1 : Math.floor(r(5) * 4), shoes: Math.floor(r(6) * 3), accessory: role === "auto" ? 3 : role === "police" ? 2 : 0 };
+  // Hair: women long or in a bun; men cropped or parted. One in eight has gone grey. Tops 5 (kurta) and 7 (jacket) set the cut.
+  const street = role === "pedestrian" || role === "vendor"; const acc = r(7);
+  return { body: female ? "f" : "m", skin: 1 + Math.floor(r(1) * 4), hair: female ? (r(2) < 0.62 ? 2 : 3) : role === "police" ? 0 : Math.floor(r(2) * 2), hairColor: r(8) < 0.13 ? 3 : Math.floor(r(3) * 2),
+    top: role === "police" ? 1 : role === "shopkeeper" || role === "cafe" ? 5 : role === "auto" ? 3 : role === "vendor" ? (r(4) < 0.4 ? 5 : Math.floor(r(4) * 5)) : Math.floor(r(4) * 8), bottom: role === "police" ? 1 : Math.floor(r(5) * 4), shoes: Math.floor(r(6) * 3),
+    accessory: role === "auto" ? 3 : role === "police" ? 0 : street && !female ? (acc < 0.1 ? 1 : acc < 0.2 ? 2 : acc < 0.34 ? 3 : 0) : street && acc < 0.08 ? 1 : 0 };
 }
 
-export function NPCs() { const crowd = useGraphics().crowd; return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={crowd} /></>; }
+export function NPCs() { const crowd = useGraphics().crowd; return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={crowd} /><StallPeople max={crowd > 20 ? 14 : crowd > 10 ? 9 : 5} /></>; }
+
+/** Vendors behind the nearest stalls and the odd customer in front of them: standing people, so each is one fixed capsule. */
+function StallPeople({ max }: { max: number }) {
+  const [people, setPeople] = useState<(StallPerson & { app: Appearance; kit: PersonKit; anim: AnimState })[]>([]); const seen = useRef({ version: -1, x: 1e9, z: 1e9, at: 0 });
+  useFrame(({ clock }) => { const s = seen.current; if (clock.elapsedTime < s.at) return; s.at = clock.elapsedTime + 0.5;
+    if (s.version === streetStalls.version && Math.hypot(playerPos.x - s.x, playerPos.z - s.z) < 18) return; seen.current = { version: streetStalls.version, x: playerPos.x, z: playerPos.z, at: s.at };
+    const near = streetStalls.list.map((st, i) => ({ st, i, d: Math.hypot(st.p[0] - playerPos.x, st.p[1] - playerPos.z) })).filter(o => o.d < 95 && o.st.kind !== "rickshaw" && o.st.kind !== "cycle").sort((a, b) => a.d - b.d).slice(0, max);
+    // seeded by where the stall stands, so the same vendor is at the same stall whenever the list is rebuilt
+    setPeople(near.flatMap(({ st }) => { const seed = Math.abs(Math.round(st.p[0] * 13 + st.p[1] * 7)); return stallPeople(st, seed).map(p => { const female = p.role === "customer" ? p.seed % 5 < 2 : p.seed % 7 === 0; return { ...p, app: appearanceFor(p.seed, p.role === "vendor" ? "vendor" : "pedestrian", female), kit: kitFor(p.seed, p.role === "vendor" ? "vendor" : "pedestrian", female), anim: (p.role === "customer" && p.seed % 4 < 2 ? "talk" : "idle") as AnimState }; }); })); });
+  return <>{people.map(p => <group key={`${p.role}:${p.x.toFixed(1)}:${p.z.toFixed(1)}`}><RigidBody type="fixed" colliders={false} position={[p.x, CHARACTER.feetOffset, p.z]}><CapsuleCollider args={[CHARACTER.halfHeight, CHARACTER.radius]} /></RigidBody><group position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]}><Avatar appearance={p.app} anim={p.anim} kit={p.kit} /></group></group>)}</>;
+}
 
 /** Ambient pedestrians walking the pavements near the player (no dialogue, deterministic). */
 function Crowd({ n }: { n: number }) {
   const [ver, setVer] = useState(roadsVersion()); useEffect(() => onRoadsChange(() => setVer(roadsVersion())), []);
   const [center, setCenter] = useState<[number, number]>([playerPos.x, playerPos.z]); useFrame(() => { if (Math.hypot(playerPos.x - center[0], playerPos.z - center[1]) > 120) setCenter([playerPos.x, playerPos.z]); });
   const walkers = useMemo(() => { const pool = roadsNear(center[0], center[1], 220).filter(s => s.len > 20 && s.cls !== "service"); const segs = pool.length ? pool : getRoads(); if (!segs.length) return [];
-    return Array.from({ length: n }, (_, i) => { const seg = segs[(i * 5) % segs.length]; const side = i % 2 ? 1 : -1; return { seg, off: (seg.w / 2 + 1.6) * side, start: (i * 83) % seg.len, speed: 1 + (i % 3) * 0.25, dir: i % 3 === 0 ? -1 : 1, app: appearanceFor(100 + i, "pedestrian", i % 2 === 1) }; }); // eslint-disable-next-line react-hooks/exhaustive-deps
+    return Array.from({ length: n }, (_, i) => { const seg = segs[(i * 5) % segs.length]; const side = i % 2 ? 1 : -1; return { seg, off: (seg.w / 2 + 1.6) * side, start: (i * 83) % seg.len, speed: 1 + (i % 3) * 0.25, dir: i % 3 === 0 ? -1 : 1, app: appearanceFor(100 + i, "pedestrian", i % 2 === 1), kit: kitFor(100 + i, "pedestrian", i % 2 === 1) }; }); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n, ver, center]);
   return <>{walkers.map((w, i) => <Walker key={i + ":" + w.seg.a[0]} w={w} />)}</>;
 }
-function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: number; dir: number; app: Appearance } }) {
+function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: number; dir: number; app: Appearance; kit: PersonKit } }) {
   const g=useRef<THREE.Group>(null),distance=useRef(w.start+useStore.getState().worldTime*86400*w.speed);
   const sample=(d:number)=>{const path=((d%(w.seg.len*2))+w.seg.len*2)%(w.seg.len*2),fwd=path<w.seg.len,s=fwd?path:w.seg.len*2-path,forward=(fwd?1:-1)*w.dir>0;const [x,z]=segPoint(w.seg,w.dir>0?s:w.seg.len-s,w.off);return {x,y:0,z,yaw:segYaw(w.seg,forward)};};
   const initial=useRef(sample(distance.current)),motion=usePedestrianBody([initial.current.x,0,initial.current.z]),[anim,setAnim]=useState<AnimState>("walk");
   useBeforePhysicsStep(()=>{const next=sample(distance.current+w.speed*motion.world.timestep),moved=motion.resolve(next);if(moved>.001)distance.current+=w.speed*motion.world.timestep;if(g.current){g.current.position.set(next.x,next.y,next.z);g.current.rotation.y=next.yaw;}const want=moved>.001?"walk":"idle";if(anim!==want)setAnim(want);});
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim} speed={w.speed}/></group></>;
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim} speed={w.speed} kit={w.kit}/></group></>;
 }
 function NPC({ def }: { def: NpcDef }) {
   const g = useRef<THREE.Group>(null); const idx = useRef(1); const [anim, setAnim] = useState<AnimState>("idle"); const barkAt = useRef(performance.now() + 8000 + Math.random() * 15000);
   const female = /priya|sunita|rekha/.test(def.id);
-  const app = useMemo(() => appearanceFor(def.appearanceSeed, def.role, female), [def, female]);
+  const app = useMemo(() => appearanceFor(def.appearanceSeed, def.role, female), [def, female]); const kit = useMemo(() => kitFor(def.appearanceSeed, def.role, female), [def, female]);
   const pos = useRef(new THREE.Vector3(def.path[0][0], 0, def.path[0][1])); const lines = useDialogueLines();
   const lastBump = useRef(0); const greetAt = useRef(-99999); const blocked = useRef(0);
   const motion=usePedestrianBody([def.path[0][0],0,def.path[0][1]]);
@@ -79,6 +95,6 @@ function NPC({ def }: { def: NpcDef }) {
     if (performance.now() > barkAt.current) { barkAt.current = performance.now() + 20000 + Math.random() * 25000; if (dPlayer < 14 && !s.dialogue && s.settings.subtitles) { const l = pick(lines, def.id, "idle") ?? pick(lines, "any", "idle"); if (l) speak(l, def.id); } }
   });
   const label = useStore(s => s.settings.lang === "english" ? def.name : def.nameHi);
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} speed={def.speed || undefined} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} /></group></>;
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} speed={def.speed || undefined} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} kit={kit} /></group></>;
 }
 function pick(lines: DialogueLine[], npc: string, cat: DialogueLine["category"]) { const pool = lines.filter(l => l.category === cat && l.npc === npc); return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined; }

@@ -120,11 +120,17 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     const road = worldUV(merge(t.roads.map(r => ribbon(r.pts, r.w, LAYER.road))), 8); const pavement = worldUV(merge(t.roads.filter(r => r.cls !== "service").map(r => ribbon(r.pts, r.w + 4.4, LAYER.pavement, 4))), 4);
     const marked = t.roads.filter(r => r.cls !== "service" && r.cls !== "living_street" && r.w >= 8);
     // Dashed centre line plus a solid edge line each side on the wider roads; everything stops short of junctions.
-    const marks = merge([...marked.flatMap(r => dashPolylines(r.pts).map(l => ribbon(l, 0.18, LAYER.marks, 4))), ...marked.filter(r => r.w >= 10).flatMap(r => dashPolylines(r.pts, 1e6, 0, 8).flatMap(l => [1, -1].map(side => ribbon(offset(l, side * (r.w / 2 - 0.35)), 0.12, LAYER.marks, 4))))]);
+    const wide = marked.filter(r => r.w >= 10); const kerbAt = (r: typeof wide[number], side: number) => (l: [number, number][]) => ribbon(offset(l, side * (r.w / 2 + 0.14)), 0.26, LAYER.marks, 4);
+    // Painted kerb stones along the wider roads: white blocks join the marking mesh, black blocks are their own.
+    const kerbWhite = wide.flatMap(r => [1, -1].flatMap(side => dashPolylines(r.pts, 2, 2, 8).map(kerbAt(r, side)))); const kerbBlack = merge(wide.flatMap(r => [1, -1].flatMap(side => dashPolylines(r.pts, 2, 2, 10).map(kerbAt(r, side)))));
+    // Zebra crossing at the start of each long, wide road: 3 m bars across the carriageway, 4.5 m in from the junction.
+    const zebra = wide.flatMap(r => dashPolylines(r.pts, 3, 1e6, 4.5).slice(0, 1).flatMap(l => { const n = Math.floor((r.w - 1) / 1.0); return Array.from({ length: n }, (_, k) => ribbon(offset(l, (k - (n - 1) / 2) * 1.0), 0.5, LAYER.marks, 4)); }));
+    const marks = merge([...zebra, ...marked.flatMap(r => dashPolylines(r.pts).map(l => ribbon(l, 0.18, LAYER.marks, 4))), ...wide.flatMap(r => dashPolylines(r.pts, 1e6, 0, 8).flatMap(l => [1, -1].map(side => ribbon(offset(l, side * (r.w / 2 - 0.35)), 0.12, LAYER.marks, 4)))), ...kerbWhite]);
     const railBed = merge(t.rails.map(r => ribbon(r.pts, 4.2 * r.tracks, LAYER.rail, 2))); const railL = merge(t.rails.flatMap(r => r.tracks > 1 ? [ribbon(offset(r.pts, -1.9), 0.09, 0.2), ribbon(offset(r.pts, -0.5), 0.09, 0.2), ribbon(offset(r.pts, 0.5), 0.09, 0.2), ribbon(offset(r.pts, 1.9), 0.09, 0.2)] : [ribbon(offset(r.pts, -0.72), 0.09, 0.2), ribbon(offset(r.pts, 0.72), 0.09, 0.2)]));
     const sleepers = merge(t.rails.map(r => ribbon(r.pts, 2.6 * r.tracks, 0.1, 0.7)));
-    const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const facades: FacadeBuilding[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
+    const byStyle: Record<number, { walls: THREE.BufferGeometry[]; roofs: THREE.BufferGeometry[] }> = {}; const shops: THREE.BufferGeometry[] = []; const roofBits: THREE.BufferGeometry[] = [], tanks: THREE.BufferGeometry[] = []; const facades: FacadeBuilding[] = []; const boxes: { x: number; z: number; w: number; d: number; h: number }[] = [];
     for (const b of t.buildings) { if (b.pts.length < 4) continue; const h = buildingHeight(b); const st = b.kind === "train_station" ? 8 : Math.floor(hash(b.id + 7) * 8); facades.push({pts:b.pts,h,style:st,shop:hash(b.id+3)<.45&&h<20&&b.kind!=="train_station",kind:b.kind}); const { walls, roof } = building(b.pts, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(walls); byStyle[st].roofs.push(roof);
+      roofKit(b.pts, h, b.id, roofBits, tanks);
       if (hash(b.id + 3) < 0.45 && h < 20 && b.kind !== "train_station") { const g = building(inflate(b.pts, 0.05), 3.4, 0.0); shops.push(g.walls); g.roof.dispose(); } const bb = bbox(b.pts); boxes.push({ x: (bb.x0 + bb.x1) / 2, z: (bb.z0 + bb.z1) / 2, w: bb.x1 - bb.x0, d: bb.z1 - bb.z0, h }); }
     // procedural infill: lots along real roads where OSM has no footprint (typical Kanpur: continuous shophouses on main roads, homes on residential lanes)
     const osmBoxes = boxes.slice(); let lots = 0;
@@ -136,7 +142,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
           if (t.parks.some(p => inPoly([cx, cz], p.pts)) || t.water.some(w => inPoly([cx, cz], w.pts))) continue;
           if (clearZones().some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2) || extraClear.some(z => Math.hypot(z.x - cx, z.z - cz) < z.r + Math.max(width, depth) / 2)) continue;
           const yaw = Math.atan2(dx, dz); const h = (r.cls === "residential" || r.cls === "living_street") ? 6.4 + Math.floor(hash(cx * 3 + cz) * 3) * 3.2 : 9.6 + Math.floor(hash(cx + cz * 3) * 3) * 3.2;
-          const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); facades.push({pts:poly,h,style:st,shop:r.cls!=="residential"&&hash(cx+1)<.7}); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof);
+          const poly = rectPoly(cx, cz, width, depth, yaw); const st = Math.floor(hash(cx * 7 + cz * 13) * 8); facades.push({pts:poly,h,style:st,shop:r.cls!=="residential"&&hash(cx+1)<.7}); const g = building(poly, h); (byStyle[st] ??= { walls: [], roofs: [] }); byStyle[st].walls.push(g.walls); byStyle[st].roofs.push(g.roof); roofKit(poly, h, Math.round(cx * 31 + cz * 17), roofBits, tanks);
           if (r.cls !== "residential" && hash(cx + 1) < 0.7) { const sg = building(inflate(poly, 0.05), 3.4); shops.push(sg.walls); sg.roof.dispose(); }
           osmBoxes.push({ x: cx, z: cz, w: width, d: depth, h }); boxes.push({ x: cx, z: cz, w: Math.max(width, depth), d: Math.max(width, depth), h }); lots++; } } }
     const styles = Object.entries(byStyle).map(([s, g]) => ({ style: Number(s), walls: merge(g.walls)!, roofs: merge(g.roofs)! })); const shop = merge(shops);
@@ -144,10 +150,10 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     const parks = t.parks.filter(p => p.pts.length >= 4).map(p => { const sh = new THREE.Shape(p.pts.map(q => new THREE.Vector2(q[0], -q[1]))); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, LAYER.park, 0); const uv = g.getAttribute("uv"); for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); return { g, pts: p.pts, name: p.name }; });
     const slabs = t.platforms.map(p => platformSlab(p.pts)); const platforms = merge(slabs.map(x => x.geo)); const platformBoxes = slabs.flatMap(x => x.boxes);
     if (process.env.NEXT_PUBLIC_QA === "1") console.info("[KanpurVerse] tile built", id, { roads: t.roads.length, bld: t.buildings.length, lots, styles: Object.keys(byStyle).length, hasRoad: !!road });
-    return { road, pavement, marks, railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms, platformBoxes, facades };
+    return { road, pavement, marks, kerbBlack, roofBits: merge(roofBits), tanks: merge(tanks), railBed, railL, sleepers, styles, shop, water, parks, boxes, platforms, platformBoxes, facades };
   }, [t, id]);
   useEffect(() => () => {
-    for (const g of [geo.road, geo.pavement, geo.marks, geo.railBed, geo.railL, geo.sleepers, geo.shop, geo.platforms, ...geo.water, ...geo.parks.map(p => p.g), ...geo.styles.flatMap(s => [s.walls, s.roofs])]) g?.dispose();
+    for (const g of [geo.road, geo.pavement, geo.marks, geo.kerbBlack, geo.roofBits, geo.tanks, geo.railBed, geo.railL, geo.sleepers, geo.shop, geo.platforms, ...geo.water, ...geo.parks.map(p => p.g), ...geo.styles.flatMap(s => [s.walls, s.roofs])]) g?.dispose();
   }, [geo]);
   const names = useMemo(() => t.roads.filter(r => r.name && r.pts.length > 1).filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6), [t]);
   const trees = useMemo(() => { const out: [number, number][] = []; for (const p of geo.parks) { const bb = bbox(p.pts); const n = Math.min(40, Math.floor(polyArea(p.pts) / 400)); let tries = 0; while (out.length < n && tries++ < n * 6) { const x = bb.x0 + Math.random() * (bb.x1 - bb.x0), z = bb.z0 + Math.random() * (bb.z1 - bb.z0); if (inPoly([x, z], p.pts)) out.push([x, z]); } } return out; }, [geo]);
@@ -162,6 +168,9 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     {geo.platforms && <mesh geometry={geo.platforms} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#cfc9bd" side={THREE.DoubleSide} /></mesh>}
     {geo.styles.map(s => <group key={s.style}><mesh geometry={s.walls} material={facadeMat(s.style, plasterN)} castShadow receiveShadow /><mesh geometry={s.roofs} receiveShadow><meshStandardMaterial map={concrete} color="#8e867a" roughness={1} /></mesh></group>)}
     {geo.shop && <mesh geometry={geo.shop} position={[0, 0.02, 0]} material={shopMat()} />}
+    {geo.kerbBlack && quality !== "low" && <mesh geometry={geo.kerbBlack} receiveShadow><meshStandardMaterial color="#1c1c1e" roughness={0.8} polygonOffset polygonOffsetFactor={OFFSET.marks} polygonOffsetUnits={OFFSET.marks} /></mesh>}
+    {geo.roofBits && <mesh geometry={geo.roofBits} castShadow receiveShadow><meshStandardMaterial map={concrete} color="#bdb5a6" roughness={1} /></mesh>}
+    {geo.tanks && <mesh geometry={geo.tanks} castShadow><meshStandardMaterial color="#17181a" roughness={0.5} /></mesh>}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
     {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.park} polygonOffsetUnits={OFFSET.park} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
     {collide && <FacadeDetails buildings={geo.facades} />}<Trees pts={trees} />
@@ -171,6 +180,18 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
   </group>;
 }
 function distToSeg(p: [number, number], a: [number, number], b: [number, number]) { const dx = b[0] - a[0], dz = b[1] - a[1]; const l2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dz)); }
+/** Rooftop kit for one building: a parapet wall round the terrace, a black water tank on its stand, and on some a stair room. */
+/** Largest roof (m²) that carries a water tank and stair room. */
+export const ROOF_KIT_MAX_AREA = 5000;
+function roofKit(pts: [number, number][], h: number, id: number, roofBits: THREE.BufferGeometry[], tanks: THREE.BufferGeometry[]) {
+  if (h < 6 || h >= 40 || polyArea(pts) <= 50) return; const par = building(pts, 0.9, h); roofBits.push(par.walls); par.roof.dispose();
+  // A mall or stadium footprint is drawn as a walk-in shell with people standing inside it and a roof that only faces up: a tank on it would hang in their sky.
+  if (polyArea(pts) > ROOF_KIT_MAX_AREA) return;
+  const rb = bbox(pts); const rcx = (rb.x0 + rb.x1) / 2, rcz = (rb.z0 + rb.z1) / 2, r1 = hash(id + 11), r2 = hash(id + 17);
+  const tx = rcx + (r1 - 0.5) * (rb.x1 - rb.x0) * 0.4, tz = rcz + (r2 - 0.5) * (rb.z1 - rb.z0) * 0.4;
+  if (inPoly([tx, tz], pts)) { const tr = 0.55 + r1 * 0.25, th = 1.0 + r2 * 0.4; const stand = new THREE.BoxGeometry(tr * 1.7, 0.5, tr * 1.7); stand.translate(tx, h + 0.25, tz); roofBits.push(stand); const tank = new THREE.CylinderGeometry(tr, tr, th, 12); tank.translate(tx, h + 0.5 + th / 2, tz); tanks.push(tank); const lid = new THREE.CylinderGeometry(tr * 0.35, tr * 0.55, 0.14, 10); lid.translate(tx, h + 0.5 + th + 0.07, tz); tanks.push(lid); }
+  if (r1 > 0.45) { const mx = rcx - (r2 - 0.5) * (rb.x1 - rb.x0) * 0.45, mz = rcz - (r1 - 0.5) * (rb.z1 - rb.z0) * 0.45; if (inPoly([mx, mz], pts) && Math.hypot(mx - tx, mz - tz) > 2.6) { const room = new THREE.BoxGeometry(2.6, 2.4, 2.4); room.translate(mx, h + 1.2, mz); roofBits.push(room); } }
+}
 function rectPoly(cx: number, cz: number, w: number, d: number, yaw: number): [number, number][] { const c = Math.cos(yaw), s = Math.sin(yaw); const pts: [number, number][] = []; for (const [u, v] of [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]) pts.push([cx + u * s + v * c, cz + u * c - v * s]); return pts; }
 function offset(pts: [number, number][], d: number): [number, number][] { return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; const dx = b[0] - a[0], dz = b[1] - a[1]; const l = Math.hypot(dx, dz) || 1; return [p[0] - dz / l * d, p[1] + dx / l * d]; }); }
 function inPoly(p: [number, number], poly: [number, number][]) { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const xi = poly[i][0], zi = poly[i][1], xj = poly[j][0], zj = poly[j][1]; if ((zi > p[1]) !== (zj > p[1]) && p[0] < (xj - xi) * (p[1] - zi) / (zj - zi) + xi) inside = !inside; } return inside; }

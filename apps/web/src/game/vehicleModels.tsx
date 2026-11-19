@@ -49,6 +49,20 @@ function plateMat(text: string, yellow: boolean) {
     x.fillStyle = yellow ? "#f2c400" : "#f4f4ee"; x.fillRect(0, 0, w, h); x.strokeStyle = "#111"; x.lineWidth = 4; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = "#1c3f94"; x.fillRect(6, 6, 22, h - 12); x.fillStyle = "#fff"; x.font = "700 9px sans-serif"; x.textAlign = "center"; x.fillText("IND", 17, h - 12);
     x.fillStyle = "#111"; x.textBaseline = "middle"; let size = 30; x.font = `800 ${size}px 'Mukta',monospace`; const room = w - 46; const tw = x.measureText(text).width; if (tw > room) { size = Math.floor(size * room / tw); x.font = `800 ${size}px 'Mukta',monospace`; } x.fillText(text, w / 2 + 13, h / 2 + 2); }) })); // sized to fit: at 34 px the first and last characters were cut off
 }
+/** Two-line plate for two- and three-wheelers. */
+function plateMat2(text: string, yellow: boolean) {
+  return mat(`plate2:${text}:${yellow}`, () => new THREE.MeshStandardMaterial({ roughness: 0.45, map: paintedTex(`plate2:${text}:${yellow}`, 128, 80, (x, w, h) => {
+    x.fillStyle = yellow ? "#f2c400" : "#f4f4ee"; x.fillRect(0, 0, w, h); x.strokeStyle = "#111"; x.lineWidth = 4; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = "#111"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = "800 30px 'Mukta',monospace"; x.fillText(text.slice(0, 5), w / 2, 24); x.font = "800 27px 'Mukta',monospace"; x.fillText(text.slice(6), w / 2, 56); }) }));
+}
+/** Back flap of an auto-rickshaw or e-rickshaw hood: a clear plastic window and a hand-painted line. */
+function hoodFlapMat(auto: boolean) { const key = auto ? "flap:auto" : "flap:erick";
+  return mat(key, () => new THREE.MeshStandardMaterial({ roughness: 0.9, map: paintedTex(key, 256, 256, (x, w, h) => {
+    x.fillStyle = auto ? "#1b1b1d" : "#f1f3f5"; x.fillRect(0, 0, w, h); x.fillStyle = auto ? "#f2c200" : "#1d7a46"; x.fillRect(0, h - 26, w, 26); x.fillRect(0, 0, w, 8);
+    x.fillStyle = auto ? "rgba(150,170,185,0.55)" : "rgba(120,150,170,0.5)"; x.beginPath(); x.roundRect(58, 34, 140, 74, 10); x.fill(); x.strokeStyle = auto ? "#3a3a3d" : "#c9ced3"; x.lineWidth = 5; x.stroke();
+    x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = auto ? "#f2c200" : "#1d7a46"; x.font = `800 44px ${SIGN_FONT}`; x.fillText(auto ? "फिर मिलेंगे" : "ई-रिक्शा", w / 2, 160); x.font = `700 22px ${SIGN_FONT}`; x.fillStyle = auto ? "#e8e2c6" : "#333"; x.fillText(auto ? "कानपुर · सवारी ऑटो" : "कानपुर · बैटरी से चलता है", w / 2, 204); }) })); }
+const reflectorMat = () => mat("reflector", () => new THREE.MeshStandardMaterial({ color: 0xb01020, emissive: 0x7a0812, emissiveIntensity: 0.35, roughness: 0.25 }));
+
 /** Truck art: the hand-painted tailboard every Indian goods truck carries. */
 function tailboardMat() { return mat("tailboard", () => new THREE.MeshStandardMaterial({ roughness: 0.6, map: paintedTex("tailboard", 512, 128, (x, w, h) => {
   x.fillStyle = "#17603a"; x.fillRect(0, 0, w, h); x.fillStyle = "#f2b705"; x.fillRect(0, 0, w, 10); x.fillRect(0, h - 10, w, 10); x.fillStyle = "#c8102e"; for (let k = 0; k < w; k += 32) { x.beginPath(); x.moveTo(k, 10); x.lineTo(k + 16, 26); x.lineTo(k + 32, 10); x.fill(); x.beginPath(); x.moveTo(k, h - 10); x.lineTo(k + 16, h - 26); x.lineTo(k + 32, h - 10); x.fill(); }
@@ -182,6 +196,19 @@ function TwoWheel({ z, y, R, wheels, fronts, i, front, width = 0.1 }: { z: numbe
 }
 const Box = ({ p, s, m, r, cast }: { p: [number, number, number]; s: [number, number, number]; m: THREE.Material; r?: [number, number, number]; cast?: boolean }) => <mesh position={p} rotation={r} material={m} castShadow={cast}><boxGeometry args={s} /></mesh>;
 const Cyl = ({ p, r = [0, 0, 0], rt, rb, h, m, seg = 12 }: { p: [number, number, number]; r?: [number, number, number]; rt: number; rb?: number; h: number; m: THREE.Material; seg?: number }) => <mesh position={p} rotation={r} material={m}><cylinderGeometry args={[rt, rb ?? rt, h, seg]} /></mesh>;
+/**
+ * Bodywork a box cannot give: a side profile (z forward, y up; a smooth closed curve through `pts`) swept across the
+ * vehicle's width with rounded edges. Cached per key; the scooter's body, apron and seat are built from these.
+ */
+const profileCache = new Map<string, THREE.BufferGeometry>();
+export function profileGeometry(key: string, pts: [number, number][], width: number, bevel = 0.03): THREE.BufferGeometry {
+  let g = profileCache.get(key); if (g) return g;
+  const shape = new THREE.Shape(); shape.moveTo(pts[0][0], pts[0][1]); shape.splineThru(pts.slice(1).map(q => new THREE.Vector2(q[0], q[1]))); shape.closePath();
+  const depth = Math.max(0.01, width - bevel * 2);
+  g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 3, curveSegments: 16 });
+  g.rotateY(-Math.PI / 2); g.translate(depth / 2, 0, 0); profileCache.set(key, g); return g;
+}
+const Profile = ({ k, pts, w, bevel, m, y = 0, cast }: { k: string; pts: [number, number][]; w: number; bevel?: number; m: THREE.Material; y?: number; cast?: boolean }) => <mesh geometry={profileGeometry(k, pts, w, bevel)} material={m} position={[0, y, 0]} castShadow={cast} />;
 /** Thin box spanning two points on one side of the car (pillars, rails). */
 function Strut({ a, b, x, t, m }: { a: [number, number]; b: [number, number]; x: number; t: number; m: THREE.Material }) {
   const dz = b[0] - a[0], dy = b[1] - a[1]; const len = Math.hypot(dz, dy);
@@ -230,6 +257,16 @@ function Car({ kind, color, lm, wheels, fronts, detail }: { kind: VehicleKind; c
       {(kind === "suv" || kind === "muv" || kind === "compactsuv") && [-1, 1].map(sx => <Box key={sx} p={[sx * w * 0.36, roof + 0.08, (wsB[0] + rB[0]) / 2]} s={[0.04, 0.04, (wsB[0] - rB[0]) * 0.9]} m={M.steel()} />)}
       {kind === "offroader" && <><Cyl p={[0, tailY - 0.05, -L - 0.17]} r={[Math.PI / 2, 0, 0]} rt={R * 1.05} h={0.24} m={M.tyre()} seg={20} /><Box p={[0, gy + h * 0.72, L * 0.05]} s={[w * 0.9, 0.05, 0.05]} m={M.trim()} /></>}
       {isTaxi && <Box p={[0, roof + 0.16, (wsB[0] + rB[0]) / 2]} s={[0.62, 0.2, 0.26]} m={mat("taxisign", () => new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xffd23f, emissiveIntensity: 0.9 }))} />}
+      {/* wipers, aerial, exhaust, mud flaps, side mouldings, fog lamps, rear reflectors */}
+      <Box p={[w * 0.17, belt + 0.035, wsA[0] + 0.02]} s={[w * 0.32, 0.012, 0.022]} r={[0, 0.06, 0]} m={M.trim()} /><Box p={[-w * 0.2, belt + 0.035, wsA[0] + 0.02]} s={[w * 0.32, 0.012, 0.022]} r={[0, 0.06, 0]} m={M.trim()} />
+      <Cyl p={[w * 0.3, roof + 0.2, rB[0] + 0.3]} r={[-0.5, 0, 0]} rt={0.006} h={0.42} m={M.trim()} seg={5} />
+      <Cyl p={[-w * 0.28, gy + p.clearance + 0.03, -L - 0.05]} r={[Math.PI / 2, 0, 0]} rt={0.03} h={0.18} m={M.chrome()} seg={10} />
+      {[front, rear].flatMap(z => [-1, 1].map(sx => <Box key={`flap:${z}:${sx}`} p={[sx * (w / 2 - 0.13), gy + R * 0.55, z - R - 0.075]} s={[0.2, R * 0.7, 0.012]} m={M.plastic()} />))}
+      {[-1, 1].map(sx => <group key={`trim:${sx}`}>
+        <Box p={[sx * (w / 2 + 0.005), gy + p.clearance + 0.21, (front + rear) / 2]} s={[0.014, 0.05, s.wheelBase - 2 * R - 0.24]} m={M.plastic()} />
+        <Box p={[sx * (w / 2 - 0.3), gy + p.clearance + 0.13, L + 0.086]} s={[0.12, 0.055, 0.02]} m={lm.head} />
+        <Box p={[sx * (w / 2 - 0.22), gy + p.clearance + 0.13, -L - 0.086]} s={[0.15, 0.04, 0.012]} m={reflectorMat()} />
+      </group>)}
       {/* wheel-arch liners */}
       {[front, rear].flatMap(z => [-1, 1].map(sx => <mesh key={`${z}:${sx}`} position={[sx * (w / 2 - 0.12), gy + R, z]} rotation={[0, Math.PI / 2, 0]} material={M.plastic()}><torusGeometry args={[R + 0.07, 0.035, 6, 16, Math.PI]} /></mesh>))}
     </group>
@@ -253,14 +290,25 @@ function TwoWheeler({ kind, color, lm, wheels, fronts, detail }: { kind: Vehicle
       {sport ? <Box p={[0, forkTopY - 0.02, -0.02]} s={[0.34, 0.26, 0.2]} r={[-0.5, 0, 0]} m={paint} /> : scooter ? null : <mesh position={[0, forkTopY - 0.05, -0.05]} rotation={[Math.PI / 2, 0, 0]} material={cruiser ? M.chrome() : M.trim()}><cylinderGeometry args={[0.1, 0.11, 0.12, 18]} /></mesh>}
       {!scooter && <Box p={[0, forkTopY - 0.04, sport ? 0.09 : 0.02]} s={[sport ? 0.2 : 0.14, 0.06, 0.02]} m={lm.head} />}
       {!scooter && <mesh position={[0, wy + R * 0.95, 0]} rotation={[0, Math.PI / 2, 0]} material={cruiser ? paint : M.plastic()}><torusGeometry args={[R + 0.03, 0.04, 6, 14, Math.PI * 0.7]} /></mesh>}
+      {/* mirrors on stalks, instrument pod, front indicators: all turn with the handlebar */}
+      {[-1, 1].map(sx => <group key={`m${sx}`}><Cyl p={[sx * 0.27, forkTopY + 0.2, -0.22]} r={[0, 0, -sx * 0.25]} rt={0.008} h={0.24} m={M.trim()} seg={5} />
+        <mesh position={[sx * 0.3, forkTopY + 0.33, -0.21]} rotation={[Math.PI / 2, 0, 0]} material={M.chrome()}><cylinderGeometry args={[0.055, 0.055, 0.014, 12]} /></mesh>
+        <Box p={[sx * (scooter ? 0.2 : 0.17), forkTopY + (scooter ? 0.07 : -0.05), scooter ? -0.18 : 0.0]} s={[0.05, 0.035, 0.04]} m={sx > 0 ? lm.indL : lm.indR} /></group>)}
+      <Box p={[0, forkTopY + 0.13, -0.17]} s={[0.17, 0.06, 0.09]} r={[-0.5, 0, 0]} m={M.plastic()} />
+      {scooter && <><mesh position={[0, forkTopY + 0.07, -0.2]} scale={[0.2, 0.075, 0.1]} material={paint}><sphereGeometry args={[1, 14, 10]} /></mesh><Box p={[0, forkTopY + 0.065, -0.105]} s={[0.15, 0.07, 0.03]} m={lm.head} /></>}
     </group>
     {scooter ? <>
-      <Box p={[0, gy + R + 0.48, half - 0.3]} s={[0.46, 0.85, 0.14]} r={[0.25, 0, 0]} m={paint} cast />
-      <Box p={[0, gy + R + 0.92, half - 0.18]} s={[0.3, 0.1, 0.22]} m={paint} />
-      <Box p={[0, gy + R + 0.86, half - 0.08]} s={[0.22, 0.09, 0.04]} m={lm.head} />
-      <Box p={[0, gy + 0.32, -0.05]} s={[0.36, 0.06, 0.62]} m={M.plastic()} />
-      <Box p={[0, gy + R + 0.28, -half + 0.28]} s={[0.4, 0.42, 0.8]} m={paint} cast />
-      <Box p={[0, gy + R + 0.53, -half + 0.32]} s={[0.32, 0.09, 0.74]} m={M.seat()} />
+      {/* swept bodywork (profiles are z forward, y above the ground line): tail and engine cover, leg shield, seat */}
+      <Profile k="scooter-body" y={gy} w={0.42} bevel={0.06} m={paint} cast pts={[[-0.04, 0.3], [-0.1, 0.56], [-0.2, 0.73], [-0.5, 0.76], [-0.8, 0.74], [-0.93, 0.66], [-0.94, 0.56], [-0.84, 0.45], [-0.62, 0.39], [-0.3, 0.31]]} />
+      <Profile k="scooter-apron" y={gy} w={0.46} bevel={0.02} m={paint} cast pts={[[0.2, 0.3], [0.27, 0.5], [0.31, 0.72], [0.325, 0.9], [0.385, 0.92], [0.4, 0.72], [0.37, 0.5], [0.3, 0.3]]} />
+      <Profile k="scooter-seat" y={gy} w={0.31} bevel={0.03} m={M.seat()} pts={[[-0.04, 0.75], [-0.1, 0.82], [-0.42, 0.835], [-0.74, 0.87], [-0.84, 0.84], [-0.8, 0.76], [-0.4, 0.745]]} />
+      <Box p={[0, gy + 0.32, 0.08]} s={[0.36, 0.06, 0.4]} m={M.plastic()} />
+      <Box p={[0, gy + 0.23, -0.12]} s={[0.26, 0.14, 0.56]} m={M.trim()} />
+      {/* horn grille and a chrome brow on the leg shield; the headlamp is in the handlebar cowl and turns with it */}
+      <Box p={[0, gy + 0.6, 0.385]} s={[0.07, 0.2, 0.02]} m={M.trim()} />
+      <Box p={[0, gy + 0.8, 0.392]} s={[0.22, 0.012, 0.02]} m={M.chrome()} />
+      {/* chrome strip and a vent down each side panel */}
+      {[-1, 1].map(sx => <group key={sx}><Box p={[sx * 0.212, gy + 0.6, -0.52]} s={[0.006, 0.014, 0.5]} m={M.chrome()} /><Box p={[sx * 0.212, gy + 0.5, -0.62]} s={[0.006, 0.05, 0.14]} m={M.trim()} /></group>)}
       <mesh position={[0, wy + 0.04, half]} rotation={[0, Math.PI / 2, 0]} material={paint}><torusGeometry args={[R + 0.05, 0.05, 6, 14, Math.PI * 0.8]} /></mesh>
     </> : <>
       {/* tank, seat, frame, engine, exhaust, side panels */}
@@ -276,9 +324,17 @@ function TwoWheeler({ kind, color, lm, wheels, fronts, detail }: { kind: Vehicle
       {sport && <Box p={[0, gy + R + 0.66, -0.6]} s={[0.18, 0.1, 0.32]} r={[-0.3, 0, 0]} m={paint} />}
       <mesh position={[0, wy + 0.04, -half]} rotation={[0, Math.PI / 2, 0]} material={cruiser ? paint : M.plastic()}><torusGeometry args={[R + 0.04, 0.05, 6, 14, Math.PI * 0.6]} /></mesh>
     </>}
-    <Box p={[0, gy + R + (scooter ? 0.6 : 0.62), -half - 0.05]} s={[0.14, 0.06, 0.04]} m={lm.tail} />
-    <group ref={detail}>{[-1, 1].map(sx => <Box key={sx} p={[sx * 0.13, gy + R + 0.55, -half - 0.02]} s={[0.05, 0.03, 0.04]} m={sx > 0 ? lm.indL : lm.indR} />)}
-      <Box p={[0, gy + R + 0.4, -half - 0.12]} s={[0.2, 0.1, 0.01]} m={M.plate()} /></group>
+    <Box p={scooter ? [0, gy + 0.62, -0.945] : [0, gy + R + 0.62, -half - 0.05]} s={scooter ? [0.2, 0.08, 0.04] : [0.14, 0.06, 0.04]} m={lm.tail} />
+    <group ref={detail}>{[-1, 1].map(sx => <Box key={sx} p={scooter ? [sx * 0.15, gy + 0.6, -0.935] : [sx * 0.13, gy + R + 0.55, -half - 0.02]} s={[0.05, 0.03, 0.04]} m={sx > 0 ? lm.indL : lm.indR} />)}
+      <Box p={scooter ? [0, gy + 0.46, -0.925] : [0, gy + R + 0.4, -half - 0.12]} s={[0.2, 0.125, 0.01]} m={plateMat2(plateText(kind, color), false)} />
+      {/* grab rail, foot pegs, side stand; rear shocks and a crash guard on the motorcycles */}
+      <Cyl p={scooter ? [0, gy + 0.86, -0.9] : [0, gy + R + 0.63, -half + 0.04]} r={[0, 0, Math.PI / 2]} rt={0.012} h={0.3} m={M.steel()} seg={6} />
+      {[-1, 1].map(sx => <group key={`d${sx}`}><Cyl p={scooter ? [sx * 0.15, gy + 0.83, -0.79] : [sx * 0.15, gy + R + 0.6, -half + 0.16]} r={[Math.PI / 2 - 0.2, 0, 0]} rt={0.011} h={0.26} m={M.steel()} seg={6} />
+        <Box p={[sx * 0.19, gy + R + 0.04, scooter ? -0.3 : -0.08]} s={[0.1, 0.02, 0.045]} m={M.trim()} />
+        {!scooter && <Cyl p={[sx * 0.1, gy + R + 0.27, -half + 0.13]} r={[-0.4, 0, 0]} rt={0.022} h={0.44} m={M.chrome()} seg={8} />}
+        {!scooter && !sport && <><Cyl p={[sx * 0.2, gy + R + 0.22, 0.27]} r={[0, 0, sx * 0.55]} rt={0.013} h={0.3} m={M.steel()} seg={6} /><Cyl p={[sx * 0.27, gy + R + 0.1, 0.27]} rt={0.013} h={0.16} m={M.steel()} seg={6} /></>}
+      </group>)}
+      <Cyl p={[0.14, gy + R - 0.1, -0.12]} r={[0, 0, -0.5]} rt={0.01} h={0.3} m={M.steel()} seg={5} /></group>
   </group>;
 }
 
@@ -318,7 +374,18 @@ function ThreeWheeler({ kind, color, lm, wheels, fronts, detail }: { kind: Vehic
     </>}
     {[-1, 1].map(sx => <group key={sx}><Box p={[sx * (w / 2 - 0.12), gy + 0.42, -L + 0.02]} s={[0.14, 0.1, 0.04]} m={lm.tail} /></group>)}
     <group ref={detail}>{[-1, 1].map(sx => <Box key={sx} p={[sx * (w / 2 - 0.05), gy + 0.55, fz]} s={[0.05, 0.05, 0.05]} m={sx > 0 ? lm.indL : lm.indR} />)}
-      {!pedal && <Box p={[0, gy + 0.32, -L - 0.005]} s={[0.36, 0.1, 0.01]} m={M.plateY()} />}</group>
+      {!pedal && <>
+        <Box p={[0, gy + 0.3, -L - 0.006]} s={[0.24, 0.15, 0.01]} m={plateMat2(plateText(kind, color), true)} />
+        <Box p={[0, gy + 1.12, -L + 0.05]} s={[w * 0.94, 1.0, 0.03]} m={hoodFlapMat(auto)} />
+        {[-1, 1].map(sx => <group key={`tw${sx}`}><Cyl p={[sx * (w / 2 + 0.03), gy + 1.02, fz - 0.2]} r={[0, 0, -sx * 0.7]} rt={0.008} h={0.2} m={M.trim()} seg={5} /><Box p={[sx * (w / 2 + 0.1), gy + 1.1, fz - 0.2]} s={[0.02, 0.12, 0.09]} m={M.chrome()} /></group>)}
+        <Box p={[w * 0.08, gy + 0.86, fz - 0.105]} s={[w * 0.3, 0.012, 0.02]} r={[-0.18, 0, 0.5]} m={M.trim()} />
+        <Cyl p={[0, gy + 0.24, fz + 0.3]} r={[0, 0, Math.PI / 2]} rt={0.02} h={w * 0.7} m={M.steel()} seg={8} /><Cyl p={[0, gy + 0.26, -L - 0.04]} r={[0, 0, Math.PI / 2]} rt={0.022} h={w * 0.96} m={M.steel()} seg={8} />
+        <Cyl p={[0, gy + 1.06, 0.12]} r={[0, 0, Math.PI / 2]} rt={0.015} h={w * 0.9} m={M.steel()} seg={8} />
+        {auto && <Box p={[w * 0.2, gy + 1.0, fz - 0.4]} s={[0.12, 0.16, 0.08]} m={M.trim()} />}
+      </>}
+      {pedal && <>{[-0.25, 0.05, 0.35].map(dz => <mesh key={dz} position={[0, wy + 1.0, rz + dz]} rotation={[0, Math.PI / 2, 0]} material={M.steel()}><torusGeometry args={[0.6, 0.012, 5, 14, Math.PI]} /></mesh>)}
+        <Box p={[0, wy + 0.57, rz + 0.05]} s={[w * 0.78, 0.07, 0.46]} m={mat("rickseat", () => new THREE.MeshStandardMaterial({ color: 0xa3261e, roughness: 0.8 }))} /><Box p={[0, wy + 0.22, rz + 0.62]} s={[w * 0.7, 0.03, 0.28]} m={M.steel()} />
+        <mesh position={[0.09, wy + 0.02, fz - 0.62]} rotation={[0, Math.PI / 2, 0]} material={M.steel()}><torusGeometry args={[0.1, 0.012, 5, 14]} /></mesh></>}</group>
   </group>;
 }
 
