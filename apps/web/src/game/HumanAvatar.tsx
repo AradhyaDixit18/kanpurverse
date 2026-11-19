@@ -15,6 +15,8 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { item, type Appearance, type AnimState, type Outfit } from "@kanpurverse/shared";
 import { HAIR_COLORS, TOPS, BOTTOMS, SHOES } from "./avatarPalette";
+import type { PersonKit } from "./peopleKit";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 const BASE = "/models/characters/";
 export const CHARACTER_FILES = { female: BASE + "kc_female.glb", male: BASE + "kc_male.glb", hair: BASE + "kc_hair.glb", anims: BASE + "kc_anims.glb" };
@@ -95,12 +97,12 @@ const SKIN_SCALE = [1.32, 1.18, 1.0, 0.86, 0.72, 0.55];
 interface Assets { female: GLTF; male: GLTF; hair: GLTF; anims: GLTF }
 const HAIR_NAMES = ["Hair_Buzzed", "Hair_SimpleParted", "Hair_Long", "Hair_Buns", "Hair_Long", "Hair_SimpleParted"];
 
-export interface HumanProps { appearance: Appearance; anim: AnimState; speed?: number; protagonist?: boolean; outfit?: Outfit; weapon?: string }
-export function HumanAvatar({ appearance, anim, speed, protagonist, outfit, weapon }: HumanProps) {
+export interface HumanProps { appearance: Appearance; anim: AnimState; speed?: number; protagonist?: boolean; outfit?: Outfit; weapon?: string; kit?: PersonKit }
+export function HumanAvatar({ appearance, anim, speed, protagonist, outfit, weapon, kit }: HumanProps) {
   const [female, male, hair, anims] = useLoader(GLTFLoader, [CHARACTER_FILES.female, CHARACTER_FILES.male, CHARACTER_FILES.hair, CHARACTER_FILES.anims]) as GLTF[];
   const assets: Assets = { female, male, hair, anims };
-  const key = JSON.stringify(appearance) + (protagonist ? ":p" + JSON.stringify(outfit ?? {}) : "");
-  const built = useMemo(() => buildCharacter(assets, appearance, !!protagonist, outfit), // eslint-disable-next-line react-hooks/exhaustive-deps
+  const key = JSON.stringify(appearance) + (protagonist ? ":p" + JSON.stringify(outfit ?? {}) : "") + (kit ? ":k" + JSON.stringify(kit) : "");
+  const built = useMemo(() => buildCharacter(assets, appearance, !!protagonist, outfit, protagonist ? undefined : kit), // eslint-disable-next-line react-hooks/exhaustive-deps
     [key, female, male, hair]);
   const mixer = useMemo(() => new THREE.AnimationMixer(built.root), [built]);
   const current = useRef<{ name: string; action: THREE.AnimationAction } | null>(null);
@@ -126,7 +128,7 @@ export function HumanAvatar({ appearance, anim, speed, protagonist, outfit, weap
   return <primitive object={built.root} />;
 }
 
-function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit?: Outfit) {
+function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit?: Outfit, kit?: PersonKit) {
   const src = app.body === "f" ? a.female : a.male;
   const root = cloneSkinned(src.scene) as THREE.Group;
   let body: THREE.SkinnedMesh | null = null;
@@ -137,7 +139,7 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   const skinMat = (b.material as THREE.MeshStandardMaterial).clone(); skinMat.color.setScalar(SKIN_SCALE[app.skin] ?? 1); skinMat.roughness = 0.62; b.material = skinMat;
   // hair: bind the shared hair mesh to this character's skeleton
   const hairName = protagonist && app.body === "f" ? "Hair_Long" : protagonist ? (app.hair === 0 ? "Hair_Buzzed" : "Hair_SimpleParted") : HAIR_NAMES[app.hair] ?? "Hair_SimpleParted"; // Kanupriya keeps her long hair; Kartik wears his short
-  const hairNames = app.body === "m" && app.hair === 3 ? [hairName, "Hair_Beard"] : [hairName];
+  const hairNames = app.body === "m" && (app.hair === 3 || kit?.beard) ? [hairName, "Hair_Beard"] : [hairName];
   for (const hn of hairNames) {
     let hm: THREE.SkinnedMesh | undefined; for (const sc of a.hair.scenes) sc.traverse(o => { if ((o as THREE.SkinnedMesh).isSkinnedMesh && o.name === hn) hm = o as THREE.SkinnedMesh; });
     if (hm) { const mat = (hm.material as THREE.MeshStandardMaterial).clone(); mat.color.setHex(HAIR_COLORS[app.hairColor] ?? 0x1a1a1a).multiplyScalar(2.2); mat.roughness = 0.55;
@@ -153,10 +155,10 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   // Protagonist clothes come from the wardrobe (economy catalogue); NPCs from their appearance palette.
   const pick = (id?: string) => (id ? item(id)?.clothing : undefined);
   const pt = protagonist ? pick(outfit?.top) : undefined, pb = protagonist ? pick(outfit?.bottom) : undefined, ps = protagonist ? pick(outfit?.shoes) : undefined;
-  const topCol = pt?.color ?? (protagonist ? 0x1f6f78 : TOPS[app.top] ?? 0xc8102e), botCol = pb?.color ?? (protagonist ? 0x2b4f7e : BOTTOMS[app.bottom] ?? 0x1c1d22), shoeCol = ps?.color ?? (protagonist ? 0xf2f0ea : SHOES[app.shoes] ?? 0x111111);
-  const cut = pt?.cut ?? (protagonist ? "kurti" : o.tunic ? "kurti" : o.long ? "jacket" : "tee");
-  const longSleeve = cut === "kurti" || cut === "jacket" || cut === "shirt" || (!protagonist && o.long);
-  const tunic = cut === "kurti" || (!protagonist && o.tunic);
+  const topCol = pt?.color ?? (protagonist ? 0x1f6f78 : kit?.top ?? TOPS[app.top] ?? 0xc8102e), botCol = pb?.color ?? (protagonist ? 0x2b4f7e : kit?.bottom ?? BOTTOMS[app.bottom] ?? 0x1c1d22), shoeCol = ps?.color ?? (protagonist ? 0xf2f0ea : kit?.shoes ?? SHOES[app.shoes] ?? 0x111111);
+  const cut = pt?.cut ?? (protagonist ? "kurti" : kit?.uniform ? "shirt" : o.tunic ? "kurti" : o.long ? "jacket" : "tee");
+  const longSleeve = cut === "kurti" || cut === "jacket" || (cut === "shirt" && !kit?.uniform) || (!protagonist && o.long && !kit?.uniform);
+  const tunic = cut === "kurti" || (!protagonist && o.tunic && !kit?.uniform);
   const bottomCut = pb?.cut ?? "jeans";
   const bottomMat = bottomCut === "jeans" ? "denim" : protagonist ? "cotton" : (app.bottom === 1 || app.bottom === 0 ? "denim" : "cotton");
   add(shell(`${kind}:pants:${bottomCut === "palazzo" ? "wide" : "fit"}`, g, bones, ["pelvis", ...THIGH, ...CALF], bottomCut === "palazzo" ? 0.028 : bottomCut === "cargo" ? 0.014 : 0.006, (_, p) => p.y < hipY + 0.12), cloth(botCol, bottomMat));
@@ -178,12 +180,67 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   } else if (headBone && app.accessory === 1) {
     const shades = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.035, 0.02), cloth(0x0b0b0b, "leather")); shades.position.set(0, 0.08, 0.1); headBone.add(shades);
   } else if (headBone && app.accessory === 2) {
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cloth(0xc8102e, "cotton")); cap.position.set(0, 0.14, 0); headBone.add(cap);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cloth(kit?.uniform === "police" ? 0x4a4630 : 0xc8102e, "cotton")); cap.position.set(0, 0.14, 0); headBone.add(cap);
   } else if (app.accessory === 3) {
     const neck = bones.find(x => x.name === "neck_01"); if (neck) { const gamcha = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.025, 6, 16), cloth(0xe8b04b, "cotton")); gamcha.rotation.x = Math.PI / 2; neck.add(gamcha); }
   }
+  if (kit) dressKit(kit, kind, b, bones, add, hipY, HAIR_COLORS[app.hairColor] ?? 0x1a1a1a);
+  if (kit) root.scale.set(kit.build * kit.height, kit.height, kit.build * kit.height);
   return { root };
 }
+
+// ───────────── per-person kit (peopleKit.ts): bags, glasses, moustache, dupatta, uniform belt ─────────────
+const kitGeo = new Map<string, THREE.BufferGeometry>();
+const once = (key: string, make: () => THREE.BufferGeometry) => { let g = kitGeo.get(key); if (!g) { g = make(); kitGeo.set(key, g); } return g; };
+const part = (g: THREE.BufferGeometry, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0) => { const n = g.index ? g.toNonIndexed() : g; if (rx || ry || rz) n.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz))); n.translate(x, y, z); return n; };
+/** Front (or back) surface of the bind-pose body on the centre line between two heights: accessories sit on the real face and back, not at guessed offsets. */
+const surfaceCache = new Map<string, number>();
+function surfaceZ(kind: string, g: THREE.BufferGeometry, y0: number, y1: number, back = false, halfWidth = 0.014) {
+  const k = `${kind}:${y0.toFixed(3)}:${y1.toFixed(3)}:${back}`; const hit = surfaceCache.get(k); if (hit !== undefined) return hit;
+  const p = g.getAttribute("position"); let z = back ? Infinity : -Infinity; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < y0 || y > y1 || Math.abs(p.getX(i)) > halfWidth) continue; z = back ? Math.min(z, p.getZ(i)) : Math.max(z, p.getZ(i)); }
+  if (!Number.isFinite(z)) z = back ? -0.12 : 0.1; surfaceCache.set(k, z); return z;
+}
+function dressKit(kit: PersonKit, kind: string, b: THREE.SkinnedMesh, bones: THREE.Bone[], add: (geo: THREE.BufferGeometry, mat: THREE.Material) => void, hipY: number, hairColour: number) {
+  const g = b.geometry; const bone = (n: string) => bones.find(x => x.name === n);
+  const bindPos = (n: string) => { const x = bone(n); return x ? new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(b.skeleton.boneInverses[bones.indexOf(x)]).invert()) : null; };
+  /** Parent `obj` to a bone so that it sits at a bind-pose (model-space) position. */
+  const attach = (name: string, obj: THREE.Object3D, x: number, y: number, z: number) => { const bn = bone(name); if (!bn) return; obj.position.set(x, y, z); obj.updateMatrix(); obj.matrix.premultiply(b.skeleton.boneInverses[bones.indexOf(bn)]); obj.matrix.decompose(obj.position, obj.quaternion, obj.scale); bn.add(obj); };
+  const head = bindPos("Head"), chest = bindPos("spine_03"), waist = bindPos("spine_02"), shoulder = bindPos("upperarm_r");
+  // eye line: the separate eye mesh gives the exact height on either body
+  let eyeY = head ? head.y + 0.085 : 1.68; b.parent?.traverse(o => { const m = o as THREE.SkinnedMesh; if (m.isSkinnedMesh && /^Eyes$/.test(m.name)) { m.geometry.computeBoundingBox(); const bb = m.geometry.boundingBox!; eyeY = (bb.min.y + bb.max.y) / 2; } });
+  if (kit.glasses) {
+    const z = surfaceZ(kind, g, eyeY - 0.012, eyeY + 0.012) + 0.012;
+    const frame = once("glasses", () => { const ring = () => new THREE.TorusGeometry(0.024, 0.0035, 5, 14); const bar = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+      return mergeGeometries([part(ring(), -0.032, 0, 0), part(ring(), 0.032, 0, 0), part(bar(0.018, 0.004, 0.004), 0, 0.006, 0), part(bar(0.004, 0.004, 0.1), -0.058, 0.004, -0.05), part(bar(0.004, 0.004, 0.1), 0.058, 0.004, -0.05)])!; });
+    attach("Head", new THREE.Mesh(frame, cloth(0x1a1a1c, "leather")), 0, eyeY, z);
+  }
+  if (kit.moustache) {
+    const y = eyeY - 0.074; const z = surfaceZ(kind, g, y - 0.012, y + 0.012) + 0.002;
+    const mo = once("moustache", () => { const arc = new THREE.TorusGeometry(0.02, 0.0065, 5, 10, Math.PI); arc.scale(1, 0.55, 1); return arc; });
+    attach("Head", new THREE.Mesh(mo, hairMat(hairColour)), 0, y - 0.006, z);
+  }
+  if (kit.bindi) { const y = eyeY + 0.036; attach("Head", new THREE.Mesh(once("bindi", () => new THREE.SphereGeometry(0.0055, 8, 6)), cloth(0xb3122e, "rubber")), 0, y, surfaceZ(kind, g, y - 0.008, y + 0.008) + 0.001); }
+  if (kit.dupatta !== null && chest) add(shell(`${kind}:dupatta`, g, bones, ["spine_03", "clavicle_l", "clavicle_r", "neck_01"], 0.03, (_, p) => p.y > chest.y + 0.02 && Math.abs(p.x) < 0.2), cloth(kit.dupatta, "cotton"));
+  if (kit.uniform === "police") add(shell(`${kind}:belt`, g, bones, ["pelvis", "spine_01"], 0.022, (_, p) => p.y > hipY + 0.03 && p.y < hipY + 0.085), cloth(0x15120f, "leather"));
+  if (kit.bag === "backpack" && chest && waist) {
+    const y = (chest.y + waist.y) / 2 + 0.05; const back = surfaceZ(kind, g, y - 0.1, y + 0.1, true, 0.05);
+    const pack = once("backpack", () => mergeGeometries([part(new THREE.BoxGeometry(0.27, 0.36, 0.13, 2, 2, 2), 0, 0, 0), part(new THREE.BoxGeometry(0.2, 0.15, 0.04), 0, -0.07, -0.08), part(new THREE.BoxGeometry(0.07, 0.03, 0.02), 0, 0.2, 0.02)])!);
+    attach("spine_03", new THREE.Mesh(pack, cloth(kit.bagColor, "cotton")), 0, y, back - 0.062);
+    add(shell(`${kind}:straps`, g, bones, TORSO, 0.026, (_, p) => Math.abs(Math.abs(p.x) - 0.095) < 0.024 && p.y > waist.y), cloth(kit.bagColor, "cotton"));
+  }
+  if (kit.bag === "jhola" && shoulder) {
+    // cloth shoulder bag: strap from the right shoulder across to the left hip, bag resting on the hip
+    const sx = -0.105, sy = shoulder.y + 0.02, hx = 0.16, hy = hipY + 0.02; const len = Math.hypot(hx - sx, hy - sy), nx = (sy - hy) / len, ny = (hx - sx) / len, c = nx * sx + ny * sy;
+    add(shell(`${kind}:jholaStrap`, g, bones, TORSO, 0.027, (_, p) => Math.abs(nx * p.x + ny * p.y - c) < 0.022 && p.y > hy - 0.02 && p.y < sy + 0.06), cloth(kit.bagColor, "cotton"));
+    const bag = once("jhola", () => mergeGeometries([part(new THREE.BoxGeometry(0.07, 0.26, 0.24, 1, 2, 2), 0, 0, 0), part(new THREE.BoxGeometry(0.075, 0.07, 0.25), 0, 0.1, 0)])!);
+    attach("pelvis", new THREE.Mesh(bag, cloth(kit.bagColor, "cotton")), hx + 0.065, hy - 0.11, 0);
+  }
+  if (kit.bag === "thaila") {
+    // carry bag hanging from the left hand: the hand bone's +Y runs along the fingers
+    const hand = bone("hand_l"); if (hand) { const bag = once("thaila", () => mergeGeometries([part(new THREE.BoxGeometry(0.09, 0.26, 0.24), 0, 0.3, 0), part(new THREE.BoxGeometry(0.012, 0.12, 0.012), 0, 0.12, 0.07), part(new THREE.BoxGeometry(0.012, 0.12, 0.012), 0, 0.12, -0.07)])!); hand.add(new THREE.Mesh(bag, cloth(kit.bagColor, "cotton"))); }
+  }
+}
+const hairMat = (color: number) => { const k = `hair:${color}`; let m = matCache.get(k); if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.6 }); matCache.set(k, m); } return m; };
 
 /** Preload once the world is up, so the first character swap does not stall. */
 export function preloadCharacters() { useLoader.preload(GLTFLoader, [CHARACTER_FILES.female, CHARACTER_FILES.male, CHARACTER_FILES.hair, CHARACTER_FILES.anims]); }

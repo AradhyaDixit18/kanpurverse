@@ -5,6 +5,7 @@
  * inside the red hatchback at Cafe Chowk).
  */
 import { VEHICLE_SPAWNS, VEHICLE_SPECS, NPCS, PETROL_PUMP } from "@kanpurverse/shared";
+import type { StallKind } from "./propCollisions";
 
 export interface RoadLike { a: [number, number]; b: [number, number]; w: number }
 export function distToRoad(x: number, z: number, r: RoadLike) {
@@ -39,3 +40,16 @@ export const PROP_RADIUS = { stall: 1.2, pole: 0.2 } as const;
  * poles rather than regenerating a list that could disagree with what is drawn. `version` bumps on every rebuild.
  */
 export const streetPoles: { list: { p: [number, number]; rot: number }[]; version: number } = { list: [], version: 0 };
+
+/** The roadside stalls Props.tsx actually built, published the same way so their vendors and customers (NPCs.tsx) stand at real stalls. */
+export const streetStalls: { list: { p: [number, number]; rot: number; kind: StallKind }[]; version: number } = { list: [], version: 0 };
+/** Who stands at a stall, in world space. A stall faces the road along its local +z: the vendor is behind the counter, a customer in front. */
+export interface StallPerson { x: number; z: number; yaw: number; role: "vendor" | "customer"; seed: number }
+export function stallPeople(stall: { p: [number, number]; rot: number; kind: StallKind }, seed: number): StallPerson[] {
+  if (stall.kind === "rickshaw" || stall.kind === "cycle") return [];
+  const s = Math.sin(stall.rot), c = Math.cos(stall.rot); const at = (lx: number, lz: number): [number, number] => [stall.p[0] + lx * c + lz * s, stall.p[1] - lx * s + lz * c];
+  const [vx, vz] = at(stall.kind === "chai" ? -0.2 : 0.15, -1.0); const out: StallPerson[] = [{ x: vx, z: vz, yaw: stall.rot, role: "vendor", seed: seed * 2 + 11 }];
+  // two stalls in three have someone buying
+  if (seed % 3 !== 0) { const [cx, cz] = at(seed % 2 ? 0.55 : -0.5, 1.25); out.push({ x: cx, z: cz, yaw: stall.rot + Math.PI, role: "customer", seed: seed * 2 + 12 }); }
+  return out;
+}
