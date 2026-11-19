@@ -34,6 +34,12 @@ export function propSpotClear(x: number, z: number, radius: number, nearRoads: r
 }
 /** Footprint radii (m) used for the checks above. */
 export const PROP_RADIUS = { stall: 1.2, pole: 0.2 } as const;
+/**
+ * A utility pole is generated beside one segment only, so it may not stand in a crossing road's lane, inside a parked
+ * vehicle or on a built site. Props.tsx (the poles) and NightLights.tsx (the lamps on them) share this one rule: when
+ * they disagreed, lamp heads were left hanging in mid-air where a pole had been refused.
+ */
+export function poleSpotClear(x: number, z: number, nearRoads: readonly RoadLike[]) { return clearOfCarriageways(x, z, PROP_RADIUS.pole, nearRoads) && clearOfParkedVehicles(x, z, PROP_RADIUS.pole) && clearOfReserved(x, z, PROP_RADIUS.pole); }
 
 /**
  * The utility poles Props.tsx actually built, published so other systems (crows perch on the cross-arms) use real

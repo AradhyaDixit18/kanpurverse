@@ -9,7 +9,7 @@ import * as THREE from "three";
 import { Text as DreiText } from "@react-three/drei";
 import { LANDMARKS, generateBuildings, SPAWN_POINT } from "@kanpurverse/shared";
 import { roadsNear, getRoads, segPoint, roadsVersion, onRoadsChange, getGeo } from "./roads";
-import { propSpotClear, clearOfCarriageways, clearOfParkedVehicles, clearOfReserved, PROP_RADIUS, streetPoles, streetStalls } from "./propPlacement";
+import { propSpotClear, poleSpotClear, PROP_RADIUS, streetPoles, streetStalls } from "./propPlacement";
 import { playerPos } from "./refs";
 import { useStore } from "../state/store";
 const FONT = "/fonts/NotoSansDevanagari-400.woff";
@@ -19,7 +19,7 @@ const ADS: [string, string, string][] = [["ठग्गू के लड्ड�
 const seeded = (seed: number) => { let s = seed; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; };
 
 /** A pole may not stand in a crossing road's lane or inside a parked vehicle (it is generated beside one segment only). */
-const poleClear = (p: [number, number]) => clearOfCarriageways(p[0], p[1], PROP_RADIUS.pole, roadsNear(p[0], p[1], 40)) && clearOfParkedVehicles(p[0], p[1], PROP_RADIUS.pole) && clearOfReserved(p[0], p[1], PROP_RADIUS.pole);
+const poleClear = (p: [number, number]) => poleSpotClear(p[0], p[1], roadsNear(p[0], p[1], 40));
 export function Props() {
   const quality = useStore(s => s.settings.quality); const en = useStore(s => s.settings.lang === "english");
   const dense = quality !== "low";

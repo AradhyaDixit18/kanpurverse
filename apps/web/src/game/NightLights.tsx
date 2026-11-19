@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { roadsNear, getRoads, segPoint, roadsVersion, onRoadsChange } from "./roads";
+import { poleSpotClear } from "./propPlacement";
 import { playerPos } from "./refs";
 import { useStore } from "../state/store";
 import { renderWorldTime } from "./syncedClock";
@@ -38,7 +39,8 @@ export function NightLights() {
     const pool = roadsNear(center[0], center[1], 260).filter(s => s.len > 18 && s.cls !== "service"); const segs = pool.length ? pool : getRoads();
     const out: { p: [number, number]; road: [number, number]; rot: number }[] = [];
     // Same spacing as the electric poles in Props.tsx so every lamp hangs from a real pole.
-    for (const r of segs) for (let d = 14; d < r.len; d += 36) out.push({ p: segPoint(r, d, r.w / 2 + 2.9), road: segPoint(r, d, r.w / 2 - 1.2), rot: Math.atan2(r.dx, r.dz) });
+    // The same veto too (propPlacement.poleSpotClear): a pole refused at a junction must not leave its lamp behind.
+    for (const r of segs) for (let d = 14; d < r.len; d += 36) { const p = segPoint(r, d, r.w / 2 + 2.9); if (poleSpotClear(p[0], p[1], roadsNear(p[0], p[1], 40))) out.push({ p, road: segPoint(r, d, r.w / 2 - 1.2), rot: Math.atan2(r.dx, r.dz) }); }
     return out.slice(0, 140); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center, ver]);
 
