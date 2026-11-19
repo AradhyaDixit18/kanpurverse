@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { clipFor, CLIP_SPEED, CHARACTER_FILES } from "../apps/web/src/game/HumanAvatar";
+import * as THREE from "three";
+import { clipFor, CLIP_SPEED, CHARACTER_FILES, drapeFill } from "../apps/web/src/game/HumanAvatar";
 
 /** Read the JSON chunk of a .glb without a DOM. */
 function glbJson(path: string) { const b = readFileSync(new URL(`../apps/web/public${path}`, import.meta.url)); const len = b.readUInt32LE(12); return JSON.parse(b.subarray(20, 20 + len).toString("utf8")); }
@@ -26,5 +27,25 @@ describe("rigged character assets", () => {
     for (const h of ["Hair_Long", "Hair_Buns", "Hair_SimpleParted", "Hair_Buzzed", "Hair_Beard"]) expect(meshes.has(h)).toBe(true);
     const total = Object.values(CHARACTER_FILES).reduce((n, f) => n + readFileSync(new URL(`../apps/web/public${f}`, import.meta.url)).length, 0);
     expect(total).toBeLessThan(8 * 1024 * 1024);
+  });
+});
+
+describe("cloth drape", () => {
+  // A flat sheet facing up with a groove at x = 0.3 and a ridge at x = 0.7, like the hollow and the swell of a muscle.
+  const N = 21; const pos: number[] = [], nor: number[] = [], tris: number[] = []; const bump = (x: number, at: number) => Math.exp(-(((x - at) / 0.06) ** 2));
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const x = i / (N - 1), z = j / (N - 1); pos.push(x, -0.03 * bump(x, 0.3) + 0.03 * bump(x, 0.7), z); nor.push(0, 1, 0); }
+  for (let i = 0; i + 1 < N; i++) for (let j = 0; j + 1 < N; j++) { const a = i * N + j, b = a + N; tris.push(a, b, a + 1, b, b + 1, a + 1); }
+  // a duplicate of one groove vertex, as at a UV seam, used by one extra triangle
+  const groove = 6 * N + 10, ridge = 14 * N + 10, flat = 10 * N + 10; const dup = pos.length / 3; pos.push(pos[groove * 3], pos[groove * 3 + 1], pos[groove * 3 + 2]); nor.push(0, 1, 0); tris.push(dup, groove + N, groove + 1);
+  const P = new THREE.Float32BufferAttribute(pos, 3), Nn = new THREE.Float32BufferAttribute(nor, 3);
+  it("bridges hollows and never cuts into the figure", () => {
+    const { fill, weld } = drapeFill(P, Nn, tris, 10, 0.035);
+    expect(fill[groove]).toBeGreaterThan(0.008); expect(fill[groove]).toBeLessThanOrEqual(0.03 + 1e-6); expect(fill[ridge]).toBe(0); expect(fill[flat]).toBeLessThan(0.002);
+    for (const f of fill) { expect(f).toBeGreaterThanOrEqual(0); expect(f).toBeLessThanOrEqual(0.035); }
+    expect(weld[dup]).toBe(groove); expect(weld[groove]).toBe(groove);
+  });
+  it("is capped, and does nothing with no smoothing", () => {
+    expect(drapeFill(P, Nn, tris, 10, 0.004).fill[groove]).toBeCloseTo(0.004, 9);
+    expect(Math.max(...drapeFill(P, Nn, tris, 0, 0.035).fill)).toBe(0);
   });
 });
