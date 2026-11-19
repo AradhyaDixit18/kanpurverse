@@ -37,11 +37,72 @@ const MAT = {
 };
 const Box = ({ p, s, mat, r, cast = true }: { p: [number, number, number]; s: [number, number, number]; mat: THREE.Material; r?: [number, number, number]; cast?: boolean }) => <mesh position={p} rotation={r} material={mat} castShadow={cast} receiveShadow><boxGeometry args={s} /></mesh>;
 
-export function Shops() { return <>{SHOPS.map(s => <Shop key={s.id} site={s} />)}</>; }
+export function Shops() { return <>{SHOPS.map((s, i) => <Shop key={s.id} site={s} index={i} />)}</>; }
+
+// ───────────── outside of the shell: the three walls a customer never looks at were bare boxes ─────────────
+const AD_FONT = "'Mukta','Noto Sans Devanagari','Kohinoor Devanagari','Devanagari Sangam MN',sans-serif";
+/** Hand-painted wall advertisements, the kind every side wall in a north-Indian town carries. Invented brands. */
+export const WALL_ADS: { head: string; sub: string; bg: string; ink: string; band: string }[] = [
+  { head: "वेल्टो सीमेंट", sub: "मज़बूत घर, पक्का इरादा", bg: "#f2c230", ink: "#1b2a5a", band: "#c8102e" },
+  { head: "तितली साबुन", sub: "कपड़ों की असली चमक", bg: "#f4ede0", ink: "#c2185b", band: "#1f9aa3" },
+  { head: "बिजली बैटरी", sub: "एक बार लगाओ, बरसों चलाओ", bg: "#1b2a5a", ink: "#f2c230", band: "#f4ede0" },
+  { head: "गंगा चाय", sub: "हर घूँट में कानपुर", bg: "#3f8f4f", ink: "#fff6e0", band: "#f2c230" },
+  { head: "शेर छाप बीज", sub: "किसान का भरोसा", bg: "#e8742c", ink: "#fff6e0", band: "#1b2a5a" },
+];
+const adMats = new Map<number, THREE.Material>();
+function wallAd(i: number) {
+  const k = ((i % WALL_ADS.length) + WALL_ADS.length) % WALL_ADS.length; let mat = adMats.get(k); if (mat) return mat;
+  const ad = WALL_ADS[k]; const c = document.createElement("canvas"); c.width = 1024; c.height = 400; const x = c.getContext("2d")!;
+  x.fillStyle = ad.bg; x.fillRect(0, 0, 1024, 400); x.fillStyle = ad.band; x.fillRect(0, 0, 1024, 26); x.fillRect(0, 374, 1024, 26);
+  x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = ad.ink;
+  const fit = (text: string, weight: number, size: number, y: number) => { x.font = `${weight} ${size}px ${AD_FONT}`; const w = x.measureText(text).width; if (w > 920) x.font = `${weight} ${Math.floor(size * 920 / w)}px ${AD_FONT}`; x.fillText(text, 512, y); };
+  fit(ad.head, 800, 170, 160); fit(ad.sub, 600, 70, 305);
+  // sun, rain and a few seasons of dust: brush streaks and flaked patches showing the plaster
+  let seed = 7 + k * 13; const r = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  for (let n = 0; n < 240; n++) { x.fillStyle = `rgba(${r() < 0.5 ? "231,214,184" : "60,45,30"},${0.04 + r() * 0.1})`; x.fillRect(r() * 1024, r() * 400, 20 + r() * 160, 1 + r() * 5); }
+  for (let n = 0; n < 26; n++) { x.fillStyle = "rgba(231,214,184,0.85)"; x.beginPath(); x.ellipse(r() * 1024, 250 + r() * 150, 6 + r() * 26, 4 + r() * 14, r() * 3, 0, Math.PI * 2); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 }); adMats.set(k, mat); return mat;
+}
+const EXT = {
+  plinth: () => m("ext-plinth", () => new THREE.MeshStandardMaterial({ color: 0x8c8474, roughness: 0.95 })),
+  door: () => m("ext-door", () => new THREE.MeshStandardMaterial({ color: 0x35584a, roughness: 0.6, metalness: 0.3 })),
+  pane: () => m("ext-pane", () => new THREE.MeshStandardMaterial({ color: 0x1c2a33, roughness: 0.15, metalness: 0.4 })),
+  unit: () => m("ext-unit", () => new THREE.MeshStandardMaterial({ color: 0xd9d6cc, roughness: 0.6 })),
+  tank: () => m("ext-tank", () => new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.5 })),
+  pipe: () => m("ext-pipe", () => new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.7 })),
+  parapet: () => m("ext-parapet", () => new THREE.MeshStandardMaterial({ color: 0xcfc3ab, roughness: 0.9 })),
+};
+/** Plinth, painted adverts on the side walls, a back door with ventilators, AC unit, meter and drain pipe, and a parapet with a water tank. */
+function ShopExterior({ index }: { index: number }) {
+  const back = -D / 2 - T / 2, side = W / 2 + T / 2, roof = H + 0.2;
+  return <group name="shop-exterior">
+    <Box p={[0, 0.35, back - 0.03]} s={[W + T + 0.12, 0.7, 0.06]} mat={EXT.plinth()} cast={false} />
+    {[-1, 1].map(sx => <group key={sx}>
+      <Box p={[sx * (side + 0.03), 0.35, 0]} s={[0.06, 0.7, D + T]} mat={EXT.plinth()} cast={false} />
+      <mesh position={[sx * (side + 0.012), 2.55, -0.2]} rotation={[0, sx * Math.PI / 2, 0]} material={wallAd(index * 2 + (sx > 0 ? 1 : 0))} receiveShadow><planeGeometry args={[6.6, 2.58]} /></mesh>
+    </group>)}
+    {/* back wall: service door on a step, two ventilators, AC outdoor unit on brackets, meter box, drain pipe from the roof */}
+    <Box p={[-2.6, 1.12, back - 0.04]} s={[1.05, 2.1, 0.07]} mat={EXT.door()} /><Box p={[-2.6, 0.06, back - 0.3]} s={[1.4, 0.12, 0.5]} mat={EXT.plinth()} /><Box p={[-2.22, 1.1, back - 0.09]} s={[0.05, 0.16, 0.04]} mat={MAT.steel()} cast={false} />
+    {[0.9, 3.1].map(x => <group key={x}><Box p={[x, 3.5, back - 0.03]} s={[1.0, 0.56, 0.06]} mat={MAT.white()} cast={false} /><Box p={[x, 3.5, back - 0.05]} s={[0.86, 0.42, 0.05]} mat={EXT.pane()} cast={false} />{[-0.2, 0.2].map(dx => <Box key={dx} p={[x + dx, 3.5, back - 0.08]} s={[0.025, 0.42, 0.02]} mat={MAT.steel()} cast={false} />)}</group>)}
+    <Box p={[2.0, 2.2, back - 0.24]} s={[0.85, 0.6, 0.34]} mat={EXT.unit()} /><mesh position={[2.0, 2.2, back - 0.415]} rotation={[Math.PI / 2, 0, 0]} material={EXT.pane()}><cylinderGeometry args={[0.22, 0.22, 0.02, 18]} /></mesh>
+    {[-0.3, 0.3].map(dx => <Box key={dx} p={[2.0 + dx, 1.86, back - 0.2]} s={[0.04, 0.04, 0.4]} mat={MAT.steel()} cast={false} />)}
+    <Box p={[-4.3, 1.6, back - 0.08]} s={[0.34, 0.44, 0.14]} mat={MAT.dark()} /><Box p={[-4.3, 2.9, back - 0.03]} s={[0.03, 2.2, 0.03]} mat={MAT.dark()} cast={false} />
+    <mesh position={[W / 2 - 0.35, roof / 2, back - 0.09]} material={EXT.pipe()}><cylinderGeometry args={[0.055, 0.055, roof, 8]} /></mesh>
+    {/* roof: parapet on three sides behind the sign, water tank on a stand, a dish */}
+    <Box p={[0, roof + 0.22, -D / 2 - 0.2]} s={[W + 0.6, 0.44, 0.16]} mat={EXT.parapet()} />
+    {[-1, 1].map(sx => <Box key={sx} p={[sx * (W / 2 + 0.2), roof + 0.22, 0]} s={[0.16, 0.44, D + 0.6]} mat={EXT.parapet()} />)}
+    <group position={[-W / 2 + 1.5, roof, -D / 2 + 1.5]}>
+      {[[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].map(([x, z], i) => <Box key={i} p={[x, 0.3, z]} s={[0.08, 0.6, 0.08]} mat={MAT.steel()} />)}<Box p={[0, 0.63, 0]} s={[1.1, 0.06, 1.1]} mat={MAT.steel()} />
+      <mesh position={[0, 1.2, 0]} material={EXT.tank()} castShadow><cylinderGeometry args={[0.55, 0.58, 1.08, 16]} /></mesh><mesh position={[0, 1.8, 0]} material={EXT.tank()}><cylinderGeometry args={[0.2, 0.5, 0.14, 16]} /></mesh>
+    </group>
+    <group position={[W / 2 - 1.4, roof, -D / 2 + 1.2]} rotation={[0, 0.7, 0]}><Box p={[0, 0.35, 0]} s={[0.05, 0.7, 0.05]} mat={MAT.steel()} /><mesh position={[0, 0.8, 0.12]} rotation={[-0.9, 0, 0]} material={EXT.unit()}><cylinderGeometry args={[0.42, 0.42, 0.03, 18]} /></mesh></group>
+  </group>;
+}
 
 function keeperLook(site: ShopSite): Appearance { const r = (k: number) => Math.floor(((site.keeper.seed * 9301 + k * 49297) % 233280) / 233280 * 6); return { ...DEFAULT_APPEARANCE, body: site.keeper.body, skin: 1 + (r(1) % 4), hair: r(2) % 6, hairColor: r(3) % 3, top: r(4) % 5, bottom: r(5) % 6, shoes: r(6) % 4, accessory: 0 }; }
 
-function Shop({ site }: { site: ShopSite }) {
+function Shop({ site, index }: { site: ShopSite; index: number }) {
   const wallMat = useMemo(() => plaster(site.type === "hospital" ? 0xf1efe8 : site.type === "garage" ? 0xb9b1a3 : 0xe7d6b8), [site.type]);
   const accent = useMemo(() => m(`acc:${site.color}`, () => new THREE.MeshStandardMaterial({ color: site.color, roughness: 0.6 })), [site.color]);
   const signGlow = useMemo(() => new THREE.MeshStandardMaterial({ color: site.color, emissive: site.color, emissiveIntensity: 0.4, roughness: 0.5 }), [site.color]);
@@ -84,6 +145,7 @@ function Shop({ site }: { site: ShopSite }) {
         <group ref={doorR}><Box p={[0, 1.25, 0]} s={[DOOR / 2, 2.5, 0.05]} mat={MAT.glass()} cast={false} /><Box p={[0, 1.25, 0.03]} s={[0.05, 2.5, 0.02]} mat={MAT.steel()} /></group>
       </group>
     </>}
+    <ShopExterior index={index} />
     {/* awning + sign */}
     <Box p={[0, H - 0.9, D / 2 + 0.9]} s={[W + 0.4, 0.08, 1.8]} r={[0.12, 0, 0]} mat={accent} />
     <Box p={[0, H + 0.6, D / 2 + 0.1]} s={[W * 0.86, 1.0, 0.12]} mat={signGlow} />

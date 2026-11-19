@@ -24,9 +24,9 @@ function appearanceFor(seed: number, role: NpcDef["role"] | "vendor", female: bo
   const r = (n: number) => (seed * 9301 + n * 49297) % 233280 / 233280;
   // Hair: women long or in a bun; men cropped or parted. One in eight has gone grey. Tops 5 (kurta) and 7 (jacket) set the cut.
   const street = role === "pedestrian" || role === "vendor"; const acc = r(7);
-  return { body: female ? "f" : "m", skin: 1 + Math.floor(r(1) * 4), hair: female ? (r(2) < 0.62 ? 2 : 3) : Math.floor(r(2) * 2), hairColor: r(8) < 0.13 ? 3 : Math.floor(r(3) * 2),
+  return { body: female ? "f" : "m", skin: 1 + Math.floor(r(1) * 4), hair: female ? (r(2) < 0.62 ? 2 : 3) : role === "police" ? 0 : Math.floor(r(2) * 2), hairColor: r(8) < 0.13 ? 3 : Math.floor(r(3) * 2),
     top: role === "police" ? 1 : role === "shopkeeper" || role === "cafe" ? 5 : role === "auto" ? 3 : role === "vendor" ? (r(4) < 0.4 ? 5 : Math.floor(r(4) * 5)) : Math.floor(r(4) * 8), bottom: role === "police" ? 1 : Math.floor(r(5) * 4), shoes: Math.floor(r(6) * 3),
-    accessory: role === "auto" ? 3 : role === "police" ? 2 : street && !female ? (acc < 0.1 ? 1 : acc < 0.2 ? 2 : acc < 0.34 ? 3 : 0) : street && acc < 0.08 ? 1 : 0 };
+    accessory: role === "auto" ? 3 : role === "police" ? 0 : street && !female ? (acc < 0.1 ? 1 : acc < 0.2 ? 2 : acc < 0.34 ? 3 : 0) : street && acc < 0.08 ? 1 : 0 };
 }
 
 export function NPCs() { const crowd = useGraphics().crowd; return <>{NPCS.map(n => <NPC key={n.id} def={n} />)}<Crowd n={crowd} /><StallPeople max={crowd > 20 ? 14 : crowd > 10 ? 9 : 5} /></>; }

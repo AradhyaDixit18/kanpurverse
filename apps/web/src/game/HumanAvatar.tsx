@@ -62,17 +62,39 @@ const TORSO = ["pelvis", "spine_01", "spine_02", "spine_03", "clavicle_l", "clav
 const UPPER = ["upperarm_l", "upperarm_r"], LOWER = ["lowerarm_l", "lowerarm_r"], THIGH = ["thigh_l", "thigh_r"], CALF = ["calf_l", "calf_r"], FEET = ["foot_l", "foot_r", "ball_l", "ball_r", "ball_leaf_l", "ball_leaf_r"];
 const shellCache = new Map<string, THREE.BufferGeometry>();
 
-/** Triangles of `src` whose three vertices are dominated by `bones`, pushed out by `offset` metres (skin data kept). */
-function shell(key: string, src: THREE.BufferGeometry, bones: THREE.Bone[], names: string[], offset: number, keep?: (vertex: number, pos: THREE.Vector3) => boolean) {
+/**
+ * Cloth does not cling. For the welded vertices of a shell, how far (m, along the normal) the surface must rise to
+ * bridge the hollows between muscles: a smoothed copy of the body is compared with the body itself and only the part
+ * that lies outside is kept, so cloth fills grooves and never cuts into the figure. Pure geometry, cached with the shell.
+ */
+export function drapeFill(pos: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, nor: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, tris: number[], rounds: number, maxFill: number) {
+  const n = pos.count; const weld = new Int32Array(n); const seen = new Map<string, number>();
+  for (let v = 0; v < n; v++) { const k = `${Math.round(pos.getX(v) * 2e4)}:${Math.round(pos.getY(v) * 2e4)}:${Math.round(pos.getZ(v) * 2e4)}`; const hit = seen.get(k); if (hit === undefined) { seen.set(k, v); weld[v] = v; } else weld[v] = hit; }
+  const nb = new Map<number, Set<number>>(); const link = (a: number, b: number) => { if (a === b) return; let s = nb.get(a); if (!s) nb.set(a, s = new Set()); s.add(b); };
+  for (let i = 0; i < tris.length; i += 3) { const a = weld[tris[i]], b = weld[tris[i + 1]], c = weld[tris[i + 2]]; link(a, b); link(b, a); link(b, c); link(c, b); link(a, c); link(c, a); }
+  let cur = new Float32Array(n * 3), nxt = new Float32Array(n * 3); for (let v = 0; v < n; v++) { cur[v * 3] = pos.getX(v); cur[v * 3 + 1] = pos.getY(v); cur[v * 3 + 2] = pos.getZ(v); } nxt.set(cur);
+  for (let r = 0; r < rounds; r++) { for (const [v, set] of nb) { let x = 0, y = 0, z = 0; for (const o of set) { x += cur[o * 3]; y += cur[o * 3 + 1]; z += cur[o * 3 + 2]; } const k = 0.6 / set.size; nxt[v * 3] = cur[v * 3] * 0.4 + x * k; nxt[v * 3 + 1] = cur[v * 3 + 1] * 0.4 + y * k; nxt[v * 3 + 2] = cur[v * 3 + 2] * 0.4 + z * k; } const t = cur; cur = nxt; nxt = t; nxt.set(cur); }
+  const fill = new Float32Array(n); for (const v of nb.keys()) { const d = (cur[v * 3] - pos.getX(v)) * nor.getX(v) + (cur[v * 3 + 1] - pos.getY(v)) * nor.getY(v) + (cur[v * 3 + 2] - pos.getZ(v)) * nor.getZ(v); fill[v] = Math.min(maxFill, Math.max(0, d)); }
+  return { fill, weld };
+}
+/** Triangles of `src` whose three vertices are dominated by `bones`, pushed out by `offset` metres (skin data kept). `drape` rounds of smoothing make it hang like cloth. */
+function shell(key: string, src: THREE.BufferGeometry, bones: THREE.Bone[], names: string[], offset: number, keep?: (vertex: number, pos: THREE.Vector3) => boolean, drape = 0) {
   const hit = shellCache.get(key); if (hit) return hit;
   const idx = new Set(names.map(n => bones.findIndex(b => b.name === n)).filter(i => i >= 0));
   const si = src.getAttribute("skinIndex"), sw = src.getAttribute("skinWeight"), pos = src.getAttribute("position"), nor = src.getAttribute("normal");
   const vOk = new Uint8Array(pos.count); const p = new THREE.Vector3();
   for (let v = 0; v < pos.count; v++) { let best = -1, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(v, k); if (w > bw) { bw = w; best = si.getComponent(v, k); } } p.fromBufferAttribute(pos, v); vOk[v] = idx.has(best) && (!keep || keep(v, p)) ? 1 : 0; }
-  const g = src.clone(); const out = g.getAttribute("position") as THREE.BufferAttribute; const n = new THREE.Vector3();
-  for (let v = 0; v < out.count; v++) { n.fromBufferAttribute(nor, v); out.setXYZ(v, out.getX(v) + n.x * offset, out.getY(v) + n.y * offset, out.getZ(v) + n.z * offset); }
   const index = src.getIndex()!; const tris: number[] = [];
   for (let i = 0; i < index.count; i += 3) { const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2); if (vOk[a] && vOk[b] && vOk[c]) tris.push(a, b, c); }
+  const g = src.clone(); const out = g.getAttribute("position") as THREE.BufferAttribute; const n = new THREE.Vector3();
+  const hang = drape > 0 ? drapeFill(pos, nor, tris, drape, 0.035) : null;
+  for (let v = 0; v < out.count; v++) { n.fromBufferAttribute(nor, v); const d = offset + (hang ? hang.fill[hang.weld[v]] : 0); out.setXYZ(v, out.getX(v) + n.x * d, out.getY(v) + n.y * d, out.getZ(v) + n.z * d); }
+  if (hang) {
+    // Shade from the draped surface, not from the muscles underneath: area-weighted face normals, shared across UV seams.
+    const acc = new Float32Array(out.count * 3); const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    for (let i = 0; i < tris.length; i += 3) { a.fromBufferAttribute(out, tris[i]); b.fromBufferAttribute(out, tris[i + 1]); c.fromBufferAttribute(out, tris[i + 2]); b.sub(a); c.sub(a); b.cross(c); for (let k = 0; k < 3; k++) { const w = hang.weld[tris[i + k]] * 3; acc[w] += b.x; acc[w + 1] += b.y; acc[w + 2] += b.z; } }
+    const on = g.getAttribute("normal") as THREE.BufferAttribute; for (let v = 0; v < on.count; v++) { const w = hang.weld[v] * 3; const l = Math.hypot(acc[w], acc[w + 1], acc[w + 2]); if (l > 1e-12) on.setXYZ(v, acc[w] / l, acc[w + 1] / l, acc[w + 2] / l); }
+  }
   g.setIndex(tris); for (const name of Object.keys(g.attributes)) if (/^(uv1|uv2|uv3|color|color_1|color_2)$/.test(name)) g.deleteAttribute(name);
   g.computeBoundingSphere(); shellCache.set(key, g); return g;
 }
@@ -161,13 +183,13 @@ function buildCharacter(a: Assets, app: Appearance, protagonist: boolean, outfit
   const tunic = cut === "kurti" || (!protagonist && o.tunic && !kit?.uniform);
   const bottomCut = pb?.cut ?? "jeans";
   const bottomMat = bottomCut === "jeans" ? "denim" : protagonist ? "cotton" : (app.bottom === 1 || app.bottom === 0 ? "denim" : "cotton");
-  add(shell(`${kind}:pants:${bottomCut === "palazzo" ? "wide" : "fit"}`, g, bones, ["pelvis", ...THIGH, ...CALF], bottomCut === "palazzo" ? 0.028 : bottomCut === "cargo" ? 0.014 : 0.006, (_, p) => p.y < hipY + 0.12), cloth(botCol, bottomMat));
+  add(shell(`${kind}:pants:${bottomCut === "palazzo" ? "wide" : "fit"}`, g, bones, ["pelvis", ...THIGH, ...CALF], bottomCut === "palazzo" ? 0.028 : bottomCut === "cargo" ? 0.014 : 0.008, (_, p) => p.y < hipY + 0.12, 5), cloth(botCol, bottomMat));
   const shoeTop = ps?.cut === "boots" ? kneeY * 0.62 : ps?.cut === "juttis" ? 0.09 : Math.max(0.13, kneeY * 0.25);
   add(shell(`${kind}:shoes:${ps?.cut ?? "std"}`, g, bones, [...FEET, ...CALF], 0.014, (_, p) => p.y < shoeTop), cloth(shoeCol, ps?.cut === "boots" ? "leather" : "rubber"));
   const sleeves = longSleeve ? [...UPPER, ...LOWER] : UPPER;
   const sleeveKeep = (_: number, p: THREE.Vector3) => longSleeve ? !(cut === "kurti" && Math.abs(p.x) > 0.5) : Math.abs(p.x) < 0.42;
-  add(shell(`${kind}:top:${longSleeve ? (cut === "kurti" ? "k" : "l") : "s"}`, g, bones, [...TORSO, ...sleeves], cut === "jacket" ? 0.02 : 0.012, (v, p) => (Math.abs(p.x) < 0.2 || sleeveKeep(v, p)) && p.y > hipY - 0.06), cloth(topCol, cut === "jacket" && (pt?.color === 0x2a2220 || (!protagonist && app.top === 7)) ? "leather" : cut === "jacket" ? "denim" : "cotton"));
-  if (tunic) add(shell(`${kind}:tunic`, g, bones, ["pelvis", "spine_01", ...THIGH], 0.022, (_, p) => p.y > (hipY + kneeY) / 2 + 0.02), cloth(topCol, "cotton"));
+  add(shell(`${kind}:top:${longSleeve ? (cut === "kurti" ? "k" : "l") : "s"}`, g, bones, [...TORSO, ...sleeves], cut === "jacket" ? 0.022 : 0.014, (v, p) => (Math.abs(p.x) < 0.2 || sleeveKeep(v, p)) && p.y > hipY - 0.06, 10), cloth(topCol, cut === "jacket" && (pt?.color === 0x2a2220 || (!protagonist && app.top === 7)) ? "leather" : cut === "jacket" ? "denim" : "cotton"));
+  if (tunic) add(shell(`${kind}:tunic`, g, bones, ["pelvis", "spine_01", ...THIGH], 0.024, (_, p) => p.y > (hipY + kneeY) / 2 + 0.02, 10), cloth(topCol, "cotton"));
   // accessories on bones
   const headBone = bones.find(x => x.name === "Head"), spine = bones.find(x => x.name === "spine_03"), pelvis = bones.find(x => x.name === "pelvis");
   const acc = protagonist ? pick(outfit?.acc)?.cut : undefined;
@@ -220,18 +242,24 @@ function dressKit(kit: PersonKit, kind: string, b: THREE.SkinnedMesh, bones: THR
     attach("Head", new THREE.Mesh(mo, hairMat(hairColour)), 0, y - 0.006, z);
   }
   if (kit.bindi) { const y = eyeY + 0.036; attach("Head", new THREE.Mesh(once("bindi", () => new THREE.SphereGeometry(0.0055, 8, 6)), cloth(0xb3122e, "rubber")), 0, y, surfaceZ(kind, g, y - 0.008, y + 0.008) + 0.001); }
-  if (kit.dupatta !== null && chest) add(shell(`${kind}:dupatta`, g, bones, ["spine_03", "clavicle_l", "clavicle_r", "neck_01"], 0.03, (_, p) => p.y > chest.y + 0.02 && Math.abs(p.x) < 0.2), cloth(kit.dupatta, "cotton"));
-  if (kit.uniform === "police") add(shell(`${kind}:belt`, g, bones, ["pelvis", "spine_01"], 0.022, (_, p) => p.y > hipY + 0.03 && p.y < hipY + 0.085), cloth(0x15120f, "leather"));
+  if (kit.dupatta !== null && chest) add(shell(`${kind}:dupatta`, g, bones, ["spine_03", "clavicle_l", "clavicle_r", "neck_01"], 0.034, (_, p) => p.y > chest.y + 0.02 && Math.abs(p.x) < 0.2, 10), cloth(kit.dupatta, "cotton"));
+  if (kit.uniform === "police") {
+    g.computeBoundingBox(); const crown = g.boundingBox!.max.y;
+    const cap = once("police-cap", () => mergeGeometries([part(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 18), 0, -0.012, 0), part(new THREE.CylinderGeometry(0.122, 0.1, 0.04, 18), 0, 0.033, 0), part(new THREE.BoxGeometry(0.15, 0.008, 0.085), 0, -0.036, 0.11, 0.3)])!);
+    attach("Head", new THREE.Mesh(cap, cloth(0x4d4a36, "cotton")), 0, crown - 0.008, -0.012);
+    attach("Head", new THREE.Mesh(once("police-badge", () => new THREE.BoxGeometry(0.03, 0.03, 0.008)), cloth(0xc9a227, "leather")), 0, crown + 0.012, 0.1);
+  }
+  if (kit.uniform === "police") add(shell(`${kind}:belt`, g, bones, ["pelvis", "spine_01"], 0.03, (_, p) => p.y > hipY + 0.03 && p.y < hipY + 0.085), cloth(0x15120f, "leather"));
   if (kit.bag === "backpack" && chest && waist) {
     const y = (chest.y + waist.y) / 2 + 0.05; const back = surfaceZ(kind, g, y - 0.1, y + 0.1, true, 0.05);
     const pack = once("backpack", () => mergeGeometries([part(new THREE.BoxGeometry(0.27, 0.36, 0.13, 2, 2, 2), 0, 0, 0), part(new THREE.BoxGeometry(0.2, 0.15, 0.04), 0, -0.07, -0.08), part(new THREE.BoxGeometry(0.07, 0.03, 0.02), 0, 0.2, 0.02)])!);
     attach("spine_03", new THREE.Mesh(pack, cloth(kit.bagColor, "cotton")), 0, y, back - 0.062);
-    add(shell(`${kind}:straps`, g, bones, TORSO, 0.026, (_, p) => Math.abs(Math.abs(p.x) - 0.095) < 0.024 && p.y > waist.y), cloth(kit.bagColor, "cotton"));
+    add(shell(`${kind}:straps`, g, bones, TORSO, 0.04, (_, p) => Math.abs(Math.abs(p.x) - 0.095) < 0.024 && p.y > waist.y), cloth(kit.bagColor, "cotton"));
   }
   if (kit.bag === "jhola" && shoulder) {
     // cloth shoulder bag: strap from the right shoulder across to the left hip, bag resting on the hip
     const sx = -0.105, sy = shoulder.y + 0.02, hx = 0.16, hy = hipY + 0.02; const len = Math.hypot(hx - sx, hy - sy), nx = (sy - hy) / len, ny = (hx - sx) / len, c = nx * sx + ny * sy;
-    add(shell(`${kind}:jholaStrap`, g, bones, TORSO, 0.027, (_, p) => Math.abs(nx * p.x + ny * p.y - c) < 0.022 && p.y > hy - 0.02 && p.y < sy + 0.06), cloth(kit.bagColor, "cotton"));
+    add(shell(`${kind}:jholaStrap`, g, bones, TORSO, 0.04, (_, p) => Math.abs(nx * p.x + ny * p.y - c) < 0.022 && p.y > hy - 0.02 && p.y < sy + 0.06), cloth(kit.bagColor, "cotton"));
     const bag = once("jhola", () => mergeGeometries([part(new THREE.BoxGeometry(0.07, 0.26, 0.24, 1, 2, 2), 0, 0, 0), part(new THREE.BoxGeometry(0.075, 0.07, 0.25), 0, 0.1, 0)])!);
     attach("pelvis", new THREE.Mesh(bag, cloth(kit.bagColor, "cotton")), hx + 0.065, hy - 0.11, 0);
   }

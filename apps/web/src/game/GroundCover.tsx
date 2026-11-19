@@ -12,18 +12,20 @@ import { distToRoad } from "./propPlacement";
 import { roadsNear, getGeo, roadsVersion } from "./roads";
 import { useStore } from "../state/store";
 
-/** Three crossed blades-cards, base at the origin, normals up so the tuft is lit like the ground it stands on. */
+/** Three crossed blade cards, base at the origin, normals up so the tuft is lit like the ground it stands on. */
 function tuftGeometry() {
   const pos: number[] = [], uv: number[] = [], nor: number[] = [], idx: number[] = []; const w = 0.3, h = 0.46;
   for (let k = 0; k < 3; k++) { const a = (k * Math.PI) / 3, cx = Math.cos(a) * w, cz = Math.sin(a) * w, o = k * 4;
-    pos.push(-cx, 0, -cz, cx, 0, cz, cx, h, cz, -cx, h, -cz); uv.push(0, 0, 1, 0, 1, 1, 0, 1); nor.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0); idx.push(o, o + 1, o + 2, o, o + 2, o + 3); }
+    pos.push(-cx, 0, -cz, cx, 0, cz, cx, h, cz, -cx, h, -cz); uv.push(0, 0, 1, 0, 1, 1, 0, 1); nor.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    // both windings, one material side: a double-sided material would flip the normal on back faces and shade half the cards black
+    idx.push(o, o + 1, o + 2, o, o + 2, o + 3, o, o + 2, o + 1, o, o + 3, o + 2); }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx); return g;
 }
 /** A fan of tapered blades, lighter toward the tips, on a transparent card. */
 function bladeTexture() {
   const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d")!; let s = 11; const r = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
   for (let i = 0; i < 26; i++) { const bx = 26 + r() * 204, top = 20 + r() * 150, lean = (r() - 0.5) * 90, half = 5 + r() * 6; const shade = 150 + Math.floor(r() * 70);
-    const grad = x.createLinearGradient(0, 256, 0, top); grad.addColorStop(0, `rgb(${Math.floor(shade * 0.5)},${Math.floor(shade * 0.55)},${Math.floor(shade * 0.42)})`); grad.addColorStop(1, `rgb(${shade},${shade},${Math.floor(shade * 0.86)})`);
+    const grad = x.createLinearGradient(0, 256, 0, top); grad.addColorStop(0, `rgb(${Math.floor(shade * 0.62)},${Math.floor(shade * 0.66)},${Math.floor(shade * 0.52)})`); grad.addColorStop(1, `rgb(${shade},${shade},${Math.floor(shade * 0.86)})`);
     x.fillStyle = grad; x.beginPath(); x.moveTo(bx - half, 256); x.quadraticCurveTo(bx - half * 0.5 + lean * 0.35, (256 + top) / 2, bx + lean, top); x.quadraticCurveTo(bx + half * 0.5 + lean * 0.35, (256 + top) / 2, bx + half, 256); x.closePath(); x.fill(); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
@@ -34,7 +36,7 @@ function blotTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-const GRASS = [new THREE.Color("#6f8f3a"), new THREE.Color("#8c9a45"), new THREE.Color("#b3a55a")];
+const GRASS = [new THREE.Color("#8aa848"), new THREE.Color("#a5ad56"), new THREE.Color("#c4b66c")];
 const STONES = [new THREE.Color("#8d877c"), new THREE.Color("#a39a88"), new THREE.Color("#7a6a58"), new THREE.Color("#9c5f48")];
 const PATCH_GREEN = new THREE.Color("#5c7a36"), PATCH_EARTH = new THREE.Color("#8a6f4d");
 
@@ -57,7 +59,7 @@ function Field({ thin }: { thin: number }) {
     const stone = new THREE.IcosahedronGeometry(1, 0); stone.scale(1, 0.55, 0.8);
     const flat = new THREE.PlaneGeometry(2, 2); flat.rotateX(-Math.PI / 2);
     return { blades, blot, tuft: tuftGeometry(), stone, flat,
-      tuftMat: fade(new THREE.MeshLambertMaterial({ map: blades, alphaTest: 0.42, side: THREE.DoubleSide }), true),
+      tuftMat: fade(new THREE.MeshLambertMaterial({ map: blades, alphaTest: 0.42 }), true),
       stoneMat: fade(new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), false),
       patchMat: fade(new THREE.MeshLambertMaterial({ map: blot, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -0.5, polygonOffsetUnits: -0.5 }), false) };
   }, [uniforms]);
