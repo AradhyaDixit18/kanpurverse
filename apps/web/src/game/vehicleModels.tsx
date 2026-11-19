@@ -39,7 +39,7 @@ const M = {
 /** Canvas texture drawn once (client only: these factories run at render time, never at import). */
 const texCache = new Map<string, THREE.CanvasTexture>();
 function paintedTex(key: string, w: number, h: number, draw: (x: CanvasRenderingContext2D, w: number, h: number) => void) {
-  let t = texCache.get(key); if (!t) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d")!, w, h); t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; texCache.set(key, t); } return t;
+  let t = texCache.get(key); if (!t) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d")!, w, h); t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = 8; texCache.set(key, t); } return t;
 }
 const SIGN_FONT = "'Mukta','Noto Sans Devanagari','Kohinoor Devanagari',sans-serif";
 /** Registration plate in the Indian layout: IND strip, state and district code (UP 78 is Kanpur Nagar), series and number. Invented numbers. */
