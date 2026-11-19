@@ -79,7 +79,7 @@ export function Boulevard() {
     const o = new THREE.Object3D(),
       c = new THREE.Color();
     result.forEach((p, i) => {
-      const h = 4.1 + (i % 4) * 0.35;
+      const h = 5.3 + (i % 4) * 0.4; // tall enough that the canopy clears the chase camera (it used to fill the screen beside a tree)
       o.position.set(p.x, h / 2, p.z);
       o.scale.set(1, h, 1);
       o.updateMatrix();

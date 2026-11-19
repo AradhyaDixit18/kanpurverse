@@ -86,7 +86,7 @@ export function drawShopfronts(x: Ctx, glow = false) {
     const ox = i * S; const open = shop.kind !== "shutter"; const X0 = ox + 28, Y0 = 134, OW = S - 56, OH = 338;
     if (glow) { // night: lit signboard, a tube light under it, warm light spilling from open shops
       x.fillStyle = shade(shop.board, 0.75); x.fillRect(ox + 10, 8, S - 20, 108); x.fillStyle = shop.ink; x.textAlign = "center"; x.textBaseline = "middle"; fitText(x, shop.hi, 800, 46, S - 64); x.fillText(shop.hi, ox + S / 2, 54);
-      x.fillStyle = "#fff4d8"; x.fillRect(ox + 40, 122, S - 80, 7); if (open) { const g = x.createLinearGradient(0, Y0, 0, Y0 + OH); g.addColorStop(0, "#ffdfa6"); g.addColorStop(1, "#8a5a2a"); x.fillStyle = g; x.fillRect(X0, Y0, OW, OH); } return; }
+      x.fillStyle = "#fff4d8"; x.fillRect(ox + 40, 122, S - 80, 7); if (open) { const g = x.createLinearGradient(0, Y0, 0, Y0 + OH); g.addColorStop(0, "rgba(255,223,166,0.5)"); g.addColorStop(1, "rgba(138,90,42,0.3)"); x.fillStyle = g; x.fillRect(X0, Y0, OW, OH); } return; } // gentle: the stock must still read at night
     // signboard with a painted border, Hindi name and small English line
     softShadow(x, ox, 116, S, 30, 0.45); x.fillStyle = shade(shop.board, 0.7); x.fillRect(ox + 6, 4, S - 12, 116); x.fillStyle = shop.board; x.fillRect(ox + 10, 8, S - 20, 108); x.strokeStyle = shop.ink; x.globalAlpha = 0.55; x.lineWidth = 3; x.strokeRect(ox + 18, 16, S - 36, 92); x.globalAlpha = 1;
     x.fillStyle = shop.ink; x.textAlign = "center"; x.textBaseline = "middle"; fitText(x, shop.hi, 800, 46, S - 64); x.fillText(shop.hi, ox + S / 2, 54); fitText(x, shop.en, 600, 19, S - 80); x.fillText(shop.en, ox + S / 2, 92);
