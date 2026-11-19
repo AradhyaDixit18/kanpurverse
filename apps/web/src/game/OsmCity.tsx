@@ -181,8 +181,13 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
 }
 function distToSeg(p: [number, number], a: [number, number], b: [number, number]) { const dx = b[0] - a[0], dz = b[1] - a[1]; const l2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dz)); }
 /** Rooftop kit for one building: a parapet wall round the terrace, a black water tank on its stand, and on some a stair room. */
+/** Largest roof (m²) that carries a water tank and stair room. */
+export const ROOF_KIT_MAX_AREA = 5000;
 function roofKit(pts: [number, number][], h: number, id: number, roofBits: THREE.BufferGeometry[], tanks: THREE.BufferGeometry[]) {
-  if (h < 6 || h >= 40 || polyArea(pts) <= 50) return; const par = building(pts, 0.9, h); roofBits.push(par.walls); par.roof.dispose(); const rb = bbox(pts); const rcx = (rb.x0 + rb.x1) / 2, rcz = (rb.z0 + rb.z1) / 2, r1 = hash(id + 11), r2 = hash(id + 17);
+  if (h < 6 || h >= 40 || polyArea(pts) <= 50) return; const par = building(pts, 0.9, h); roofBits.push(par.walls); par.roof.dispose();
+  // A mall or stadium footprint is drawn as a walk-in shell with people standing inside it and a roof that only faces up: a tank on it would hang in their sky.
+  if (polyArea(pts) > ROOF_KIT_MAX_AREA) return;
+  const rb = bbox(pts); const rcx = (rb.x0 + rb.x1) / 2, rcz = (rb.z0 + rb.z1) / 2, r1 = hash(id + 11), r2 = hash(id + 17);
   const tx = rcx + (r1 - 0.5) * (rb.x1 - rb.x0) * 0.4, tz = rcz + (r2 - 0.5) * (rb.z1 - rb.z0) * 0.4;
   if (inPoly([tx, tz], pts)) { const tr = 0.55 + r1 * 0.25, th = 1.0 + r2 * 0.4; const stand = new THREE.BoxGeometry(tr * 1.7, 0.5, tr * 1.7); stand.translate(tx, h + 0.25, tz); roofBits.push(stand); const tank = new THREE.CylinderGeometry(tr, tr, th, 12); tank.translate(tx, h + 0.5 + th / 2, tz); tanks.push(tank); const lid = new THREE.CylinderGeometry(tr * 0.35, tr * 0.55, 0.14, 10); lid.translate(tx, h + 0.5 + th + 0.07, tz); tanks.push(lid); }
   if (r1 > 0.45) { const mx = rcx - (r2 - 0.5) * (rb.x1 - rb.x0) * 0.45, mz = rcz - (r1 - 0.5) * (rb.z1 - rb.z0) * 0.45; if (inPoly([mx, mz], pts) && Math.hypot(mx - tx, mz - tz) > 2.6) { const room = new THREE.BoxGeometry(2.6, 2.4, 2.4); room.translate(mx, h + 1.2, mz); roofBits.push(room); } }
