@@ -247,7 +247,7 @@ class SoloSession {
       s.settings.atmosphere === "day"
         ? 0.48
         : s.settings.atmosphere === "sunset"
-          ? 0.745
+          ? 0.727 // 17:27: sun about 9° up, long readable shadows (0.745 put it on the horizon and the street went flat)
           : s.settings.atmosphere === "night"
             ? 0.88
             : (this.time + 8 / 86400) % 1;

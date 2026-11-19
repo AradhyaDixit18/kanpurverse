@@ -9,4 +9,7 @@ export const npcPositions = new Map<string, { x: number; z: number }>();
 /** Predicted transforms and collider handles, independent of delayed network snapshots. */
 export const vehicleRuntime = new Map<string, { x: number; y: number; z: number; handle: number }>();
 
+/** Where the player's own vehicle was last drawn (render-interpolated), for the chase camera. `at` is performance.now(). */
+export const drivenRender = { id: "", x: 0, y: 0, z: 0, at: 0 };
+
 export const playerPhysicsTelemetry = { bodyY: 0, colliderY: 0, halfHeight: 0, radius: 0, grounded: false };

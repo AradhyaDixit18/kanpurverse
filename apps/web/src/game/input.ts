@@ -11,10 +11,16 @@ let bound = false;
 export function bindInput(canvas: HTMLElement) {
   if (bound) return; bound = true;
   const down = (e: KeyboardEvent) => { if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return; keys.add(e.code); if (!e.repeat) input.pressedOnce.add(e.code); if (["Space", "KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault(); };
-  const up = (e: KeyboardEvent) => keys.delete(e.code);
+  // macOS never sends keyup for a key that was held while Cmd was down (Cmd+Tab, Cmd+`), so releasing Cmd drops every
+  // held key; otherwise the throttle would stay stuck on when the window came back.
+  const up = (e: KeyboardEvent) => { keys.delete(e.code); if (e.code === "MetaLeft" || e.code === "MetaRight") keys.clear(); };
   window.addEventListener("keydown", down); window.addEventListener("keyup", up);
   const blur = () => { keys.clear(); input.pressedOnce.clear(); input.touch.jump = false; input.touch.joy.x = 0; input.touch.joy.y = 0; };
-  window.addEventListener("blur", blur);
+  // Losing focus in any form releases every control: window blur, a hidden tab (Chrome can switch tabs without a blur
+  // reaching the page in time), the page being frozen or put in the back/forward cache, and the context menu.
+  const hidden = () => { if (document.visibilityState === "hidden") blur(); };
+  window.addEventListener("blur", blur); window.addEventListener("pagehide", blur); window.addEventListener("contextmenu", blur);
+  document.addEventListener("visibilitychange", hidden);
   const mousemove = (e: MouseEvent) => { if (input.pointerLocked) { input.look.dx += e.movementX; input.look.dy += e.movementY; } };
   canvas.addEventListener("mousemove", mousemove);
   const wheel = (e: WheelEvent) => { input.zoom += Math.sign(e.deltaY); };
@@ -27,6 +33,7 @@ export function bindInput(canvas: HTMLElement) {
   canvas.addEventListener("click", click);
   return () => {
     window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", blur);
+    window.removeEventListener("pagehide", blur); window.removeEventListener("contextmenu", blur); document.removeEventListener("visibilitychange", hidden);
     canvas.removeEventListener("mousemove", mousemove); canvas.removeEventListener("wheel", wheel); canvas.removeEventListener("click", click); canvas.removeEventListener("mousedown", mdown);
     document.removeEventListener("pointerlockchange", pointerlock); blur(); input.pointerLocked = false; bound = false;
   };

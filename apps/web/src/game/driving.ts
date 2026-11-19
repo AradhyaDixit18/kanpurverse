@@ -35,6 +35,13 @@ export interface DriveState {
 export interface DriveInput { throttle: number; steer: number; brake: boolean; handbrake?: boolean; /** 1 on asphalt, ~0.7 on grass/dirt. */ surface?: number; /** Two-wheelers never slide sideways. */ noSlide?: boolean }
 
 const G = 9.81;
+/**
+ * Share of full steering lock available at a given speed: 1 at walking pace, 0.5 at `steerFade`, never below 0.22.
+ * One definition for the physics and for the visible front wheels, so the drawn road-wheel angle is the simulated one.
+ */
+export function steerSpeedFactor(spec: Pick<Handling, "steerFade">, speed: number) { const fade = spec.steerFade ?? 18; return Math.max(0.22, 1 / (1 + (speed / fade) ** 2)); }
+/** Road-wheel angle (rad, positive = right) the tyre model is actually using for this steering-wheel position and speed. */
+export function roadWheelAngle(spec: Pick<Handling, "steerFade" | "steerLock">, steer: number, speed: number) { return steer * (spec.steerLock ?? 0.5) * steerSpeedFactor(spec, speed); }
 export function yawFromQuaternion(q: readonly number[]) {
   return Math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] ** 2 + q[2] ** 2));
 }
@@ -71,8 +78,7 @@ export function stepDriving(state: DriveState, spec: Handling, input: DriveInput
   const len = spec.size?.[2] ?? 4;
   const wheelBase = spec.wheelBase ?? len * 0.6;
   const lock = spec.steerLock ?? 0.5;
-  const fade = spec.steerFade ?? 18;
-  const speedFactor = Math.max(0.22, 1 / (1 + (speed / fade) ** 2));
+  const speedFactor = steerSpeedFactor(spec, speed);
   const delta = steer * lock * speedFactor;
   let target = speed * Math.tan(delta) / wheelBase;                                                       // kinematic yaw rate
   const surface = input.surface ?? 1;

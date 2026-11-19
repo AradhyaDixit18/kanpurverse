@@ -175,6 +175,13 @@ export const MISSIONS: MissionDef[] = [
   { id: "side_mechanic_tow", category: "driving", name: "Pappu's Test Drive", nameHi: "पप्पू का टेस्ट ड्राइव", kind: "race", giver: "auto_raju", start: [502, -320], checkpoints: [[1351, -206], [639, -168], [464, -372]], radius: 14, timeLimitSec: 300, needsVehicle: true, reward: { coins: 700, xp: 320 }, desc: "Pappu mistri fixed a car and needs it road-tested: Nana Rao Park, Christ Church, back to the workshop. Bring it back in one piece.", descHi: "पप्पू मिस्त्री ने गाड़ी ठीक की है, टेस्ट चाहिए: नाना राव पार्क, क्राइस्ट चर्च, फिर वर्कशॉप। साबुत वापस लाना।" },
 ];
 
+/**
+ * Velto Petroleum, the fuel station beside the tertiary road north-west of Cafe Chowk. The site was checked against
+ * the OSM extract: no mapped building, road, story vehicle, shop or mission point within its footprint. `yaw` is the
+ * road's heading; the forecourt faces the road. Generated buildings, stalls, poles and animals stay out of `r`.
+ */
+export const PETROL_PUMP = { x: 435, z: -271.6, yaw: -0.636, r: 17 } as const;
+
 /** Areas that must stay free of generated buildings (gameplay spots). */
 let _clear: { x: number; z: number; r: number }[] | null = null;
 export function clearZones() {
@@ -186,5 +193,6 @@ export function clearZones() {
   for (const l of LANDMARKS) if (l.kind === "cafe" || l.kind === "viewpoint" || l.kind === "garage") out.push({ x: l.p[0], z: l.p[1], r: l.r + 8 });
   for (const sh of SHOPS) out.push({ x: sh.p[0], z: sh.p[1], r: 9 });
   out.push({ x: -405, z: -2122, r: 70 }); // Parmat Ghat promenade and stairs
+  out.push({ x: PETROL_PUMP.x, z: PETROL_PUMP.z, r: PETROL_PUMP.r + 3 });
   return (_clear = out);
 }

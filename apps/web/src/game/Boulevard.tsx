@@ -6,9 +6,11 @@ import * as THREE from "three";
 import { roadsNear, segPoint, onRoadsChange } from "./roads";
 import { playerPos } from "./refs";
 import { useStore } from "../state/store";
-const foliageGeometry = new THREE.IcosahedronGeometry(1, 2);
+import { foliageGeometry as makeFoliage, crownColour } from "./foliage";
+const foliageGeometry = makeFoliage();
 const leafMaterial = new THREE.MeshStandardMaterial({
-  color: "#728c38",
+  color: "#ffffff",
+  vertexColors: true,
   roughness: 0.96,
 });
 const trunkGeometry = new THREE.CylinderGeometry(0.12, 0.23, 1, 7);
@@ -77,7 +79,7 @@ export function Boulevard() {
     const o = new THREE.Object3D(),
       c = new THREE.Color();
     result.forEach((p, i) => {
-      const h = 4.1 + (i % 4) * 0.35;
+      const h = 5.3 + (i % 4) * 0.4; // tall enough that the canopy clears the chase camera (it used to fill the screen beside a tree)
       o.position.set(p.x, h / 2, p.z);
       o.scale.set(1, h, 1);
       o.updateMatrix();
@@ -90,14 +92,12 @@ export function Boulevard() {
           h + 0.4 + (j % 3) * 0.65,
           p.z + Math.sin(a) * r,
         );
-        o.scale.set(1.65, 1.4, 1.6);
+        const sc = 1.75 + ((i * 7 + j * 3) % 5) * 0.14;
+        o.scale.set(sc, sc * 0.86, sc * 0.97);
         o.rotation.y = a;
         o.updateMatrix();
         leaves.setMatrixAt(i * 5 + j, o.matrix);
-        leaves.setColorAt(
-          i * 5 + j,
-          c.set(["#698c45", "#7b9747", "#53783b", "#819e50"][i % 4]),
-        );
+        leaves.setColorAt(i * 5 + j, c.set(crownColour(i, j)));
       }
       o.position.set(p.x, h - 0.5, p.z);
       o.scale.set(1, 1, 1);
