@@ -20,5 +20,8 @@ export default function PlayClient() {
   if (screen === "menu" || screen === "character") return <MainMenu />;
   if (screen === "loading") return <LoadingScreen />;
   if (screen === "error") return <ErrorScreen />;
-  return <><EngineBoundary><Game /></EngineBoundary><HUD />{process.env.NODE_ENV === "development" && <><ReviewControls /><StreetCapture /></>}</>;
+  return <><EngineBoundary><Game /></EngineBoundary><HUD />{process.env.NODE_ENV === "development" && <QaOnly><ReviewControls /><StreetCapture /></QaOnly>}</>;
 }
+
+/** Development diagnostics stay off screen unless the page is opened with ?qa (they cluttered every dev session). */
+function QaOnly({ children }: { children: React.ReactNode }) { const [on, setOn] = useState(false); useEffect(() => { setOn(new URLSearchParams(window.location.search).has("qa")); }, []); return on ? <>{children}</> : null; }

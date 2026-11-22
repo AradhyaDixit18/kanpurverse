@@ -2,10 +2,15 @@
 /** Vehicles: procedural Indian-city vehicle meshes (auto, hatchback, sedan, SUV, bike, scooter) with spinning wheels, steering,
  * brake/head lights. Driver runs an arcade model on a Rapier dynamic body and streams state; others interpolate. */
 import { VehicleModel, type VehicleVisualState } from "./vehicleModels";
-import { VEHICLE_INFO, TWO_WHEELERS } from "@kanpurverse/shared";
+import { VEHICLE_INFO, TWO_WHEELERS, DEFAULT_FUEL_LEVEL, fuelUses, fuelBurn } from "@kanpurverse/shared";
+import { weatherNow } from "./weather";
+import { fuelLevels, updateFuelTelemetry, fuelWarnings, refuelHere } from "./fuelRuntime";
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
-import { RigidBody, CuboidCollider, type RapierRigidBody, useBeforePhysicsStep, useRapier } from "@react-three/rapier";
+import { RigidBody, CuboidCollider, type RapierRigidBody, useBeforePhysicsStep, useRapier, interactionGroups } from "@react-three/rapier";
+import { vehicleImpulse, PEOPLE_GROUP } from "./vehicleHits";
+/** Vehicles collide with everything except people on foot, who react to the car instead (vehicleHits.ts). */
+const VEHICLE_GROUPS = interactionGroups(0, Array.from({ length: 16 }, (_, i) => i).filter(i => i !== PEOPLE_GROUP));
 import * as THREE from "three";
 import { VEHICLE_SPAWNS, type VehicleKind, type VehicleSnapshot, vehicleSeatPose } from "@kanpurverse/shared";
 import { useStore, tl } from "../state/store";
@@ -52,7 +57,8 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
     const dt = world.timestep; const rb = body.current; if (!rb) return; const s = useStore.getState();
     if (isDriver) {
       pollKeys(); const paused = s.paused || !!s.dialogue || !!s.cutscene || !!s.credits;
-      const fwd = paused ? 0 : input.fwd, st = paused ? 0 : input.right; const handbrake = input.jump && !paused;
+      const fuelLv = fuelLevels.get(snap.id) ?? DEFAULT_FUEL_LEVEL; const fuelOn = fuelUses(snap.kind); const fuelDead = fuelOn && fuelLv <= 0;
+      const fwd = paused || fuelDead ? 0 : input.fwd, st = paused ? 0 : input.right; const handbrake = input.jump && !paused;
       const correction = vehicleCorrections.get(snap.id);
       if (correction) {
         vehicleCorrections.delete(snap.id);
@@ -67,8 +73,15 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       if (impact > 3.5 && Math.abs(speed.current) > 4) { sfx.crash(Math.min(1, impact / 12)); const vh = s.game.vehicleHealth[snap.id] ?? { engine: 100, body: 100 }; s.set({ game: { ...s.game, vehicleHealth: { ...s.game.vehicleHealth, [snap.id]: { body: Math.max(0, vh.body - Math.round(impact * 1.8)), engine: Math.max(15, vh.engine - Math.round(Math.max(0, impact - 6) * 1.2)) } } } }); hurtPlayer(crashDamage(impact), "crash"); }
       const p0 = rb.translation(); const onRoad = roadsNear(p0.x, p0.z, 30).some(r => distToSeg(p0.x, p0.z, r) < r.w / 2 + 2.6); surfaceRef.current = onRoad ? 1 : 0.72;
       const vh = s.game.vehicleHealth[snap.id]; const engineK = vh ? 0.55 + 0.45 * vh.engine / 100 : 1; const effSpec = engineK < 1 ? { ...spec, max: spec.max * engineK, accel: spec.accel * (0.6 + 0.4 * engineK) } : spec;
-      const next = stepDriving({ speed: speed.current, steer: steer.current, yaw: yaw.current, slip: slip.current, yawRate: yawRate.current }, effSpec, { throttle: fwd, steer: st, brake: false, handbrake, surface: surfaceRef.current, noSlide: spec.cls === "two" || spec.cls === "pedal" }, actual, dt);
+      const next = stepDriving({ speed: speed.current, steer: steer.current, yaw: yaw.current, slip: slip.current, yawRate: yawRate.current }, effSpec, { throttle: fwd, steer: st, brake: false, handbrake, surface: surfaceRef.current * weatherNow.grip, noSlide: spec.cls === "two" || spec.cls === "pedal" }, actual, dt);
+      if (vehicleImpulse.scale !== 1) { next.speed *= vehicleImpulse.scale; vehicleImpulse.scale = 1; } // hit a person or a sapling
       speed.current = next.speed; steer.current = next.steer; yaw.current = next.yaw; slip.current = next.slip ?? 0; yawRate.current = next.yawRate ?? 0;
+      { // fuel: burn by distance and load, idle burn when standing, engine dead at zero; Y refuels inside a station
+        const nl = fuelOn && !paused ? Math.max(0, fuelLv - fuelBurn(snap.kind, Math.abs(next.speed) * dt, fwd, Math.abs(next.speed) < 0.5 ? dt : 0)) : fuelLv;
+        if (fuelOn) { fuelLevels.set(snap.id, nl); fuelWarnings(snap.id, snap.kind, nl); }
+        const fp = rb.translation(); if (!paused && once("KeyY")) refuelHere(snap.id, snap.kind, fp.x, fp.z, speed.current);
+        updateFuelTelemetry(snap.kind, fuelLevels.get(snap.id) ?? nl, fp.x, fp.z);
+      }
       const brake = handbrake || (fwd < 0 && speed.current > 0.5) || (fwd > 0 && speed.current < -0.5);
       // tyre marks + drift score: from the simulated slide, not an animation
       const sliding = isDrifting(next) || (brake && Math.abs(speed.current) > 9 && spec.cls !== "pedal");
@@ -118,7 +131,7 @@ function Vehicle({ snap }: { snap: VehicleSnapshot }) {
       <RigidBody ref={body} key={isDriver ? "dyn" : "kin"} type={isDriver ? "dynamic" : "kinematicPosition"} colliders={false} position={[initialPose.current.p[0], Math.max(initialPose.current.p[1], spec.size[1] / 2 + 0.05), initialPose.current.p[2]]} quaternion={initialPose.current.q} mass={900} linearDamping={0} angularDamping={5} enabledRotations={[false, true, false]} ccd>
         {/* Arcade traction is controlled by driving.ts. Chassis-ground friction must not act as a brake;
             use Min so the road's default friction does not restore sliding drag. */}
-        <CuboidCollider args={[spec.size[0] / 2, spec.size[1] / 2, spec.size[2] / 2]} friction={0} frictionCombineRule={rapier.CoefficientCombineRule.Min} restitution={0} />
+        <CuboidCollider args={[spec.size[0] / 2, spec.size[1] / 2, spec.size[2] / 2]} collisionGroups={VEHICLE_GROUPS} friction={0} frictionCombineRule={rapier.CoefficientCombineRule.Min} restitution={0} />
         {/* The model is a child of the body, so the physics provider draws it at the pose interpolated between fixed
             60 Hz steps. Positioning it by hand inside the step (as before) moved it in whole-step jumps: on any frame
             that ran zero or two steps the car visibly stuttered against the smoothed camera. */}

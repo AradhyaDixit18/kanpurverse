@@ -2,7 +2,7 @@
 /** In-game overlay: stats, mission tracker, interaction prompt, subtitles, toasts, minimap, mobile controls, menus. */
 import { useShallow } from "zustand/react/shallow";
 import { useEffect, useRef, useState } from "react";
-import { LANDMARKS, MISSIONS, SHOP_ITEMS, VEHICLE_SPECS, chapterFor, nextChapter, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
+import { LANDMARKS, MISSIONS, SHOP_ITEMS, VEHICLE_SPECS, chapterFor, storyUnlocked, sideMissionsOpen, type AnimState } from "@kanpurverse/shared";
 import { getRoads, roadsNear } from "../game/roads";
 import { camYaw } from "../game/input";
 import { useStore, tl } from "../state/store";
@@ -17,8 +17,9 @@ import { Minimap, Guidance, WorldMap } from "./MapUI";
 import { ShopPanel } from "./ShopPanel";
 import { StatusBars, VehicleNotice, KnockOut, InventoryPanel } from "./StatusHud";
 import { vehicleTelemetry } from "../game/refs";
+import { fuelTelemetry } from "../game/fuelRuntime";
+import { FUEL_NAMES } from "@kanpurverse/shared";
 import { driftHud } from "../game/Vehicles";
-import { Logo } from "./Brand";
 import { SettingsPanel } from "./Settings";
 
 export function HUD() {
@@ -55,25 +56,22 @@ export function HUD() {
       <Guidance />
       {/* top-left stats */}
       <div className="hud-stats">
-        <Logo size={14} /><small aria-live="polite">{s.saveState === "error" ? "⚠ सेव नहीं हुआ" : s.lastSavedAt ? "✓ इस डिवाइस पर सेव" : ""}</small>
-        <div className="story-chip">{(() => { const n = nextChapter(s.profile?.missionsCompleted ?? []); return n ? t(`Chapter ${n.n}/8 · ${n.title}`, `अध्याय ${n.n}/8 · ${n.titleHi}`) : t("Story complete · free roam", "कहानी पूरी · खुला शहर"); })()}</div>
-        <div>₹{(s.profile?.coins ?? 0).toLocaleString("en-IN")} · Lv {s.profile?.level ?? 1} · {s.profile?.xp ?? 0} XP</div>
-        <div className="muted">{t("SOLO STORY", "एकल कहानी")}{s.settings.showFps ? ` · ${s.fps} fps` : ""} · 🕒 {s.timeLabel} {t("Kanpur", "कानपुर")}</div>
-  {!s.inVehicle && !s.dialogue && !panel && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
+        <div className="hud-mini">₹{(s.profile?.coins ?? 0).toLocaleString("en-IN")} <span className="muted">· {s.timeLabel}{s.settings.showFps ? ` · ${s.fps} fps` : ""}</span></div>
+  {!s.inVehicle && !s.dialogue && !panel && (s.profile?.inventory?.gutka ?? 0) > 0 && <div className="street-tools"><span>Gutka / गुटखा ×{s.profile?.inventory?.gutka ?? 0}</span><button className="btn-sm" onClick={() => touchPress("KeyG")}>G · सेवन</button><button className="btn-sm" onClick={() => touchPress("KeyV")}>V · थूकना</button><small>नागरिक स्कोर {s.profile?.civic ?? 100}/100</small></div>}
       </div>
       {/* mission tracker */}
       {m && <div className="hud-mission"><b>{t(m.def.name, m.def.nameHi)}</b><div>{(() => { const ch = chapterFor(m.def.id); const o = ch?.objectives[m.index]; return o ? t(o[1], o[0]) : t(m.def.desc, m.def.descHi); })()}</div><div className="muted">{t("Checkpoint", "चेकपॉइंट")} {m.index + 1}/{m.def.checkpoints.length}{left !== undefined && <> · ⏱ {Math.ceil(left)}s</>} · {dist(m.def.checkpoints[m.index])} m</div></div>}
       {/* interaction prompt */}
       {s.nearby && !s.dialogue && !(s.inVehicle && s.nearby.kind === "vehicle") && <div className="hud-prompt"><kbd>E</kbd> {s.nearby.label}</div>}
       {s.inVehicle && s.seat === "driver" && <Speedo />}
-      {s.inVehicle && <div className="hud-vehicle">{t("W/S throttle · brake · A/D steer · Space handbrake · L lights · H horn · F exit", "W/S रफ़्तार · ब्रेक · A/D मोड़ो · Space हैंडब्रेक · L लाइट · H हॉर्न · F उतरो")}</div>}
+      {s.inVehicle && <Timed key={s.inVehicle} ms={7000}><div className="hud-vehicle">{t("W/S throttle · brake · A/D steer · Space handbrake · L lights · H horn · F exit", "W/S रफ़्तार · ब्रेक · A/D मोड़ो · Space हैंडब्रेक · L लाइट · H हॉर्न · F उतरो")}</div></Timed>}
       {/* subtitles */}
       {sub && s.settings.subtitles && <div className="hud-sub"><b>{sub.speaker}:</b> {sub.text}{sub.roman && s.settings.englishSubs && <div className="roman">{sub.roman}</div>}</div>}
       {/* toasts */}
       <div className="hud-toasts">{s.toasts.map(x => <div key={x.id} className={`toast ${x.kind}`}>{x.text}</div>)}</div>
       <Minimap />
       {s.settings.touch && <TouchControls onPause={() => setPanel("pause")} onChat={() => setPanel("quests")} onMap={() => setPanel("map")} />}
-      {!s.settings.touch && !panel && <div className="hud-hint muted">{t("Esc menu · M map · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · 1-6 इमोट · F1 मदद")}</div>}
+      {!s.settings.touch && !panel && <Timed ms={12000}><div className="hud-hint muted">{t("Esc menu · M map · 1-6 emotes · F1 help", "Esc मेन्यू · M नक्शा · 1-6 इमोट · F1 मदद")}</div></Timed>}
       <DialoguePanel />
       <ShopPanel />
       <StatusBars />
@@ -88,7 +86,7 @@ export function HUD() {
 function Speedo() { const [t, setT] = useState({ v: 0, name: "", rev: false, ind: 0, hl: "auto", cond: 100 }); useEffect(() => { const i = setInterval(() => { const s = useStore.getState(); setT({ v: Math.round(vehicleTelemetry.speed * 3.6), name: vehicleTelemetry.name, rev: vehicleTelemetry.reverse, ind: vehicleTelemetry.indicator, hl: s.settings.headlights ?? "auto", cond: (() => { const id = s.inVehicle; const vh = id ? s.game.vehicleHealth[id] : undefined; return vh ? Math.round(Math.min(vh.engine, vh.body)) : 100; })() }); }, 100); return () => clearInterval(i); }, []);
   const max = Math.max(60, Math.round((SPECS_KMH[vehicleTelemetry.kind] ?? 120) / 20) * 20); const a = -120 + Math.min(1, t.v / max) * 240;
   return <div className="hud-speedo v2" aria-label={`${t.v} km/h`}><svg viewBox="0 0 120 80" className="speedo-dial"><path d="M14 70 A50 50 0 1 1 106 70" stroke="#ffffff22" strokeWidth="6" fill="none" /><path d="M14 70 A50 50 0 1 1 106 70" stroke="#e5c17b" strokeWidth="6" fill="none" strokeDasharray={`${Math.min(1, t.v / max) * 236} 400`} /><line x1="60" y1="60" x2="60" y2="22" stroke="#ff5a3c" strokeWidth="2.5" transform={`rotate(${a} 60 60)`} /></svg>
-    <b>{t.v}</b><small>km/h · {t.rev ? "R" : t.v > 0 ? "D" : "N"}</small><div className="speedo-meta"><span className={t.ind === -1 || t.ind === 2 ? "ind on" : "ind"}>◀</span><span title="Headlights">💡{t.hl === "auto" ? "A" : t.hl === "on" ? "●" : "○"}</span><span title="Condition">🔧{t.cond}%</span><span className={t.ind === 1 || t.ind === 2 ? "ind on" : "ind"}>▶</span></div><div className="speedo-name">{t.name}</div>{driftHud.active && <div className="drift-score">{useStore.getState().settings.lang === "english" ? "DRIFT" : "ड्रिफ्ट"} {driftHud.score}</div>}</div>; }
+    <b>{t.v}</b><small>km/h · {t.rev ? "R" : t.v > 0 ? "D" : "N"}</small><div className="speedo-meta"><span className={t.ind === -1 || t.ind === 2 ? "ind on" : "ind"}>◀</span><span title="Headlights">💡{t.hl === "auto" ? "A" : t.hl === "on" ? "●" : "○"}</span><span title="Condition">🔧{t.cond}%</span><span className={t.ind === 1 || t.ind === 2 ? "ind on" : "ind"}>▶</span></div><div className="speedo-name">{t.name}</div><FuelGauge />{driftHud.active && <div className="drift-score">{useStore.getState().settings.lang === "english" ? "DRIFT" : "ड्रिफ्ट"} {driftHud.score}</div>}</div>; }
 const SPECS_KMH: Record<string, number> = Object.fromEntries(Object.entries(VEHICLE_SPECS).map(([k, v]) => [k, v.max * 3.6]));
 function Compass() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -183,3 +181,22 @@ function GaragePanel({ close }: { close: () => void }) {
     <p>{t("Owned vehicles", "अपनी गाड़ियाँ")}: {s.ownedVehicles.join(", ")}</p><p className="muted">{t("Vehicle colours and upgrades: planned, not in this build.", "गाड़ी के रंग और अपग्रेड: योजना में, इस बिल्ड में नहीं।")}</p><button className="btn" onClick={close}>{t("Close", "बंद")}</button></>;
 }
 void once; void (0 as unknown as AnimState);
+
+/** Tank gauge, range, low-fuel warning and the refuel prompt. Reads fuelTelemetry on a timer; pedal vehicles show nothing. */
+function FuelGauge() {
+  const [f, setF] = useState({ ...fuelTelemetry });
+  useEffect(() => { const i = setInterval(() => setF({ ...fuelTelemetry }), 150); return () => clearInterval(i); }, []);
+  const en = useStore(s => s.settings.lang === "english"); if (!f.on) return null;
+  const n = FUEL_NAMES[f.type]; const pct = Math.round(f.level * 100); const colour = f.dead || f.low ? "#ff5a3c" : "#e5c17b";
+  return <div className="fuel-gauge" role="status" aria-label={`${en ? n.en : n.hi} ${pct}%`} style={{ marginTop: 6, fontSize: 12, lineHeight: 1.25 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span aria-hidden>⛽</span>
+      <div style={{ flex: 1, height: 6, borderRadius: 3, background: "#ffffff22", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: colour }} /></div>
+      <b style={{ color: colour }}>{f.units.toFixed(f.units < 10 ? 1 : 0)}{f.unit}</b></div>
+    <small>{en ? n.en : n.hi} · {f.dead ? (en ? "EMPTY" : "खाली") : `${f.rangeKm.toFixed(1)} km`}{f.low && !f.dead ? (en ? " · LOW" : " · कम") : ""}</small>
+    {f.station ? <div style={{ color: f.stationServes ? "#9be3a6" : "#ff9a85" }}>{f.stationServes ? `Y · ${en ? "refuel" : "ईंधन भरें"} (${f.station})` : (en ? `${f.station}: no ${n.en.toLowerCase()} here` : `${f.station}: ${n.hi} नहीं`)}</div>
+      : (f.low || f.dead) && f.nearestM >= 0 ? <div style={{ color: "#ff9a85" }}>{en ? "Nearest" : "सबसे पास"}: {f.nearestName}, {f.nearestM} m</div> : null}
+  </div>;
+}
+
+/** Shows a hint, then gets out of the way. */
+function Timed({ ms, children }: { ms: number; children: React.ReactNode }) { const [on, setOn] = useState(true); useEffect(() => { const t = setTimeout(() => setOn(false), ms); return () => clearTimeout(t); }, [ms]); return on ? <>{children}</> : null; }

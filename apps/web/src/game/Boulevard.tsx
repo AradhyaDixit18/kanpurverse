@@ -73,8 +73,9 @@ export function Boulevard() {
         lampMaterial,
         Math.max(1, result.length),
       );
-    trunks.count = result.length;
-    leaves.count = result.length * 5;
+    // Road-edge trees now come from TreeSystem (species, branches, leaf clusters, fruit). This component keeps its light pools.
+    trunks.count = 0;
+    leaves.count = 0;
     bulbs.count = result.length;
     const o = new THREE.Object3D(),
       c = new THREE.Color();

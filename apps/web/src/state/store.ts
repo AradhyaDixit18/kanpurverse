@@ -4,7 +4,7 @@ import { DEFAULT_APPEARANCE, PROTAGONIST, newGameState, type GameState, type TxR
 
 import { resolveGraphics, type Quality, type GraphicsOverrides, type ResolvedGraphics } from "../game/graphics";
 export type { Quality };
-export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; englishSubs?: boolean; gpsArrows?: boolean; gfx?: GraphicsOverrides; classicCharacters?: boolean; headlights?: "auto" | "on" | "off"; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
+export interface Settings { atmosphere: "cycle" | "day" | "sunset" | "night"; weather?: "clear" | "overcast" | "rain" | "fog"; season?: "auto" | "summer" | "monsoon" | "winter"; cleanLanguage: boolean; langChosen?: boolean; lang: Language; subtitles: boolean; voice: boolean; master: number; music: number; sfx: number; ambience: number; dialogue: number; quality: Quality; englishSubs?: boolean; gpsArrows?: boolean; gfx?: GraphicsOverrides; classicCharacters?: boolean; headlights?: "auto" | "on" | "off"; sensitivity: number; invertY: boolean; largeText: boolean; reduceMotion: boolean; colorblind: boolean; showFps: boolean; touch: boolean }
 export interface Subtitle { speaker: string; text: string; roman?: string; until: number }
 export interface MissionState { def: MissionDef; index: number; startedAt: number; status: "started" | "completed" | "failed" }
 

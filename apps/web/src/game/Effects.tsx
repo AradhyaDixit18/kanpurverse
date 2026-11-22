@@ -8,8 +8,8 @@ export function Effects() {
   const ao = g.ao !== "off";
   return <EffectComposer key={`${g.ao}:${g.aa}`} multisampling={g.aa === "msaa" ? 4 : 0}>{[
     ...(ao ? [<N8AO key="ao" aoRadius={1.6} distanceFalloff={0.6} intensity={2.2} quality={g.ao === "full" ? "medium" : "performance"} halfRes={g.ao !== "full"} depthAwareUpsampling />] : []),
-    <HueSaturation key="grade" saturation={0.04} />,
-    <BrightnessContrast key="bc" contrast={0.06} />,
+    <HueSaturation key="grade" saturation={0.12} />,
+    <BrightnessContrast key="bc" brightness={-0.01} contrast={0.11} />,
     <Bloom key="bloom" intensity={0.22} luminanceThreshold={1} luminanceSmoothing={0.2} mipmapBlur />,
     <Vignette key="vignette" eskil={false} offset={0.28} darkness={0.22} />,
     ...(g.aa === "smaa" ? [<SMAA key="aa" />] : []),

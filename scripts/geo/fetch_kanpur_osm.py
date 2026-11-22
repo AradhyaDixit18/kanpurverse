@@ -36,6 +36,8 @@ QUERY = f"""[out:json][timeout:180];
   way["waterway"="river"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
   way["leisure"~"^(park|garden|stadium|pitch)$"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
   way["landuse"~"^(grass|recreation_ground)$"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
+  node["amenity"~"^(fuel|charging_station)$"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
+  way["amenity"~"^(fuel|charging_station)$"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
   node["amenity"~"^(place_of_worship|hospital|college|university|school|marketplace|cinema|bus_station|fuel|police|restaurant|cafe)$"]["name"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
   way["amenity"~"^(place_of_worship|hospital|college|university|school|marketplace|cinema|bus_station|police)$"]["name"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
   node["shop"]["name"]({BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]});
@@ -77,10 +79,25 @@ def simplify(pts, tol=0.8):
 ROAD_WIDTH = {"motorway": 20, "trunk": 18, "primary": 16, "secondary": 13, "tertiary": 10, "unclassified": 8, "residential": 7, "living_street": 6, "service": 5, "pedestrian": 6}
 LANES_DEFAULT = {"primary": 4, "secondary": 2, "tertiary": 2}
 
+def fuel_record(e, tags, p):
+    """A fuel or EV-charging site with the tags the game's fuel system needs. Services are only 'confirmed' when OSM carries a
+    fuel:* tag (or the site is a charging_station); otherwise the game assumes petrol + diesel and marks the list unconfirmed."""
+    yes = lambda k: tags.get(k) == "yes"
+    services = []
+    if tags.get("amenity") == "charging_station" or yes("fuel:electricity"): services.append("electric")
+    if yes("fuel:diesel"): services.append("diesel")
+    if yes("fuel:cng"): services.append("cng")
+    if any(yes(k) for k in ("fuel:octane_91", "fuel:octane_95", "fuel:octane_98", "fuel:octane_100", "fuel:petrol", "fuel:gasoline")): services.append("petrol")
+    confirmed = bool(services)
+    if not services and tags.get("amenity") == "fuel": services = ["petrol", "diesel"]
+    return {"id": e["id"], "type": e["type"], "name": tags.get("name"), "nameHi": tags.get("name:hi"), "brand": tags.get("brand"), "operator": tags.get("operator"),
+            "services": services, "servicesConfirmed": confirmed, "p": p}
+
 def main():
     print("Fetching OSM (Overpass)…"); raw = fetch(); els = raw.get("elements", [])
     nodes = {e["id"]: e for e in els if e["type"] == "node"}
     roads, rails, platforms, buildings, water, parks, pois, places, crossings, stations = [], [], [], [], [], [], [], [], [], []
+    fuel = []
     for e in els:
         tags = e.get("tags", {}); geom = e.get("geometry")
         if e["type"] == "way" and geom:
@@ -98,11 +115,14 @@ def main():
                 buildings.append({"id": e["id"], "name": tags.get("name"), "kind": tags.get("building"), "levels": levels, "pts": pts})
             elif tags.get("natural") == "water" or tags.get("waterway") == "river": water.append({"id": e["id"], "name": tags.get("name"), "pts": pts, "river": tags.get("waterway") == "river"})
             elif tags.get("leisure") in ("park", "garden", "stadium", "pitch") or tags.get("landuse") in ("grass", "recreation_ground"): parks.append({"id": e["id"], "name": tags.get("name"), "kind": tags.get("leisure") or tags.get("landuse"), "pts": pts})
+            if tags.get("amenity") in ("fuel", "charging_station"):
+                fuel.append(fuel_record(e, tags, [round(sum(q[0] for q in pts) / len(pts), 1), round(sum(q[1] for q in pts) / len(pts), 1)]))
             if tags.get("name") and (tags.get("amenity") or tags.get("tourism")):
                 cx = sum(p[0] for p in pts) / len(pts); cz = sum(p[1] for p in pts) / len(pts)
                 pois.append({"id": e["id"], "name": tags["name"], "nameHi": tags.get("name:hi"), "kind": tags.get("amenity") or tags.get("tourism"), "p": [round(cx, 1), round(cz, 1)]})
         elif e["type"] == "node" and "lat" in e:
             p = proj(e["lat"], e["lon"])
+            if tags.get("amenity") in ("fuel", "charging_station"): fuel.append(fuel_record(e, tags, p))
             if tags.get("railway") in ("station", "halt"): stations.append({"id": e["id"], "name": tags.get("name"), "nameHi": tags.get("name:hi"), "p": p})
             elif tags.get("railway") in ("level_crossing", "crossing"): crossings.append({"id": e["id"], "p": p, "kind": tags["railway"]})
             elif tags.get("place"): places.append({"id": e["id"], "name": tags.get("name"), "nameHi": tags.get("name:hi"), "kind": tags["place"], "p": p})
@@ -113,10 +133,10 @@ def main():
                     pts = clip_rect(simplify([proj(g["lat"], g["lon"]) for g in m["geometry"]]))
                     if len(pts) >= 4: water.append({"id": e["id"], "name": tags.get("name"), "pts": pts, "river": False})
     out = {"source": "OpenStreetMap contributors, ODbL 1.0", "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "bbox": BBOX, "center": CENTER, "axes": "+x east, +z south, metres",
-           "roads": roads, "rails": rails, "platforms": platforms, "buildings": buildings, "water": water, "parks": parks, "pois": pois, "places": places, "crossings": crossings, "stations": stations}
+           "roads": roads, "rails": rails, "platforms": platforms, "buildings": buildings, "water": water, "parks": parks, "pois": pois, "places": places, "crossings": crossings, "stations": stations, "fuel": fuel}
     OUT.parent.mkdir(parents=True, exist_ok=True); OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     named = {r["name"] for r in roads if r.get("name")}
-    prov = {"fetchedAt": out["fetchedAt"], "bbox": BBOX, "counts": {k: len(out[k]) for k in ("roads", "rails", "platforms", "buildings", "water", "parks", "pois", "places", "crossings", "stations")},
+    prov = {"fetchedAt": out["fetchedAt"], "bbox": BBOX, "counts": {k: len(out[k]) for k in ("roads", "rails", "platforms", "buildings", "water", "parks", "pois", "places", "crossings", "stations")} | {"fuel": len(fuel)},
             "namedRoads": sorted(named), "stations": [s["name"] for s in stations], "places": [p["name"] for p in places if p.get("name")], "landmarks": [p["name"] for p in pois][:400]}
     AUDIT.write_text(json.dumps(prov, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"wrote {OUT} ({OUT.stat().st_size // 1024} kB)"); print(json.dumps(prov["counts"])); print("named roads:", len(named)); print("stations:", prov["stations"])

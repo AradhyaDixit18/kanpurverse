@@ -51,7 +51,7 @@ export function stepDriving(state: DriveState, spec: Handling, input: DriveInput
   // Use the solver's result each tick: collisions cannot leave hidden commanded momentum.
   let speed = actualSpeed;
   const reverseMax = spec.max * 0.35;
-  const brakeDecel = Math.max(10, spec.brake ?? 10);
+  const brakeDecel = Math.max(10, spec.brake ?? 10) * Math.min(1, 0.45 + 0.55 * (input.surface ?? 1)); // wet or loose ground lengthens stops
   const drag = spec.drag ?? 0.0016;
   const handbrake = !!input.handbrake;
   const before = speed;
@@ -94,7 +94,7 @@ export function stepDriving(state: DriveState, spec: Handling, input: DriveInput
   const yaw = state.yaw - yawRate * dt;
 
   // Lateral demand vs rear grip: handbrake, power-on at the limit or a slippery surface break the rear loose.
-  const lat = speed * yawRate, demand = Math.abs(lat) / G, rearGrip = baseGrip * (handbrake ? 0.45 : input.throttle > 0.6 && Math.abs(speed) > 9 ? 0.82 : 1) * (surface < 0.95 ? 0.7 : 1); // loose surfaces let the rear go first
+  const lat = speed * yawRate, demand = Math.abs(lat) / G, rearGrip = baseGrip * (handbrake ? 0.45 : input.throttle > 0.6 && Math.abs(speed) > 9 ? 0.82 : 1) * (surface < 0.8 ? 0.7 : 1); // loose surfaces let the rear go first
   if (!input.noSlide && Math.abs(speed) > 4) {
     if (handbrake) slip += Math.sign(yawRate * speed) * Math.min(6, Math.abs(lat) * 0.5) * dt;
     else if (demand > rearGrip) slip += Math.sign(yawRate * speed) * (demand - rearGrip) * G * 0.9 * dt;

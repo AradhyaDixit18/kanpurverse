@@ -22,3 +22,6 @@ export const SHOP_ITEMS: { id: string; name: string; nameHi: string; price: numb
 export * from "./vehicles";
 export * from "./economy";
 export * from "./shops";
+export * from "./fuel";
+export * from "./weather";
+export * from "./trees";

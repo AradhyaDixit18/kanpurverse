@@ -4,7 +4,8 @@ import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { renderWorldTime } from "./syncedClock";
 import * as THREE from "three";
-import { useGraphics } from "../state/store";
+import { useGraphics, useStore } from "../state/store";
+import { stepWeather, applyWetness } from "./weather";
 import { playerPos } from "./Player";
 
 const K = {
@@ -22,35 +23,38 @@ function phase(t: number) { // returns weights for night/dawn/day/dusk from worl
 const mix = (key: "top" | "horizon" | "fog" | "sun", w: ReturnType<typeof phase>, out: THREE.Color) => { out.set(0, 0, 0); for (const k of ["night", "dawn", "day", "dusk"] as const) out.add(new THREE.Color(K[k][key]).multiplyScalar(w[k])); return out; };
 
 const skyVert = `varying vec3 vWorld; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
-const skyFrag = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float sunGlow; uniform float stars; uniform vec2 cloudOff; uniform float cloudAmt; varying vec3 vWorld;
+const skyFrag = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float sunGlow; uniform float stars; uniform vec2 cloudOff; uniform float cloudAmt; uniform float overcast; uniform float grey; varying vec3 vWorld;
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1.0,0.0)), f.x), mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), f.x), f.y); }
 float fbm(vec2 p){ float a = 0.5, s = 0.0; for (int k = 0; k < 5; k++) { s += a * vnoise(p); p = p * 2.03 + vec2(17.0, 9.0); a *= 0.5; } return s; }
 void main(){ vec3 d = normalize(vWorld - cameraPosition); float h = clamp(d.y, 0.0, 1.0); vec3 col = mix(horizon, top, pow(h, 0.55));
-  float s = max(dot(d, sunDir), 0.0); col += sunColor * (pow(s, 240.0) * 1.2 + pow(s, 12.0) * 0.25 * sunGlow + pow(s, 3.0) * 0.12 * sunGlow);
+  float s = max(dot(d, sunDir), 0.0); col += sunColor * (1.0 - 0.9 * overcast) * (pow(s, 240.0) * 1.2 + pow(s, 12.0) * 0.25 * sunGlow + pow(s, 3.0) * 0.12 * sunGlow);
   // High, thin cloud drawn in the sky itself (no geometry): lit by the sun, warmer towards it, fading into the haze.
-  if (d.y > 0.0 && cloudAmt > 0.0) { vec2 uv = d.xz / (d.y + 0.14) * 1.25 + cloudOff; float c = smoothstep(0.5, 0.86, fbm(uv)) * smoothstep(0.02, 0.22, d.y);
-    vec3 lit = mix(horizon * 1.08, vec3(1.0), 0.22) + sunColor * (0.16 + 0.55 * pow(s, 4.0)) * (0.35 + sunGlow); col = mix(col, lit, c * cloudAmt); }
+  if (d.y > 0.0 && cloudAmt > 0.0) { vec2 uv = d.xz / (d.y + 0.14) * 1.25 + cloudOff; float c = smoothstep(0.5 - 0.42 * overcast, 0.86 - 0.4 * overcast, fbm(uv)) * smoothstep(0.02, 0.22, d.y);
+    vec3 lit = mix(horizon * 1.08, vec3(1.0), 0.22) + sunColor * (0.16 + 0.55 * pow(s, 4.0)) * (0.35 + sunGlow); col = mix(col, lit * (1.0 - 0.38 * overcast), c * cloudAmt); }
   col = mix(col, horizon * 1.04 + sunColor * 0.1 * sunGlow * pow(s, 2.0), pow(1.0 - h, 7.0) * 0.55); // haze band along the horizon
   if (stars > 0.0 && d.y > 0.02) { vec2 g = floor(d.xz / max(d.y, 0.05) * 60.0); float r = hash(g); float tw = step(0.985, r) * (0.5 + 0.5 * sin(r * 100.0)); col += vec3(tw) * stars * d.y; }
+  col = mix(col, vec3(dot(col, vec3(0.3333))) * (1.0 - 0.16 * grey), grey);
   gl_FragColor = vec4(col, 1.0); }`;
 
 export function Sky() {
   const sun = useRef<THREE.DirectionalLight>(null); const amb = useRef<THREE.AmbientLight>(null); const hemi = useRef<THREE.HemisphereLight>(null); const { scene } = useThree();
   const target = useRef(new THREE.Object3D()); const g = useGraphics(); const dome = useRef<THREE.Mesh>(null); const sunMesh = useRef<THREE.Mesh>(null); const moon = useRef<THREE.Mesh>(null);
-  const uniforms = useMemo(() => ({ top: { value: new THREE.Color(K.day.top) }, horizon: { value: new THREE.Color(K.day.horizon) }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: new THREE.Color(K.day.sun) }, sunGlow: { value: 1 }, stars: { value: 0 }, cloudOff: { value: new THREE.Vector2(3.1, 7.7) }, cloudAmt: { value: 0.7 } }), []);
+  const uniforms = useMemo(() => ({ top: { value: new THREE.Color(K.day.top) }, horizon: { value: new THREE.Color(K.day.horizon) }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: new THREE.Color(K.day.sun) }, sunGlow: { value: 1 }, stars: { value: 0 }, cloudOff: { value: new THREE.Vector2(3.1, 7.7) }, overcast: { value: 0 }, grey: { value: 0 }, cloudAmt: { value: 0.7 } }), []);
   const tmp = useMemo(() => ({ a: new THREE.Color(), b: new THREE.Color(), c: new THREE.Color() }), []);
 
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    const wl = stepWeather(useStore.getState().settings.weather ?? "clear", dt); applyWetness(wl.wet);
     const t = renderWorldTime.v; const a = t * Math.PI * 2 - Math.PI / 2; const elev = Math.sin(a); const w = phase(t);
     const dir = new THREE.Vector3(Math.cos(a) * 0.8, Math.max(-0.3, elev), 0.5).normalize();
     uniforms.sunDir.value.copy(dir); mix("top", w, uniforms.top.value); mix("horizon", w, uniforms.horizon.value); mix("sun", w, uniforms.sunColor.value); uniforms.sunGlow.value = w.dawn + w.dusk + 0.4 * w.day; uniforms.stars.value = w.night * 0.9; uniforms.cloudAmt.value = 0.78 - 0.5 * w.night; uniforms.cloudOff.value.set(3.1 + performance.now() * 0.0000045, 7.7 + performance.now() * 0.000002);
-    const fogC = mix("fog", w, tmp.c); const fog = scene.fog as THREE.Fog | null; if (fog) { fog.color.copy(fogC); fog.near = g.fogNear * (1 - 0.62 * (w.dusk + w.dawn)); } // golden hour: haze starts closer, so depth reads warm and soft
+    const fogC = mix("fog", w, tmp.c); const fog = scene.fog as THREE.Fog | null; if (fog) { fog.color.copy(fogC); fog.near = g.fogNear * (1 - 0.62 * (w.dusk + w.dawn)) * wl.fogNear; fog.far = g.viewDistance * wl.fogFar; const lum = (fogC.r + fogC.g + fogC.b) / 3; fog.color.lerp(tmp.a.setRGB(lum, lum, lum * 1.02), wl.grey * 0.55); } // golden hour: haze starts closer, so depth reads warm and soft
+    uniforms.overcast.value = wl.cloud; uniforms.grey.value = wl.grey; uniforms.cloudAmt.value = Math.max(uniforms.cloudAmt.value, wl.cloud * 0.95);
     const dayLight = THREE.MathUtils.clamp(elev * 1.6 + 0.25, 0, 1);
-    if (sun.current) { const c = snapToShadowTexels(playerPos, dir, (2 * g.shadowExtent) / Math.max(512, g.shadowMap)); sun.current.position.set(c.x + dir.x * 140, c.y + Math.max(6, dir.y * 160), c.z + dir.z * 140); sun.current.intensity = 0.16 + dayLight * 3.0; sun.current.color.copy(uniforms.sunColor.value); target.current.position.copy(c); sun.current.target = target.current; }
-    if (amb.current) amb.current.intensity = K.night.amb * w.night + K.dawn.amb * w.dawn + K.day.amb * w.day + K.dusk.amb * w.dusk;
-    if (hemi.current) { hemi.current.intensity = 0.24 + dayLight * 0.35; hemi.current.color.copy(uniforms.top.value); }
+    if (sun.current) { const c = snapToShadowTexels(playerPos, dir, (2 * g.shadowExtent) / Math.max(512, g.shadowMap)); sun.current.position.set(c.x + dir.x * 140, c.y + Math.max(6, dir.y * 160), c.z + dir.z * 140); sun.current.intensity = 0.16 + dayLight * 3.0 * wl.sun; sun.current.color.copy(uniforms.sunColor.value); target.current.position.copy(c); sun.current.target = target.current; }
+    if (amb.current) amb.current.intensity = (K.night.amb * w.night + K.dawn.amb * w.dawn + K.day.amb * w.day + K.dusk.amb * w.dusk) * wl.ambient;
+    if (hemi.current) { hemi.current.intensity = (0.24 + dayLight * 0.35) * wl.ambient; hemi.current.color.copy(uniforms.top.value); }
     if (dome.current) dome.current.position.copy(playerPos);
     if (sunMesh.current) { sunMesh.current.position.set(playerPos.x + dir.x * 600, dir.y * 600, playerPos.z + dir.z * 600); sunMesh.current.visible = dir.y > -0.05; }
     if (moon.current) { moon.current.position.set(playerPos.x - dir.x * 600, -dir.y * 600 + 80, playerPos.z - dir.z * 600); moon.current.visible = w.night > 0.2; }

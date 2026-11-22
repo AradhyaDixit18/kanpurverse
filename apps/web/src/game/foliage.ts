@@ -5,9 +5,9 @@
  */
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-export function foliageGeometry() {
+export function foliageGeometry(detail = 3) {
   // Vertices are merged so the crown shades as one soft mass instead of facets.
-  const raw = new THREE.IcosahedronGeometry(1, 3); raw.deleteAttribute("normal"); raw.deleteAttribute("uv"); const g = mergeVertices(raw, 1e-4); raw.dispose(); const p = g.getAttribute("position"); const col = new Float32Array(p.count * 3); const v = new THREE.Vector3();
+  const raw = new THREE.IcosahedronGeometry(1, detail); raw.deleteAttribute("normal"); raw.deleteAttribute("uv"); const g = mergeVertices(raw, 1e-4); raw.dispose(); const p = g.getAttribute("position"); const col = new Float32Array(p.count * 3); const v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i);
     const n = Math.sin(v.x * 5.1 + v.y * 3.7) * Math.cos(v.z * 4.3 + v.x * 1.9) * 0.14 + Math.sin(v.y * 9.3 + v.z * 7.1) * 0.06 + Math.cos(v.x * 12.7 - v.z * 8.3) * 0.04;
     v.multiplyScalar(1 + n); p.setXYZ(i, v.x, v.y, v.z);

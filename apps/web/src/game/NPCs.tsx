@@ -1,7 +1,13 @@
 "use client";
 /** NPC pedestrians & shopkeepers: path-following, player-facing when near, idle barks with subtitles. */
 import { useMemo, useRef, useState, useEffect } from "react";
-import { RigidBody, CapsuleCollider, useBeforePhysicsStep } from "@react-three/rapier";
+import { RigidBody, CapsuleCollider, useBeforePhysicsStep, interactionGroups } from "@react-three/rapier";
+import { HitReaction, drivenCar, slowCar, PEOPLE_GROUP } from "./vehicleHits";
+import { sfx } from "../audio/sfx";
+const PEOPLE_GROUPS = interactionGroups(PEOPLE_GROUP);
+let lastStruckToast = 0;
+/** A person was hit by the player's vehicle: a thud, the car loses some speed, and (at most every few seconds) a warning. */
+function personStruck() { sfx.crash(0.3); slowCar(0.82); const now = performance.now(); if (now - lastStruckToast > 5000) { lastStruckToast = now; const s = useStore.getState(); s.toast(s.settings.lang === "english" ? "Watch out! You hit someone." : "अरे भइया, देख के चलाओ! किसी को टक्कर लग गई।", "error"); } }
 import { usePedestrianBody } from "./usePedestrianBody";
 import { CHARACTER } from "./characterPhysics";
 import { useFrame } from "@react-three/fiber";
@@ -55,15 +61,23 @@ function Walker({ w }: { w: { seg: Seg; off: number; start: number; speed: numbe
   const g=useRef<THREE.Group>(null),distance=useRef(w.start+useStore.getState().worldTime*86400*w.speed);
   const sample=(d:number)=>{const path=((d%(w.seg.len*2))+w.seg.len*2)%(w.seg.len*2),fwd=path<w.seg.len,s=fwd?path:w.seg.len*2-path,forward=(fwd?1:-1)*w.dir>0;const [x,z]=segPoint(w.seg,w.dir>0?s:w.seg.len-s,w.off);return {x,y:0,z,yaw:segYaw(w.seg,forward)};};
   const initial=useRef(sample(distance.current)),motion=usePedestrianBody([initial.current.x,0,initial.current.z]),[anim,setAnim]=useState<AnimState>("walk");
-  useBeforePhysicsStep(()=>{const next=sample(distance.current+w.speed*motion.world.timestep),moved=motion.resolve(next);if(moved>.001)distance.current+=w.speed*motion.world.timestep;if(g.current){g.current.position.set(next.x,next.y,next.z);g.current.rotation.y=next.yaw;}const want=moved>.001?"walk":"idle";if(anim!==want)setAnim(want);});
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim} speed={w.speed} kit={w.kit}/></group></>;
+  const hit=useRef(new HitReaction()),off=useRef({x:0,z:0});
+  useBeforePhysicsStep(()=>{const dt=motion.world.timestep,next=sample(distance.current+(hit.current.down?0:w.speed*dt));
+    // a car aimed at this walker makes them step aside; a car that reaches them knocks them down (vehicleHits.ts)
+    const r=hit.current.step(next.x+off.current.x,next.z+off.current.z,dt,drivenCar());if(r.struck)personStruck();
+    off.current.x+=r.dx;off.current.z+=r.dz;if(!r.busy){const k=Math.min(1,dt*0.6);off.current.x-=off.current.x*k;off.current.z-=off.current.z*k;}
+    next.x+=off.current.x;next.z+=off.current.z;if(r.facing!==null)next.yaw=r.facing;
+    const moved=motion.resolve(next);if(moved>.001&&!hit.current.down&&!r.busy)distance.current+=w.speed*dt;
+    if(g.current){g.current.rotation.order="YXZ";g.current.position.set(next.x,next.y,next.z);g.current.rotation.set(-Math.PI/2*0.97*r.lie,next.yaw,0);}
+    const want=r.lie>0?"idle":moved>.001?"walk":"idle";if(anim!==want)setAnim(want);});
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]} collisionGroups={PEOPLE_GROUPS}/></RigidBody><group ref={g} position={[initial.current.x,0,initial.current.z]}><Avatar appearance={w.app} anim={anim} speed={w.speed} kit={w.kit}/></group></>;
 }
 function NPC({ def }: { def: NpcDef }) {
   const g = useRef<THREE.Group>(null); const idx = useRef(1); const [anim, setAnim] = useState<AnimState>("idle"); const barkAt = useRef(performance.now() + 8000 + Math.random() * 15000);
   const female = /priya|sunita|rekha/.test(def.id);
   const app = useMemo(() => appearanceFor(def.appearanceSeed, def.role, female), [def, female]); const kit = useMemo(() => kitFor(def.appearanceSeed, def.role, female), [def, female]);
   const pos = useRef(new THREE.Vector3(def.path[0][0], 0, def.path[0][1])); const lines = useDialogueLines();
-  const lastBump = useRef(0); const greetAt = useRef(-99999); const blocked = useRef(0);
+  const lastBump = useRef(0); const greetAt = useRef(-99999); const blocked = useRef(0); const hit = useRef(new HitReaction());
   const motion=usePedestrianBody([def.path[0][0],0,def.path[0][1]]);
   useEffect(() => { npcPositions.set(def.id, { x: pos.current.x, z: pos.current.z }); }, [def.id]);
 
@@ -71,6 +85,9 @@ function NPC({ def }: { def: NpcDef }) {
     const dt=motion.world.timestep; let walking=false;
     const p = pos.current; const dPlayer = Math.hypot(playerPos.x - p.x, playerPos.z - p.z); const s = useStore.getState();
     const active=dPlayer<110; motion.enable(active); if(!active)return;
+    { const r = hit.current.step(p.x, p.z, dt, drivenCar()); if (r.struck) personStruck();
+      if (g.current) { g.current.rotation.order = "YXZ"; g.current.rotation.x = -Math.PI / 2 * 0.97 * r.lie; }
+      if (r.busy) { p.x += r.dx; p.z += r.dz; if (r.facing !== null && g.current) g.current.rotation.y = r.facing; motion.resolve(p); npcPositions.set(def.id, { x: p.x, z: p.z }); if (g.current) g.current.position.copy(p); const want: AnimState = r.lie > 0 ? "idle" : "walk"; if (anim !== want) setAnim(want); return; } }
     const talking = s.dialogue?.npc === def.id;
     const face = (yaw: number) => { if (!g.current) return; let d = yaw - g.current.rotation.y; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; g.current.rotation.y += d * (1 - Math.exp(-dt * 8)); };
     const mood = streetRuntime.moods.get(def.id); const reacting = !!mood && performance.now() < mood.until;
@@ -95,6 +112,6 @@ function NPC({ def }: { def: NpcDef }) {
     if (performance.now() > barkAt.current) { barkAt.current = performance.now() + 20000 + Math.random() * 25000; if (dPlayer < 14 && !s.dialogue && s.settings.subtitles) { const l = pick(lines, def.id, "idle") ?? pick(lines, "any", "idle"); if (l) speak(l, def.id); } }
   });
   const label = useStore(s => s.settings.lang === "english" ? def.name : def.nameHi);
-  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} speed={def.speed || undefined} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} kit={kit} /></group></>;
+  return <><RigidBody ref={motion.body} type="kinematicPosition" colliders={false} position={motion.pose}><CapsuleCollider args={[CHARACTER.halfHeight,CHARACTER.radius]} collisionGroups={PEOPLE_GROUPS}/></RigidBody><group ref={g} position={[def.path[0][0],0,def.path[0][1]]}><Avatar appearance={app} anim={anim} speed={def.speed || undefined} name={label} nameColor={def.role === "guide" ? "#ffd23f" : "#cfd3da"} kit={kit} /></group></>;
 }
 function pick(lines: DialogueLine[], npc: string, cat: DialogueLine["category"]) { const pool = lines.filter(l => l.category === cat && l.npc === npc); return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined; }

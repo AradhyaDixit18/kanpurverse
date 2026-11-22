@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COVER, groundCoverAround, growth, valueNoise } from "../apps/web/src/game/groundCover";
+import { COVER, groundCoverAround, growth, valueNoise } from "../apps/web/src/game/groundCoverData";
 import { distToRoad } from "../apps/web/src/game/propPlacement";
 
 const road = { a: [-200, 0] as [number, number], b: [200, 0] as [number, number], w: 12 };

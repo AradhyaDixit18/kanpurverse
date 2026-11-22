@@ -20,6 +20,7 @@ import { Boulevard } from "./Boulevard";
 import { FestivalChase } from "./FestivalChase";
 import { StoryWorld } from "./StoryWorld";
 import { Sky } from "./Sky";
+import { Rain } from "./Rain";
 import { MissionMarkers } from "./Missions";
 import { Traffic } from "./Traffic";
 import { Railway } from "./Railway";
@@ -88,7 +89,7 @@ export function Game({ qaScenario }: { qaScenario?: "vehicles" } = {}) {
     <Canvas data-engine="kanpurverse" shadows={g.shadows !== "off" ? (g.softShadows ? "soft" : true) : false} dpr={g.dpr} camera={{ fov: 60, near: CAMERA_NEAR, far: g.cameraFar, position: [0, 4, 10] }} gl={{ preserveDrawingBuffer: process.env.NODE_ENV === "development", antialias: graphicsNow().aa !== "off", powerPreference: "high-performance", stencil: false, alpha: false }} style={{ position: "fixed", inset: 0 }}>
       <Suspense fallback={<SceneLoading />}>
         <WorldClock /><Physics gravity={[0, -18, 0]} timeStep={1 / 60}>
-          {qa ? <VehicleQAWorld /> : <><Sky /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="nightlights"><NightLights /></Boundary><Boundary name="shops"><Shops /></Boundary><Boundary name="enemies"><Enemies /></Boundary><SkidMarks /><Boundary name="gps"><GpsRuntime /></Boundary><Boundary name="ganga"><Ganga /></Boundary><Boundary name="animals"><Animals /></Boundary><Boundary name="petrol-pump"><PetrolPump /></Boundary><Boundary name="ground-cover"><GroundCover /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />{/* last, so a capture shot is applied after the gameplay camera; dormant without ?capture=1 */}<CinematicRig />
+          {qa ? <VehicleQAWorld /> : <><Sky /><Rain /><Ibl /><Boundary name="world"><World /></Boundary><Boundary name="npcs"><NPCs /></Boundary><Boundary name="traffic"><Traffic /></Boundary><Boundary name="props"><Props /></Boundary><Boundary name="nightlights"><NightLights /></Boundary><Boundary name="shops"><Shops /></Boundary><Boundary name="enemies"><Enemies /></Boundary><SkidMarks /><Boundary name="gps"><GpsRuntime /></Boundary><Boundary name="ganga"><Ganga /></Boundary><Boundary name="animals"><Animals /></Boundary><Boundary name="petrol-pump"><PetrolPump /></Boundary><Boundary name="ground-cover"><GroundCover /></Boundary><MissionMarkers /></>}<GroundCollider /><Player /><StreetLife />{!qa && <><PaanKiosk /><Boulevard /></>}<Vehicles /><StoryWorld /><FestivalChase /><Dust />{/* last, so a capture shot is applied after the gameplay camera; dormant without ?capture=1 */}<CinematicRig />
         </Physics>
       </Suspense>
       {process.env.NODE_ENV === "development" && <FrameProbe />}<Effects /><Bind /><Fps /><CameraFar /><RendererSettings /><AdaptiveResolution />

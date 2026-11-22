@@ -3,12 +3,13 @@
  * markings, buildings extruded from footprints with procedural facades, railway lines with sleepers/rails, level crossings at OSM
  * crossing nodes, stations/platforms, water, parks with trees. Tiled (250 m) and streamed around the player; colliders only nearby. */
 import { FacadeDetails } from "./FacadeDetails";
+import { registerWet } from "./weather";
+import { TreeSystem } from "./TreeSystem";
 import type { FacadeBuilding } from "./facadeKit";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { drawFacade, drawShopfronts, FACADE_CELL } from "./facadeArt";
-import { foliageGeometry, crownColour } from "./foliage";
 import { LAYER, OFFSET } from "./layers";
 import { ribbon, building, platformSlab, dashPolylines } from "./worldGeometry";
 import { RigidBody, TrimeshCollider, CuboidCollider } from "@react-three/rapier";
@@ -62,9 +63,11 @@ export function OsmCity({ geo }: { geo: GeoData }) {
     // One upload/build per interval, nearest first. Never unmount/rebuild retained neighbours.
     const now = performance.now(); if (pending.current.length && now >= nextAt.current) { mounted.current.push(pending.current.shift()!); setActive([...mounted.current]); nextAt.current = now + 40; }
   });
+  const treeAvoid = useMemo(() => [...clearZones(), ...extraClear], [tiles]); // eslint-disable-line react-hooks/exhaustive-deps -- extraClear is filled while bucketing tiles
   return <group name="osm-city">
     <GroundPlane />
     {active.map(k => <Boundary key={k} name={"tile " + k}><Tile id={k} t={tiles.get(k)!} collide={near.includes(k)} tex={tex} /></Boundary>)}
+    <Boundary name="trees"><TreeSystem geo={geo} avoid={treeAvoid} /></Boundary>
     <Crossings geo={geo} />
     <Stations geo={geo} />
     <OsmTrain geo={geo} />
@@ -156,11 +159,10 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     for (const g of [geo.road, geo.pavement, geo.marks, geo.kerbBlack, geo.roofBits, geo.tanks, geo.railBed, geo.railL, geo.sleepers, geo.shop, geo.platforms, ...geo.water, ...geo.parks.map(p => p.g), ...geo.styles.flatMap(s => [s.walls, s.roofs])]) g?.dispose();
   }, [geo]);
   const names = useMemo(() => t.roads.filter(r => r.name && r.pts.length > 1).filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6), [t]);
-  const trees = useMemo(() => { const out: [number, number][] = []; for (const p of geo.parks) { const bb = bbox(p.pts); const n = Math.min(40, Math.floor(polyArea(p.pts) / 400)); let tries = 0; while (out.length < n && tries++ < n * 6) { const x = bb.x0 + Math.random() * (bb.x1 - bb.x0), z = bb.z0 + Math.random() * (bb.z1 - bb.z0); if (inPoly([x, z], p.pts)) out.push([x, z]); } } return out; }, [geo]);
   void id;
   return <group name={"tile:" + id}>
-    {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial map={pave} roughness={0.95} color="#b8b0a2" polygonOffset polygonOffsetFactor={OFFSET.pavement} polygonOffsetUnits={OFFSET.pavement} /></mesh>}
-    {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} polygonOffset polygonOffsetFactor={OFFSET.road} polygonOffsetUnits={OFFSET.road} /></mesh>}
+    {geo.pavement && <mesh geometry={geo.pavement} receiveShadow><meshStandardMaterial ref={m => registerWet(m, 0.55)} map={pave} roughness={0.95} color="#b8b0a2" polygonOffset polygonOffsetFactor={OFFSET.pavement} polygonOffsetUnits={OFFSET.pavement} /></mesh>}
+    {geo.road && <mesh geometry={geo.road} receiveShadow><meshStandardMaterial ref={m => registerWet(m, 0.22)} map={asphalt} normalMap={asphaltN} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={0.9} polygonOffset polygonOffsetFactor={OFFSET.road} polygonOffsetUnits={OFFSET.road} /></mesh>}
     {geo.marks && quality !== "low" && <mesh geometry={geo.marks} receiveShadow><meshStandardMaterial color="#d8d2bb" roughness={0.75} polygonOffset polygonOffsetFactor={OFFSET.marks} polygonOffsetUnits={OFFSET.marks} /></mesh>}
     {geo.railBed && <mesh geometry={geo.railBed} receiveShadow><meshStandardMaterial color="#6e6a63" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.rail} polygonOffsetUnits={OFFSET.rail} /></mesh>}
     {geo.sleepers && <mesh geometry={geo.sleepers}><meshStandardMaterial color="#5a4632" roughness={1} /></mesh>}
@@ -173,7 +175,7 @@ function Tile({ id, t, collide, tex }: { id: string; tex: TileTex; t: { roads: G
     {geo.tanks && <mesh geometry={geo.tanks} castShadow><meshStandardMaterial color="#17181a" roughness={0.5} /></mesh>}
     {geo.water.map((g, i) => <mesh key={"w" + i} geometry={g}><meshStandardMaterial color="#2f6f8f" roughness={0.12} metalness={0.5} transparent opacity={0.92} /></mesh>)}
     {geo.parks.map((p, i) => <group key={"p" + i}><mesh geometry={p.g} receiveShadow><meshStandardMaterial map={grass} color="#8fb86a" roughness={1} polygonOffset polygonOffsetFactor={OFFSET.park} polygonOffsetUnits={OFFSET.park} /></mesh>{p.name && <Suspense fallback={null}><Text position={[(bbox(p.pts).x0 + bbox(p.pts).x1) / 2, 6, (bbox(p.pts).z0 + bbox(p.pts).z1) / 2]} fontSize={3} color="#ffd23f" outlineWidth={0.12} outlineColor="#0b0b0d" anchorX="center">{p.name}</Text></Suspense>}</group>)}
-    {collide && <FacadeDetails buildings={geo.facades} />}<Trees pts={trees} />
+    {collide && <FacadeDetails buildings={geo.facades} />}
     {quality !== "low" && names.map((r, i) => { const m = r.pts[Math.floor(r.pts.length / 2)]; return <group key={i} position={[m[0], 0, m[1]]}><mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.05, 0.06, 3.2]} /><meshStandardMaterial color="#2e5e3a" /></mesh><mesh position={[0, 3.2, 0]}><boxGeometry args={[Math.min(12, 1 + (r.name!.length) * 0.55), 1.1, 0.06]} /><meshStandardMaterial color="#1f6f45" /></mesh><Suspense fallback={null}><Text position={[0, 3.2, 0.05]} fontSize={0.7} color="#fff" anchorX="center" anchorY="middle">{lang === "english" ? r.name : (r.nameHi ?? r.name)}</Text></Suspense></group>; })}
     {collide && geo.platformBoxes.length > 0 && <RigidBody type="fixed" colliders={false}>{geo.platformBoxes.map((b, i) => <CuboidCollider key={i} args={b.half} position={b.c} rotation={[0, b.yaw, 0]} />)}</RigidBody>}
     {collide && <RigidBody type="fixed" colliders={false}>{geo.styles.map(s => { const pos = s.walls.getAttribute("position").array as Float32Array; const idx = s.walls.getIndex()!.array as Uint32Array | Uint16Array; return <TrimeshCollider key={s.style} args={[pos, idx instanceof Uint32Array ? idx : new Uint32Array(idx)]} />; })}</RigidBody>}
@@ -195,15 +197,6 @@ function roofKit(pts: [number, number][], h: number, id: number, roofBits: THREE
 function rectPoly(cx: number, cz: number, w: number, d: number, yaw: number): [number, number][] { const c = Math.cos(yaw), s = Math.sin(yaw); const pts: [number, number][] = []; for (const [u, v] of [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]) pts.push([cx + u * s + v * c, cz + u * c - v * s]); return pts; }
 function offset(pts: [number, number][], d: number): [number, number][] { return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; const dx = b[0] - a[0], dz = b[1] - a[1]; const l = Math.hypot(dx, dz) || 1; return [p[0] - dz / l * d, p[1] + dx / l * d]; }); }
 function inPoly(p: [number, number], poly: [number, number][]) { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const xi = poly[i][0], zi = poly[i][1], xj = poly[j][0], zj = poly[j][1]; if ((zi > p[1]) !== (zj > p[1]) && p[0] < (xj - xi) * (p[1] - zi) / (zj - zi) + xi) inside = !inside; } return inside; }
-
-function Trees({ pts }: { pts: [number, number][] }) {
-  const trunk = useMemo(() => { const m = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25, 0.4, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }), Math.max(1, pts.length)); const o = new THREE.Object3D(); pts.forEach((p, i) => { o.position.set(p[0], 1.7, p[1]); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.count = pts.length; m.castShadow = true; return m; }, [pts]);
-  const crown = useMemo(() => { const m = new THREE.InstancedMesh(foliageGeometry(), new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.96 }), Math.max(1, pts.length * 4)); const o = new THREE.Object3D(), c = new THREE.Color();
-    pts.forEach((p, i) => { const s0 = 0.8 + hash(i) * 0.6; for (let j = 0; j < 4; j++) { const a = j * 2.2 + i, r = j ? 1.5 * s0 : 0; o.position.set(p[0] + Math.cos(a) * r, 4.5 + (j % 3) * 0.7 * s0, p[1] + Math.sin(a) * r); const sc = (j ? 1.7 : 2.3) * s0; o.scale.set(sc, sc * 0.85, sc); o.rotation.y = a; o.updateMatrix(); m.setMatrixAt(i * 4 + j, o.matrix); m.setColorAt(i * 4 + j, c.set(crownColour(i + 3, j))); } });
-    m.count = pts.length * 4; m.castShadow = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; return m; }, [pts]);
-  useEffect(() => () => { trunk.geometry.dispose(); (trunk.material as THREE.Material).dispose(); crown.geometry.dispose(); (crown.material as THREE.Material).dispose(); }, [trunk, crown]);
-  return <><primitive object={trunk} /><primitive object={crown} /></>;
-}
 
 function Crossings({ geo }: { geo: GeoData }) {
   // orient each OSM level crossing by the nearest road segment direction; de-duplicate crossings closer than 12 m
