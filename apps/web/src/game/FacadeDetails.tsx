@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { nearFade } from "./nearFade";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { facadeParts, type FacadeBuilding, type FacadePart } from "./facadeKit";
@@ -7,6 +8,8 @@ import { playerPos } from "./refs";
 import { useStore } from "../state/store";
 const unit = new THREE.BoxGeometry(1,1,1);
 const materials = { trim: new THREE.MeshStandardMaterial({roughness:.78}), glass: new THREE.MeshStandardMaterial({color:"#c6d9da",metalness:.65,roughness:.19,envMapIntensity:1.2}), metal:new THREE.MeshStandardMaterial({metalness:.72,roughness:.4}), shade:new THREE.MeshStandardMaterial({roughness:.92}) };
+// No decoration may fill the screen when the chase camera ends up beside or inside it (see nearFade.ts).
+for (const m of Object.values(materials)) nearFade(m);
 function Batch({ parts, shadow, layer }: { parts: FacadePart[]; shadow: boolean; layer: keyof typeof materials }) {
   const mesh=useMemo(()=>{const m=new THREE.InstancedMesh(unit,materials[layer],Math.max(parts.length,1)),o=new THREE.Object3D(),color=new THREE.Color(); m.count=parts.length;parts.forEach((p,i)=>{o.position.set(...p.p);o.rotation.set(0,p.yaw,0);o.scale.set(...p.size);o.updateMatrix();m.setMatrixAt(i,o.matrix);m.setColorAt(i,color.set(p.color));});m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;m.computeBoundingSphere();m.castShadow=shadow;m.receiveShadow=true;return m;},[parts,shadow,layer]);
   useEffect(()=>()=>{mesh.dispose();},[mesh]);return <primitive object={mesh} />;

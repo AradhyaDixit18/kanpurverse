@@ -16,6 +16,7 @@ import { sfx } from "../audio/sfx";
 import * as THREE from "three";
 import { treeSites, blueprint, seasonFromMonth, SPECIES, type Season, type TreeSite } from "@kanpurverse/shared";
 import { foliageGeometry } from "./foliage";
+import { nearFade } from "./nearFade";
 import { useStore, useGraphics } from "../state/store";
 import { playerPos } from "./refs";
 import { weatherNow } from "./weather";
@@ -81,9 +82,9 @@ function res() {
   shared = {
     trunk, crown: foliageGeometry(2), fruit, card: new THREE.PlaneGeometry(1, 1),
     bark: sway(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 }), "trunk"),
-    leaves: sway(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95 }), "crown"),
-    cards: sway(new THREE.MeshStandardMaterial({ color: 0xffffff, map: leafTexture(), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9 }), "card"),
-    fruitMat: sway(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42 }), "fruit"),
+    leaves: nearFade(sway(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95 }), "crown"), 1.4),
+    cards: nearFade(sway(new THREE.MeshStandardMaterial({ color: 0xffffff, map: leafTexture(), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9 }), "card"), 1.4),
+    fruitMat: nearFade(sway(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42 }), "fruit"), 1.2),
   };
   return shared;
 }
